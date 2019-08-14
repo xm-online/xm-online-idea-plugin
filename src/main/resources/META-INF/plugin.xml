@@ -1,0 +1,35 @@
+<idea-plugin>
+    <id>com.icthh.xm.configuration</id>
+    <name>Support development using XM^online</name>
+    <vendor email="serhii.senko@xm-online.com" url="http://xm-online.com">XM^online</vendor>
+
+    <description><![CDATA[
+     Button for deploy LEP files.
+     Configuration autocomplete and validation and inspection.
+     UI for permission edit.
+     Autocomplete inside lep.
+    ]]></description>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    -->
+    <depends>com.intellij.modules.lang</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <projectService serviceImplementation="com.icthh.xm.actions.settings.SettingService"/>
+    </extensions>
+
+    <application-components>
+        <component>
+            <implementation-class>com.icthh.xm.ConfigurationApp</implementation-class>
+        </component>
+    </application-components>
+
+    <actions>
+        <group id="mainMenu" text="XM^online">
+            <add-to-group group-id="MainMenu" anchor="last"/>
+            <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSetting" text="Setting"/>
+        </group>
+    </actions>
+</idea-plugin>
