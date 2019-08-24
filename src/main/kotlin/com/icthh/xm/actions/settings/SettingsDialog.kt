@@ -41,7 +41,7 @@ class SettingsDialog(val project: Project): DialogWrapper(project) {
             //webView.engine.load(
                 //javaClass.getResource("/settings.html").toExternalForm()
             //)
-            webView.engine.load("http://localhost:8000/test")
+            webView.engine.load("http://localhost:8080")
             root.setMinSize(500.0, 500.0)
             root.getChildren().add(webView)
             fxPanel.scene = scene

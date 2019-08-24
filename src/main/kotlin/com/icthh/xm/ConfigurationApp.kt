@@ -1,26 +1,30 @@
 package com.icthh.xm
 
+
 import com.intellij.openapi.components.BaseComponent
-import com.sun.net.httpserver.HttpServer
-import java.net.InetSocketAddress
+import org.eclipse.jetty.server.Server
+import org.eclipse.jetty.server.session.SessionHandler
+import org.eclipse.jetty.servlet.ServletContextHandler
+import org.eclipse.jetty.servlet.ServletHolder
 
 class ConfigurationApp: BaseComponent {
 
+    var embeddedServer: Server? = null
+
     override fun initComponent() {
-        val server = HttpServer.create(InetSocketAddress(8000), 0)
-        server.createContext("/test") { t ->
-            val response = "<html><head></head><body><div>This is the response</div></body></html>"
-            t.sendResponseHeaders(200, 0)
-            val os = t.responseBody
-            os.write(response.toByteArray())
-            os.close()
-        }
-        server.executor = null
-        server.start()
+        val contextHandler = ServletContextHandler(null, "/", true, false)
+        contextHandler.setSessionHandler(SessionHandler())
+        contextHandler.addServlet(ServletHolder(AppServlet::class.java), "/*")
+        contextHandler.classLoader = AppUI::class.java.classLoader
+
+        val embeddedServer = Server(8080)
+        embeddedServer.setHandler(contextHandler)
+        embeddedServer.start()
+        this.embeddedServer = embeddedServer
     }
 
     override fun disposeComponent() {
-
+        embeddedServer?.stop()
     }
 
 }
