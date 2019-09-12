@@ -1,4 +1,4 @@
-package com.icthh.xm.units
+package com.icthh.xm.utils
 
 import com.icthh.xm.actions.settings.SettingService
 import com.intellij.ide.util.PropertiesComponent

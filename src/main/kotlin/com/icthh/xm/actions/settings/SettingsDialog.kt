@@ -1,59 +1,123 @@
 package com.icthh.xm.actions.settings
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.icthh.xm.units.getSettings
+import com.icthh.xm.actions.VaadinDialog
+import com.icthh.xm.utils.getSettings
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.DialogWrapper
-import javafx.application.Platform
-import javafx.application.Platform.runLater
-import javafx.embed.swing.JFXPanel
-import javafx.scene.Scene
-import javafx.scene.layout.VBox
-import javafx.scene.web.WebView
-import netscape.javascript.JSObject
+import com.vaadin.data.Binder
+import com.vaadin.icons.VaadinIcons
+import com.vaadin.navigator.View
+import com.vaadin.server.Sizeable.Unit.PERCENTAGE
+import com.vaadin.shared.ui.ValueChangeMode
+import com.vaadin.ui.*
+import com.vaadin.ui.themes.ValoTheme
 import java.awt.Dimension
-import javax.swing.JComponent
+import kotlin.reflect.KMutableProperty1
 
 
-class SettingsDialog(val project: Project): DialogWrapper(project) {
+class SettingsDialog(project: Project): VaadinDialog(
+    project, "settings", Dimension(700, 350), "Settings"
+) {
 
-    private val objectMapper = ObjectMapper()
-    private var settingService: SettingService = project.getSettings()
+    val data = ArrayList(project.getSettings().envs)
 
-    init {
-        init()
-        title = "Settings dialog"
-    }
+    override fun view(): View = object: View {
+        var env: EnvironmentSettings? = null
 
-    override fun createCenterPanel(): JComponent? {
-        val fxPanel = JFXPanel()
-        fxPanel.preferredSize = Dimension(500, 500)
+        override fun getViewComponent(): Component {
 
-        Platform.setImplicitExit(false)
+            val mainView = VerticalLayout()
+            mainView.id = "mainView"
 
+            val binder = Binder<EnvironmentSettings>()
 
+            val horizontalLayout = HorizontalLayout()
+            val envs = VerticalLayout()
+            val form = VerticalLayout()
+            horizontalLayout.addComponents(envs, form)
 
-        runLater {
-            val root = VBox()
-            val scene = Scene(root)
+            mainView.setSizeFull()
+            horizontalLayout.setSizeFull()
+            mainView.addComponent(horizontalLayout)
 
-            val webView = WebView()
-            //webView.engine.load(
-                //javaClass.getResource("/settings.html").toExternalForm()
-            //)
-            webView.engine.load("http://localhost:8080")
-            root.setMinSize(500.0, 500.0)
-            root.getChildren().add(webView)
-            fxPanel.scene = scene
+            envs.setMargin(false)
+            val buttons = HorizontalLayout()
+            envs.addComponent(buttons)
+            val add = Button()
+            add.setIcon(VaadinIcons.PLUS)
+            add.setStyleName(ValoTheme.BUTTON_LINK)
 
-            val window = webView.engine.executeScript("window") as JSObject
-            window.setMember("app", JSBridge(settingService) {
-                val data = objectMapper.readValue(it, SettingService::class.java)
-                settingService.envs = data.envs
-            })
+            val remove = Button()
+            remove.setIcon(VaadinIcons.MINUS)
+            remove.setStyleName(ValoTheme.BUTTON_LINK)
+            remove.isEnabled = false
+            buttons.addComponents(add, remove)
+            buttons.isSpacing = true
+            buttons.defaultComponentAlignment = Alignment.MIDDLE_LEFT
+
+            val envSelect = ListSelect<EnvironmentSettings>()
+            envSelect.setItems(data)
+            envSelect.setRows(12);
+            envSelect.setWidth(100.0f, PERCENTAGE);
+
+            envSelect.addValueChangeListener{
+                if (it.value.isNotEmpty() && !it.value.equals(setOf(env))) {
+                    envSelect.deselectAll()
+                    val last = it.value.last()
+                    env = last
+                    envSelect.select(last)
+                    binder.bean = last
+                }
+                remove.isEnabled = true
+            }
+            envs.addComponent(envSelect)
+
+            add.addClickListener {
+                var i = data.size
+                i++
+                while(data.filter { it.name == "env ${i}" }.isNotEmpty()) {
+                    i++
+                }
+                data.add(EnvironmentSettings(name = "env ${i}"))
+                envSelect.dataProvider.refreshAll()
+            }
+            remove.addClickListener {
+                data.remove(env)
+                envSelect.dataProvider.refreshAll()
+                envSelect.deselectAll()
+            }
+
+            val name = TextField("Name")
+            val xmUrl = TextField("Xm base url (example: http://xm-online.com)")
+            val login = TextField("Super admin login")
+            val password = PasswordField("Super admin password")
+            bindField(binder, name, EnvironmentSettings::name)
+            bindField(binder, xmUrl, EnvironmentSettings::xmUrl)
+            bindField(binder, login, EnvironmentSettings::xmSuperAdminLogin)
+            bindField(binder, password, EnvironmentSettings::xmSuperAdminPassword)
+            name.setSizeFull()
+            xmUrl.setSizeFull()
+            login.setSizeFull()
+            password.setSizeFull()
+            form.addComponents(name, xmUrl, login, password)
+
+            name.valueChangeMode = ValueChangeMode.EAGER
+            binder.addValueChangeListener {
+                envSelect.dataProvider.refreshAll()
+            }
+
+            mainView.setMargin(false)
+            return mainView
         }
 
-        return fxPanel
+        private fun bindField(
+            binder: Binder<EnvironmentSettings>,
+            name: AbstractField<String>,
+            nameProperty: KMutableProperty1<EnvironmentSettings, String>
+        ) {
+            binder.bind(name, nameProperty.getter, nameProperty.setter)
+        }
     }
 
+
 }
+

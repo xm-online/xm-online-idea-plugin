@@ -6,7 +6,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 
 @State(name = "xmonline.Settings")
 data class SettingService(
-    var envs: List<EnvironmentSettings> = ArrayList()
+    var envs: MutableList<EnvironmentSettings> = ArrayList()
 
 ) : PersistentStateComponent<SettingService> {
 
@@ -18,10 +18,12 @@ data class SettingService(
 }
 
 data class EnvironmentSettings(
-    var name: String?,
-    var xmUrl: String?,
-    var xmSuperAdminLogin: String?,
-    var xmSuperAdminPassword: String?
-)
+    var name: String = "",
+    var xmUrl: String = "",
+    var xmSuperAdminLogin: String = "",
+    var xmSuperAdminPassword: String = ""
+) {
+    override fun toString() = name
+}
 
 

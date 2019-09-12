@@ -1,10 +1,8 @@
 package com.icthh.xm.actions.settings
 
-import com.icthh.xm.units.getProperties
-import com.icthh.xm.units.getSettings
+import com.icthh.xm.utils.getSettings
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.components.ServiceManager
 
 class MainSetting : AnAction() {
 
@@ -12,6 +10,10 @@ class MainSetting : AnAction() {
         val project = e.project ?: return
         val dialog = SettingsDialog(project)
         dialog.show()
+        if (dialog.isOK) {
+            project.getSettings().envs.clear()
+            project.getSettings().envs.addAll(dialog.data)
+        }
     }
 
     override fun update(e: AnActionEvent) {
