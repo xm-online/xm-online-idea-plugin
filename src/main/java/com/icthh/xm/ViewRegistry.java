@@ -10,7 +10,7 @@ public class ViewRegistry {
 
     private static final Map<String, View> registry = new ConcurrentHashMap<>();
 
-    public static void registry(String viewName, View view) {
+    public static void reggiistry(String viewName, View view) {
         registry.put(viewName, view);
     }
 

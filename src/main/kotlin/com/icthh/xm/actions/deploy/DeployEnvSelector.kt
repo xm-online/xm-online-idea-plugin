@@ -1,6 +1,5 @@
 package com.icthh.xm.actions.deploy
 
-import com.icthh.xm.actions.settings.SettingService
 import com.icthh.xm.utils.getSettings
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -41,7 +40,7 @@ class DeployEnvSelector() : ComboBoxAction() {
 
     private fun updateSelectName() {
         val settings = project.getSettings()
-        val name = settings.envs.find { it.id == settings.selectedEnv }?.name
+        val name = settings.selected()?.name
         templatePresentation.text = name ?: "Select deploy env"
     }
 
