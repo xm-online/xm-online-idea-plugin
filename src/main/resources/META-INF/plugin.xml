@@ -31,10 +31,15 @@
             <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSetting" text="Setting"/>
         </group>
 
+        <action id="deployToEnvSelector" class="com.icthh.xm.actions.deploy.DeployEnvSelector"
+                text="Deploy envs">
+            <add-to-group group-id="MainToolBar" anchor="before" relative-to-action="deployToEnv"/>
+        </action>
         <action id="deployToEnv" class="com.icthh.xm.actions.deploy.DeployToEnv"
                 text="Deploy" icon="PluginIcons.DEPLOY">
-            <add-to-group group-id="ToolsMenu" anchor="first"/>
+            <add-to-group group-id="MainToolBar" anchor="last"/>
         </action>
+
 
     </actions>
 </idea-plugin>
