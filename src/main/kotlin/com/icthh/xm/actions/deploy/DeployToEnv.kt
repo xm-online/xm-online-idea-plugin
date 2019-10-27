@@ -1,5 +1,6 @@
 package com.icthh.xm.actions.deploy
 
+import com.icthh.xm.utils.getSettings
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -15,6 +16,6 @@ class DeployToEnv() : AnAction() {
 
     override fun update(anActionEvent: AnActionEvent) {
         val project = anActionEvent.project
-        anActionEvent.presentation.isEnabled = project != null
+        anActionEvent.presentation.isEnabled = project != null && project.getSettings().selected() != null
     }
 }

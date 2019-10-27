@@ -12,8 +12,6 @@ class SettingService: PersistentStateComponent<SettingService> {
 
     var envs: MutableList<EnvironmentSettings> = ArrayList()
     var selectedEnv: String? = null
-    var trackChanges: Boolean = false
-    var editedFiles: MutableMap<String, String> = HashMap()
 
     override fun getState() = this
 
@@ -35,6 +33,9 @@ class EnvironmentSettings {
     var xmUrl: String = ""
     var xmSuperAdminLogin: String = ""
     var xmSuperAdminPassword: String = ""
+
+    var trackChanges: Boolean = false
+    var editedFiles: MutableMap<String, String> = HashMap()
 
     override fun toString() = name
 

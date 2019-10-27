@@ -1,6 +1,5 @@
 package com.icthh.xm.actions.deploy
 
-import com.icthh.xm.actions.settings.SettingsDialog
 import com.icthh.xm.actions.shared.ConfirmDialog
 import com.icthh.xm.utils.getSettings
 import com.intellij.openapi.actionSystem.AnAction
@@ -16,14 +15,16 @@ class StopTrackChanges() : AnAction() {
         val dialog = ConfirmDialog("Are you sure?", "Information about changes will be lost.")
         dialog.show()
         if (dialog.isOK) {
-            project.getSettings().trackChanges = false
-            project.getSettings().editedFiles.clear()
+            val settings = project.getSettings().selected()
+            settings?.trackChanges = false
+            settings?.editedFiles?.clear()
         }
     }
 
     override fun update(anActionEvent: AnActionEvent) {
         val project = anActionEvent.project
-        anActionEvent.presentation.isEnabled = project != null
-        anActionEvent.presentation.isVisible = project?.getSettings()?.trackChanges ?: false
+        val settings = project?.getSettings()?.selected()
+        anActionEvent.presentation.isEnabled = project != null && settings != null
+        anActionEvent.presentation.isVisible = settings?.trackChanges ?: false
     }
 }

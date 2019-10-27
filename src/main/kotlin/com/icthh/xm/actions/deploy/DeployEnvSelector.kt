@@ -24,7 +24,7 @@ class DeployEnvSelector() : AnAction(), CustomComponentAction {
 
     override fun createCustomComponent(presentation: Presentation): JComponent {
         comboBox.addItemListener {
-            project?.getSettings()?.select(it.item as EnvironmentSettings?)
+            project?.getSettings()?.select(comboBox.selectedItem as EnvironmentSettings?)
         }
         val placeholder = "Select deploy environment"
         setPlaceholder(placeholder)
@@ -86,7 +86,7 @@ class DeployEnvSelector() : AnAction(), CustomComponentAction {
             return
         }
         this.envs.clear()
-        this.envs.addAll(envs);
+        this.envs.addAll(envs)
         val selected = project.getSettings().selected()
         comboBox.removeAllItems()
         envs.forEach { comboBox.addItem(it) }
