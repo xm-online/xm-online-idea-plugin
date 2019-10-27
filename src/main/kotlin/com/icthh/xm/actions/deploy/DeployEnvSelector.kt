@@ -20,13 +20,15 @@ class DeployEnvSelector() : AnAction(), CustomComponentAction {
 
     var project: Project? = null
     val comboBox = ComboBox<EnvironmentSettings>()
-    var envs: List<EnvironmentSettings> = emptyList()
+    var envs: MutableList<EnvironmentSettings> = ArrayList()
 
     override fun createCustomComponent(presentation: Presentation): JComponent {
         comboBox.addItemListener {
             project?.getSettings()?.select(it.item as EnvironmentSettings?)
         }
-        setPlaceholder("Select deploy environment")
+        val placeholder = "Select deploy environment"
+        setPlaceholder(placeholder)
+        comboBox.toolTipText = placeholder
         val dimension = Dimension(150, 30)
         //comboBox.maximumSize = dimension
         comboBox.preferredSize = dimension
@@ -80,9 +82,11 @@ class DeployEnvSelector() : AnAction(), CustomComponentAction {
 
         val envs = project.getSettings().envs
         if (this.envs.equals(envs)) {
+            comboBox.updateUI()
             return
         }
-        this.envs = envs;
+        this.envs.clear()
+        this.envs.addAll(envs);
         val selected = project.getSettings().selected()
         comboBox.removeAllItems()
         envs.forEach { comboBox.addItem(it) }

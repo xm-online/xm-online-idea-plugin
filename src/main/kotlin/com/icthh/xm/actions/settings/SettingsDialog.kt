@@ -68,6 +68,7 @@ class SettingsDialog(project: Project): VaadinDialog(
                     binder.bean = last
                 }
                 remove.isEnabled = true
+                form.isEnabled = true
             }
             envs.addComponent(envSelect)
 
@@ -83,9 +84,14 @@ class SettingsDialog(project: Project): VaadinDialog(
                 envSelect.dataProvider.refreshAll()
             }
             remove.addClickListener {
-                data.remove(env)
+                data.removeAll(envSelect.value)
                 envSelect.dataProvider.refreshAll()
                 envSelect.deselectAll()
+                if (data.isEmpty()) {
+                    remove.isEnabled = false
+                }
+                binder.bean = null
+                form.isEnabled = false
             }
 
             val name = TextField("Name")
@@ -108,6 +114,7 @@ class SettingsDialog(project: Project): VaadinDialog(
             }
 
             mainView.setMargin(false)
+            form.isEnabled = false
             return mainView
         }
 
