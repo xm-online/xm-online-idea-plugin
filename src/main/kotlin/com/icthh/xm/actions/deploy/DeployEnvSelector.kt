@@ -1,33 +1,75 @@
 package com.icthh.xm.actions.deploy
 
+import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.utils.getSettings
+import com.icthh.xm.utils.log
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.actionSystem.ex.ComboBoxAction
+import com.intellij.openapi.actionSystem.Presentation
+import com.intellij.openapi.actionSystem.ex.CustomComponentAction
 import com.intellij.openapi.project.Project
-import javax.swing.JComponent
+import com.intellij.openapi.ui.ComboBox
+import java.awt.Component
+import java.awt.Dimension
+import javax.swing.*
+import javax.swing.plaf.basic.BasicComboBoxRenderer
 
-class DeployEnvSelector() : ComboBoxAction() {
 
-    lateinit var project: Project
+class DeployEnvSelector() : AnAction(), CustomComponentAction {
 
-    override fun createPopupActionGroup(button: JComponent): DefaultActionGroup {
-        val actions = project.getSettings().envs.map {object: AnAction(it.name) {
-            override fun actionPerformed(e: AnActionEvent) {
-                project.getSettings().selectedEnv = it.id
-                updateSelectName()
-            }
-        }}
-        val actionGroup = DefaultActionGroup(actions)
-        return actionGroup
+    var project: Project? = null
+    val comboBox = ComboBox<EnvironmentSettings>()
+    var envs: List<EnvironmentSettings> = emptyList()
+
+    override fun createCustomComponent(presentation: Presentation): JComponent {
+        comboBox.addItemListener {
+            project?.getSettings()?.select(it.item as EnvironmentSettings?)
+        }
+        setPlaceholder("Select deploy environment")
+        val dimension = Dimension(150, 30)
+        //comboBox.maximumSize = dimension
+        comboBox.preferredSize = dimension
+        //comboBox.size = dimension
+        //comboBox.minimumSize = dimension
+        return comboBox
     }
 
-    override fun actionPerformed(anActionEvent: AnActionEvent) {
+    private fun setPlaceholder(placeholder: String) {
+        val renderer = comboBox.renderer
+        comboBox.renderer = object : ListCellRenderer<EnvironmentSettings> {
+            override fun getListCellRendererComponent(
+                list: JList<out EnvironmentSettings>?,
+                value: EnvironmentSettings?,
+                index: Int,
+                isSelected: Boolean,
+                cellHasFocus: Boolean
+            ): Component {
+                val label = JLabel()
+                if (index == -1 && value == null) {
+                    label.setText(placeholder)
+                    return label
+                }
+
+                val jComponent = renderer.getListCellRendererComponent(
+                    list,
+                    value,
+                    index,
+                    isSelected,
+                    cellHasFocus
+                ) as JComponent
+                jComponent.toolTipText = value.toString()
+                return jComponent
+            }
+        }
+    }
+
+    override fun actionPerformed(event: AnActionEvent) {
 
     }
 
     override fun update(anActionEvent: AnActionEvent) {
+        log.info("update: ${anActionEvent}")
         val project = anActionEvent.project
         anActionEvent.presentation.isEnabled = project != null
         if (project != null) {
@@ -35,13 +77,17 @@ class DeployEnvSelector() : ComboBoxAction() {
         } else {
             return
         }
-        updateSelectName()
-    }
 
-    private fun updateSelectName() {
-        val settings = project.getSettings()
-        val name = settings.selected()?.name
-        templatePresentation.text = name ?: "Select deploy env"
+        val envs = project.getSettings().envs
+        if (this.envs.equals(envs)) {
+            return
+        }
+        this.envs = envs;
+        val selected = project.getSettings().selected()
+        comboBox.removeAllItems()
+        envs.forEach { comboBox.addItem(it) }
+        comboBox.selectedItem = selected
+        comboBox.updateUI()
     }
 
 }

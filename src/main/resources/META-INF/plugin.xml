@@ -28,7 +28,7 @@
     <actions>
         <group id="mainMenu" text="XM^online">
             <add-to-group group-id="MainMenu" anchor="last"/>
-            <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSetting" text="Setting"/>
+            <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSettingAction" text="Setting"/>
         </group>
 
         <action id="deployToEnvSelector" class="com.icthh.xm.actions.deploy.DeployEnvSelector"
@@ -37,6 +37,14 @@
         </action>
         <action id="deployToEnv" class="com.icthh.xm.actions.deploy.DeployToEnv"
                 text="Deploy" icon="PluginIcons.DEPLOY">
+            <add-to-group group-id="MainToolBar" anchor="last"/>
+        </action>
+        <action id="trackChanges" class="com.icthh.xm.actions.deploy.TrackChanges"
+                text="Track changes" icon="PluginIcons.TRACK_CHANGES">
+            <add-to-group group-id="MainToolBar" anchor="last"/>
+        </action>
+        <action id="stopTrackChanges" class="com.icthh.xm.actions.deploy.StopTrackChanges"
+                text="Stop track changes" icon="PluginIcons.STOP_TRACK_CHANGES">
             <add-to-group group-id="MainToolBar" anchor="last"/>
         </action>
 

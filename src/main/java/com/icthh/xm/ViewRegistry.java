@@ -14,6 +14,10 @@ public class ViewRegistry {
         registry.put(viewName, view);
     }
 
+    public static void unregistry(String viewName) {
+        registry.remove(viewName);
+    }
+
     public static void fillNavigator(Navigator navigator) {
         registry.forEach(navigator::addView);
     }

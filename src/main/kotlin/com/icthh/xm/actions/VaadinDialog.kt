@@ -1,6 +1,7 @@
 package com.icthh.xm.actions
 
 import com.icthh.xm.ViewRegistry.registry
+import com.icthh.xm.ViewRegistry.unregistry
 import com.icthh.xm.serverPort
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
@@ -43,5 +44,10 @@ abstract class VaadinDialog(val project: Project,
     }
 
     abstract fun view() : View
+
+    override fun dispose() {
+        super.dispose()
+        unregistry(viewName)
+    }
 
 }

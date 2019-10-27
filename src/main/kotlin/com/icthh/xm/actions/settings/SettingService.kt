@@ -12,6 +12,8 @@ class SettingService: PersistentStateComponent<SettingService> {
 
     var envs: MutableList<EnvironmentSettings> = ArrayList()
     var selectedEnv: String? = null
+    var trackChanges: Boolean = false
+    var editedFiles: MutableMap<String, String> = HashMap()
 
     override fun getState() = this
 
@@ -20,18 +22,37 @@ class SettingService: PersistentStateComponent<SettingService> {
     }
 
     fun selected() = envs.find { it.id == selectedEnv }
+
+    fun select(settings: EnvironmentSettings?) {
+        selectedEnv = settings?.id
+    }
 }
 
 class EnvironmentSettings {
 
-    val id: String = UUID.randomUUID().toString()
+    var id: String = UUID.randomUUID().toString()
     var name: String = ""
     var xmUrl: String = ""
     var xmSuperAdminLogin: String = ""
     var xmSuperAdminPassword: String = ""
-    var editedFiels: Map<String, String> = HashMap()
 
     override fun toString() = name
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as EnvironmentSettings
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
 }
 
 

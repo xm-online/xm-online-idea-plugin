@@ -77,7 +77,9 @@ class SettingsDialog(project: Project): VaadinDialog(
                 while(data.filter { it.name == "env ${i}" }.isNotEmpty()) {
                     i++
                 }
-                data.add(EnvironmentSettings(name = "env ${i}"))
+                val element = EnvironmentSettings()
+                element.name = "env ${i}"
+                data.add(element)
                 envSelect.dataProvider.refreshAll()
             }
             remove.addClickListener {
@@ -90,10 +92,10 @@ class SettingsDialog(project: Project): VaadinDialog(
             val xmUrl = TextField("Xm base url (example: http://xm-online.com)")
             val login = TextField("Super admin login")
             val password = PasswordField("Super admin password")
-            bindField(binder, name, EnvironmentSettings::name)
-            bindField(binder, xmUrl, EnvironmentSettings::xmUrl)
-            bindField(binder, login, EnvironmentSettings::xmSuperAdminLogin)
-            bindField(binder, password, EnvironmentSettings::xmSuperAdminPassword)
+            binder.bindField(name, EnvironmentSettings::name)
+            binder.bindField(xmUrl, EnvironmentSettings::xmUrl)
+            binder.bindField(login, EnvironmentSettings::xmSuperAdminLogin)
+            binder.bindField(password, EnvironmentSettings::xmSuperAdminPassword)
             name.setSizeFull()
             xmUrl.setSizeFull()
             login.setSizeFull()
@@ -109,12 +111,11 @@ class SettingsDialog(project: Project): VaadinDialog(
             return mainView
         }
 
-        private fun bindField(
-            binder: Binder<EnvironmentSettings>,
+        private fun Binder<EnvironmentSettings>.bindField(
             name: AbstractField<String>,
             nameProperty: KMutableProperty1<EnvironmentSettings, String>
         ) {
-            binder.bind(name, nameProperty.getter, nameProperty.setter)
+            bind(name, nameProperty.getter, nameProperty.setter)
         }
     }
 
