@@ -35,7 +35,7 @@ class EnvironmentSettings {
     var xmSuperAdminPassword: String = ""
 
     var trackChanges: Boolean = false
-    var editedFiles: MutableMap<String, String> = HashMap()
+    var editedFiles: MutableMap<String, FileState> = HashMap()
 
     override fun toString() = name
 
@@ -56,4 +56,12 @@ class EnvironmentSettings {
 
 }
 
+class FileState {
+    constructor()
+    constructor(sha256: String) {
+        this.sha256 = sha256
+    }
 
+    var sha256: String = ""
+    var isNotified: Boolean = false
+}
