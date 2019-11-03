@@ -13,19 +13,23 @@ fun Project.getSettings() = ServiceManager.getService(this, SettingService::clas
 
 fun Project.isConfigProject() = true
 
-fun Project.getConfigRootDir() = this.basePath
+fun Project.getConfigRootDir() = this.basePath + "/config"
 
 fun VirtualFile.getTenantRelatedPath(project: Project): String {
-    return getPathRelatedTo(project, "/config/tenants")
+    return getPathRelatedTo(project, "/tenants")
 }
 
 fun VirtualFile.getConfigRelatedPath(project: Project): String {
-    return getPathRelatedTo(project, "/config")
+    return getPathRelatedTo(project)
+}
+
+fun VirtualFile.isConfigFile(project: Project): Boolean {
+    return this.path.startsWith(project.getConfigRootDir())
 }
 
 private fun VirtualFile.getPathRelatedTo(
     project: Project,
-    root: String
+    root: String = ""
 ): String {
     var vFile = this;
 

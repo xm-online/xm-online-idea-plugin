@@ -3,10 +3,7 @@ package com.icthh.xm.actions.deploy
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.FileState
 import com.icthh.xm.service.ExternalConfigService
-import com.icthh.xm.utils.getConfigRelatedPath
-import com.icthh.xm.utils.getSettings
-import com.icthh.xm.utils.isTrue
-import com.icthh.xm.utils.log
+import com.icthh.xm.utils.*
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.NotificationType.ERROR
@@ -35,7 +32,7 @@ class TrackChanges() : AnAction() {
         settings ?: return
         settings.trackChanges = true
 
-        val basePath = project.basePath + "/config"
+        val basePath = project.getConfigRootDir()
         walk(Paths.get(basePath)).use{
             it.filter { !it.isDirectory() }.forEach{
                 settings.editedFiles.put(it.systemIndependentPath, FileState(sha256Hex(it.inputStream())))
@@ -57,7 +54,7 @@ class TrackChanges() : AnAction() {
 
     private fun addFileToTrackChanges(anActionEvent: AnActionEvent, settings: EnvironmentSettings ,project: Project) {
         val vFile = anActionEvent.getData(VIRTUAL_FILE)
-        if (vFile == null || vFile.isDirectory || !settings.trackChanges) {
+        if (vFile == null || vFile.isDirectory || !settings.trackChanges || !vFile.isConfigFile(project)) {
             return
         }
 
