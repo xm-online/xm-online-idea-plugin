@@ -15,7 +15,7 @@ class DeployToEnv() : AnAction() {
     }
 
     override fun update(anActionEvent: AnActionEvent) {
-        val project = anActionEvent.project
-        anActionEvent.presentation.isEnabled = project != null && project.getSettings().selected() != null
+        val project = anActionEvent.project ?: return
+        anActionEvent.presentation.isEnabled = project.getSettings().selected()?.trackChanges ?: false
     }
 }

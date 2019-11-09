@@ -17,6 +17,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.icthh.xm.actions.settings.SettingService"/>
+        <projectService serviceImplementation="com.icthh.xm.service.ExternalConfigService"/>
     </extensions>
 
     <application-components>
@@ -47,6 +48,13 @@
                 text="Stop track changes" icon="PluginIcons.STOP_TRACK_CHANGES">
             <add-to-group group-id="MainToolBar" anchor="last"/>
         </action>
+
+        <action id="refreshChanges" class="com.icthh.xm.actions.deploy.RefreshChanges"
+                text="Refresh configs" icon="PluginIcons.REFRESH">
+            <add-to-group group-id="MainToolBar" anchor="last"/>
+        </action>
+
+
 
 
     </actions>

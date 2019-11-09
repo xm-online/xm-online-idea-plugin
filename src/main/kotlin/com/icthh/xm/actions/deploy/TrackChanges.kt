@@ -2,10 +2,9 @@ package com.icthh.xm.actions.deploy
 
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.FileState
-import com.icthh.xm.service.ExternalConfigService
+import com.icthh.xm.actions.shared.showNotification
+import com.icthh.xm.service.NotFoundException
 import com.icthh.xm.utils.*
-import com.intellij.notification.Notification
-import com.intellij.notification.NotificationType
 import com.intellij.notification.NotificationType.ERROR
 import com.intellij.notification.NotificationType.WARNING
 import com.intellij.openapi.actionSystem.AnAction
@@ -23,7 +22,6 @@ import java.nio.file.Paths
 
 class TrackChanges() : AnAction() {
 
-    val externalConfigService = ExternalConfigService()
 
     override fun actionPerformed(anActionEvent: AnActionEvent) {
         val project = anActionEvent.project
@@ -52,7 +50,8 @@ class TrackChanges() : AnAction() {
         }
     }
 
-    private fun addFileToTrackChanges(anActionEvent: AnActionEvent, settings: EnvironmentSettings ,project: Project) {
+    private fun addFileToTrackChanges(anActionEvent: AnActionEvent, settings: EnvironmentSettings, project: Project) {
+        val externalConfigService = project.getExternalConfigService()
         val vFile = anActionEvent.getData(VIRTUAL_FILE)
         if (vFile == null || vFile.isDirectory || !settings.trackChanges || !vFile.isConfigFile(project)) {
             return
@@ -75,17 +74,17 @@ class TrackChanges() : AnAction() {
                 val path = vFile.getConfigRelatedPath(project)
                 val fileContent = externalConfigService.getConfigFile(settings, path)
                 if (!sha256Hex.equals(sha256Hex(fileContent))) {
-                    showNotification(
-                        project, "WARNING", "File ${vFile.name} difference with you local.",
+                    project.showNotification("WARNING", "File ${vFile.name} difference with you local.",
                         "When you deploy config to server you will rewrite it to you version and can LOST changes from other people",
                         WARNING
                     )
                 }
                 fileState.isNotified = true
+            } catch (nf: NotFoundException) {
+                log.info("File ${vFile.name} not found on config server")
             } catch (e: Exception) {
                 log.error("Error compare config file ", e)
-                showNotification(
-                    project, "ERROR", "Error get ${vFile.name} from config server",
+                project.showNotification("ERROR", "Error get ${vFile.name} from config server",
                     e.message, ERROR
                 )
             }
@@ -93,12 +92,4 @@ class TrackChanges() : AnAction() {
 
     }
 
-    private fun showNotification(project: Project?, dispayId: String, title: String, content: String?,
-                                 notificationType: NotificationType
-    ) {
-        getApplication().runReadAction {
-            val notification = Notification(dispayId, title, content ?: "", notificationType)
-            notification.notify(project)
-        }
-    }
 }

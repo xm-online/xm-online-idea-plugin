@@ -31,6 +31,8 @@ class EnvironmentSettings {
     var id: String = UUID.randomUUID().toString()
     var name: String = ""
     var xmUrl: String = ""
+    get() = field.trim('/')
+
     var xmSuperAdminLogin: String = ""
     var xmSuperAdminPassword: String = ""
 
