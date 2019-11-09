@@ -16,6 +16,7 @@ import com.intellij.util.io.inputStream
 import com.intellij.util.io.isDirectory
 import com.intellij.util.io.systemIndependentPath
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
+import java.lang.System.currentTimeMillis
 import java.nio.file.Files.walk
 import java.nio.file.Paths
 
@@ -59,7 +60,7 @@ class TrackChanges() : AnAction() {
 
         val editedFiles = settings.editedFiles
         var fileState = editedFiles.get(vFile.path)
-        if (fileState?.isNotified.isTrue()) {
+        if (fileState?.isNotified.isTrue() || settings.wasNotifiedAtLastTime()) {
             return
         }
 
@@ -74,22 +75,27 @@ class TrackChanges() : AnAction() {
                 val path = vFile.getConfigRelatedPath(project)
                 val fileContent = externalConfigService.getConfigFile(settings, path)
                 if (!sha256Hex.equals(sha256Hex(fileContent))) {
-                    project.showNotification("WARNING", "File ${vFile.name} difference with you local.",
-                        "When you deploy config to server you will rewrite it to you version and can LOST changes from other people",
-                        WARNING
-                    )
+                    project.showNotification("WARNING", "File ${vFile.name} difference with you local.", WARNING) {
+                        "When you deploy config to server you will rewrite it to you version and can LOST changes from other people"
+                    }
                 }
                 fileState.isNotified = true
             } catch (nf: NotFoundException) {
                 log.info("File ${vFile.name} not found on config server")
+                fileState.isNotified = true
             } catch (e: Exception) {
+                settings.lastTimeTryToNotifyAboutDifference = currentTimeMillis()
                 log.error("Error compare config file ", e)
-                project.showNotification("ERROR", "Error get ${vFile.name} from config server",
-                    e.message, ERROR
-                )
+                project.showNotification("ERROR", "Error get ${vFile.name} from config server", ERROR) {
+                    "${(e.message ?: "")} ${settings.lastTimeTryToNotifyAboutDifference}"
+                }
             }
         }
 
+    }
+
+    private fun EnvironmentSettings.wasNotifiedAtLastTime(): Boolean {
+      return currentTimeMillis() - lastTimeTryToNotifyAboutDifference < 3600_000
     }
 
 }

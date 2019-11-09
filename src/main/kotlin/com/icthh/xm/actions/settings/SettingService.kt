@@ -39,6 +39,8 @@ class EnvironmentSettings {
     var trackChanges: Boolean = false
     var editedFiles: MutableMap<String, FileState> = HashMap()
 
+    var lastTimeTryToNotifyAboutDifference: Long = 0
+
     override fun toString() = name
 
     override fun equals(other: Any?): Boolean {
