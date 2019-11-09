@@ -2,6 +2,7 @@ package com.icthh.xm.actions.deploy
 
 import com.icthh.xm.actions.shared.ConfirmDialog
 import com.icthh.xm.utils.getSettings
+import com.icthh.xm.utils.updateSupported
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 
@@ -22,6 +23,8 @@ class StopTrackChanges() : AnAction() {
     }
 
     override fun update(anActionEvent: AnActionEvent) {
+        anActionEvent.updateSupported() ?: return
+
         val project = anActionEvent.project
         val settings = project?.getSettings()?.selected()
         anActionEvent.presentation.isEnabled = project != null && settings != null

@@ -3,17 +3,19 @@ package com.icthh.xm.actions.deploy
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.utils.getSettings
 import com.icthh.xm.utils.log
+import com.icthh.xm.utils.updateSupported
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.ex.CustomComponentAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import java.awt.Component
 import java.awt.Dimension
-import javax.swing.*
-import javax.swing.plaf.basic.BasicComboBoxRenderer
+import javax.swing.JComponent
+import javax.swing.JLabel
+import javax.swing.JList
+import javax.swing.ListCellRenderer
 
 
 class DeployEnvSelector() : AnAction(), CustomComponentAction {
@@ -71,6 +73,8 @@ class DeployEnvSelector() : AnAction(), CustomComponentAction {
     }
 
     override fun update(anActionEvent: AnActionEvent) {
+        anActionEvent.updateSupported() ?: return
+
         log.info("update: ${anActionEvent}")
         val project = anActionEvent.project
         anActionEvent.presentation.isEnabled = project != null

@@ -40,8 +40,9 @@ class TrackChanges() : AnAction() {
     }
 
     override fun update(anActionEvent: AnActionEvent) {
-        val project = anActionEvent.project
+        anActionEvent.updateSupported() ?: return
 
+        val project = anActionEvent.project
         val settings = project?.getSettings()?.selected()
         anActionEvent.presentation.isEnabled = project != null && settings != null
         anActionEvent.presentation.isVisible = settings?.trackChanges?.not() ?: true

@@ -18,6 +18,8 @@
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.icthh.xm.actions.settings.SettingService"/>
         <projectService serviceImplementation="com.icthh.xm.service.ExternalConfigService"/>
+        <iconProvider implementation="com.icthh.xm.extensions.ConfigIconProvider" order="first" />
+        <treeStructureProvider implementation="com.icthh.xm.extensions.TreeProvider" />
     </extensions>
 
     <application-components>
@@ -27,7 +29,7 @@
     </application-components>
 
     <actions>
-        <group id="mainMenu" text="XM^online">
+        <group id="mainMenu" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup">
             <add-to-group group-id="MainMenu" anchor="last"/>
             <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSettingAction" text="Setting"/>
         </group>

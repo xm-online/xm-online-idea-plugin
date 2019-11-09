@@ -4,6 +4,7 @@ import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.utils.getExternalConfigService
 import com.icthh.xm.utils.getSettings
+import com.icthh.xm.utils.updateSupported
 import com.intellij.notification.NotificationType.ERROR
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -34,6 +35,7 @@ class RefreshChanges() : AnAction() {
     }
 
     override fun update(anActionEvent: AnActionEvent) {
+        anActionEvent.updateSupported() ?: return
         anActionEvent.presentation.isEnabled = anActionEvent.project?.getSettings()?.selected() != null
     }
 }

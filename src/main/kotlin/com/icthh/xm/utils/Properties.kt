@@ -3,6 +3,8 @@ package com.icthh.xm.utils
 import com.icthh.xm.actions.settings.SettingService
 import com.icthh.xm.service.ExternalConfigService
 import com.intellij.ide.util.PropertiesComponent
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -14,6 +16,8 @@ fun Project.getSettings() = ServiceManager.getService(this, SettingService::clas
 fun Project.getExternalConfigService() = ServiceManager.getService(this, ExternalConfigService::class.java)
 
 fun Project?.isConfigProject() = this != null
+
+fun Project?.isSupportProject() = true
 
 fun Project.getConfigRootDir() = this.basePath + "/config"
 
@@ -43,3 +47,8 @@ private fun VirtualFile.getPathRelatedTo(
 }
 
 fun Boolean?.isTrue() = TRUE.equals(this)
+
+fun AnActionEvent.updateSupported(): Boolean? {
+    presentation.isVisible = project?.isSupportProject() ?: false
+    return if (presentation.isVisible) true else null
+}

@@ -1,6 +1,7 @@
 package com.icthh.xm.actions.settings
 
 import com.icthh.xm.utils.getSettings
+import com.icthh.xm.utils.updateSupported
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 
@@ -17,6 +18,7 @@ class MainSettingAction : AnAction() {
     }
 
     override fun update(e: AnActionEvent) {
+        e.updateSupported() ?: return
         e.presentation.isEnabled = e.project != null
     }
 }
