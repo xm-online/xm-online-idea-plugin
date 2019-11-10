@@ -21,6 +21,7 @@ fun Project?.isSupportProject() = true
 
 fun Project.getConfigRootDir() = this.basePath + "/config"
 
+
 fun VirtualFile.getTenantRelatedPath(project: Project): String {
     return getPathRelatedTo(project, "/tenants")
 }

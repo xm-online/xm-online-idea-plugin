@@ -63,14 +63,15 @@ class ConfigIconProvider: IconProvider() {
     }
 
     fun BufferedImage.scaleToIcon(): BufferedImage {
-        val resized = BufferedImage(24, 24, this.getType())
+        val size = 16
+        val resized = BufferedImage(size, size, this.getType())
         val g = resized.createGraphics()
         g.setRenderingHint(
             RenderingHints.KEY_INTERPOLATION,
             RenderingHints.VALUE_INTERPOLATION_BILINEAR
         )
         g.drawImage(
-            this, 0, 0, 24, 24, 0, 0, this.getWidth(),
+            this, 0, 0, size, size, 0, 0, this.getWidth(),
             this.getHeight(), null
         )
         g.dispose()
