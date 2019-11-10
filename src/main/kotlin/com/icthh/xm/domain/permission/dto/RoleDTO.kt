@@ -13,7 +13,7 @@ data class RoleDTO(
     val updatedBy: String?
 ) {
 
-    var permissions: Collection<PermissionDTO>? = null
+    var permissions: MutableCollection<PermissionDTO>? = null
     var env: List<String>? = null
 
     constructor(role: Role) : this(

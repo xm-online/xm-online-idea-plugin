@@ -11,7 +11,6 @@ class TreeProvider: TreeStructureProvider {
         children: MutableCollection<AbstractTreeNode<Any>>,
         settings: ViewSettings?
     ): MutableCollection<AbstractTreeNode<Any>> {
-        log.info("${parent}");
         return children
     }
 
