@@ -38,6 +38,7 @@ class EnvironmentSettings {
 
     var trackChanges: Boolean = false
     var editedFiles: MutableMap<String, FileState> = HashMap()
+    var version: String? = null
 
     var lastTimeTryToNotifyAboutDifference: Long = 0
 

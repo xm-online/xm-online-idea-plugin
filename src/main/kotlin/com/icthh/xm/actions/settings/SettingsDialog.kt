@@ -1,7 +1,7 @@
 package com.icthh.xm.actions.settings
 
 import com.icthh.xm.actions.VaadinDialog
-import com.icthh.xm.utils.getSettings
+import com.icthh.xm.service.getSettings
 import com.intellij.openapi.project.Project
 import com.vaadin.data.Binder
 import com.vaadin.icons.VaadinIcons

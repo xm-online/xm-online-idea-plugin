@@ -1,7 +1,7 @@
 package com.icthh.xm.extensions
 
-import com.icthh.xm.utils.getConfigRelatedPath
-import com.icthh.xm.utils.getConfigRootDir
+import com.icthh.xm.service.getConfigRelatedPath
+import com.icthh.xm.service.getConfigRootDir
 import com.icthh.xm.utils.log
 import com.intellij.ide.IconProvider
 import com.intellij.openapi.application.ApplicationManager.getApplication
@@ -9,9 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileSystemItem
-import org.apache.http.client.fluent.Request
 import org.apache.http.client.fluent.Request.Get
-import org.atmosphere.config.service.Get
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -94,7 +92,10 @@ class ConfigIconProvider: IconProvider() {
         imagesCache: MutableMap<String, Icon>
     ) {
         try {
-            val icon = ImageIO.read(Get(data).execute().returnContent().asStream()).scaleToIcon()
+            val stream = Get(data).execute()?.returnContent()?.asStream()
+            stream ?: return
+            val icon = ImageIO.read(stream)?.scaleToIcon()
+            icon ?: return
             imagesCache.put(tenant, ImageIcon(icon))
             virtualFile.refresh(true, false)
         } catch (e: Exception) {

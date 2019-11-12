@@ -3,8 +3,9 @@ package com.icthh.xm.actions.deploy
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.FileState
 import com.icthh.xm.actions.shared.showNotification
-import com.icthh.xm.service.NotFoundException
+import com.icthh.xm.service.*
 import com.icthh.xm.utils.*
+import com.intellij.history.LocalHistory
 import com.intellij.notification.NotificationType.ERROR
 import com.intellij.notification.NotificationType.WARNING
 import com.intellij.openapi.actionSystem.AnAction
@@ -29,6 +30,7 @@ class TrackChanges() : AnAction() {
         project ?: return
         val settings = project.getSettings()?.selected()
         settings ?: return
+        settings.version = project.getExternalConfigService().getCurrentVersion(settings)
         settings.trackChanges = true
 
         val basePath = project.getConfigRootDir()
@@ -37,6 +39,8 @@ class TrackChanges() : AnAction() {
                 settings.editedFiles.put(it.systemIndependentPath, FileState(sha256Hex(it.inputStream())))
             }
         }
+        LocalHistory.getInstance().putUserLabel(project, "CHANGES_FROM_${settings.id}");
+        project.save()
     }
 
     override fun update(anActionEvent: AnActionEvent) {

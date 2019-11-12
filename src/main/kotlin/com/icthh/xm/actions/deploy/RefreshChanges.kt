@@ -2,9 +2,9 @@ package com.icthh.xm.actions.deploy
 
 import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
-import com.icthh.xm.utils.getExternalConfigService
-import com.icthh.xm.utils.getSettings
-import com.icthh.xm.utils.updateSupported
+import com.icthh.xm.service.getExternalConfigService
+import com.icthh.xm.service.getSettings
+import com.icthh.xm.service.updateSupported
 import com.intellij.notification.NotificationType.ERROR
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent

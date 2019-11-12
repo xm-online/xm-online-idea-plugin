@@ -1,14 +1,32 @@
 package com.icthh.xm.actions.deploy
 
-import com.icthh.xm.utils.getSettings
-import com.icthh.xm.utils.updateSupported
+import com.icthh.xm.service.*
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager.getApplication
+import com.intellij.openapi.vfs.VfsUtil
+import java.io.File
+import java.io.InputStream
+
 
 class DeployToEnv() : AnAction() {
 
     override fun actionPerformed(anActionEvent: AnActionEvent) {
+        val project = anActionEvent.project
+        project ?: return
+        val selected = project.getSettings().selected()
+        selected ?: return
 
+        val changesFiles = project.getChangedFiles()
+        val map = HashMap<String, InputStream?>()
+        changesFiles.forEach {
+            val virtualFile = VfsUtil.findFileByURL(File(it).toURL())
+            virtualFile ?: return@forEach
+            map.put(virtualFile.getConfigRelatedPath(project),  virtualFile?.inputStream)
+        }
+        getApplication().executeOnPooledThread{
+            project.getExternalConfigService().updateInMemory(project, selected, map)
+        }
     }
 
     override fun update(anActionEvent: AnActionEvent) {
