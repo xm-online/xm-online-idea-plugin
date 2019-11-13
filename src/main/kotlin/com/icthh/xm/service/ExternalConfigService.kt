@@ -87,7 +87,7 @@ class ExternalConfigService {
 
     fun updateInMemory(project: Project, env: EnvironmentSettings, files: Map<String, InputStream?>) {
         val httpClient = HttpClients.createDefault()
-        val uploadFile = HttpPut("${env.xmUrl}/config/api/inmemory/config")
+        val uploadFile = HttpPost("${env.xmUrl}/config/api/inmemory/config")
         val builder = MultipartEntityBuilder.create()
         files.forEach {
             builder.addBinaryBody(

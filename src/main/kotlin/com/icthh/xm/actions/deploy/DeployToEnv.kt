@@ -21,8 +21,12 @@ class DeployToEnv() : AnAction() {
         val map = HashMap<String, InputStream?>()
         changesFiles.forEach {
             val virtualFile = VfsUtil.findFileByURL(File(it).toURL())
-            virtualFile ?: return@forEach
-            map.put("/config/tenants" + virtualFile.getConfigRelatedPath(project),  virtualFile?.inputStream)
+            val path = if (virtualFile != null) {
+                "/config/tenants" + virtualFile.getConfigRelatedPath(project)
+            } else {
+                it.substringAfter(project.getConfigRootDir())
+            }
+            map.put(path,  virtualFile?.inputStream ?: "".toByteArray().inputStream())
         }
         getApplication().executeOnPooledThread{
             project.getExternalConfigService().updateInMemory(project, selected, map)

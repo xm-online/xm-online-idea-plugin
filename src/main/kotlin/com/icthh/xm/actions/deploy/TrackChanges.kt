@@ -30,9 +30,8 @@ class TrackChanges() : AnAction() {
         project ?: return
         val settings = project.getSettings()?.selected()
         settings ?: return
-        settings.version = project.getExternalConfigService().getCurrentVersion(settings)
-        settings.trackChanges = true
 
+        settings.trackChanges = true
         val basePath = project.getConfigRootDir()
         walk(Paths.get(basePath)).use{
             it.filter { !it.isDirectory() }.forEach{
@@ -41,6 +40,20 @@ class TrackChanges() : AnAction() {
         }
         LocalHistory.getInstance().putUserLabel(project, "CHANGES_FROM_${settings.id}");
         project.save()
+        getApplication().executeOnPooledThread {
+            settings.version = getVersion(project, settings)
+        }
+    }
+
+    private fun getVersion(project: Project, settings: EnvironmentSettings): String {
+        try {
+            return project.getExternalConfigService().getCurrentVersion(settings)
+        } catch (e: Exception) {
+            project.showNotification("getVersion", "Error get current version of config", ERROR) {
+                e.message ?: ""
+            }
+            throw e;
+        }
     }
 
     override fun update(anActionEvent: AnActionEvent) {
