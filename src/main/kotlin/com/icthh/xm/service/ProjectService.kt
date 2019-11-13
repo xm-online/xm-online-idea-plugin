@@ -44,6 +44,10 @@ fun VirtualFile.getConfigRelatedPath(project: Project): String {
     return getPathRelatedTo(project)
 }
 
+fun VirtualFile.getConfigRootRelatedPath(project: Project): String {
+    return "/config/tenants" + getPathRelatedTo(project)
+}
+
 fun VirtualFile.isConfigFile(project: Project): Boolean {
     return this.path.startsWith(project.getConfigRootDir())
 }

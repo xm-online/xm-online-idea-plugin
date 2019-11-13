@@ -8,28 +8,19 @@ import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.utils.readTextAndClose
-import com.intellij.notification.NotificationType
+import com.intellij.notification.NotificationType.ERROR
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.ui.MessageType.INFO
-import io.netty.handler.codec.http.HttpHeaders.addHeader
-import org.apache.commons.net.nntp.NNTPCommand.POST
 import org.apache.http.HttpHeaders.AUTHORIZATION
 import org.apache.http.HttpHeaders.CONTENT_TYPE
-import org.apache.http.client.fluent.Request.Get
-import org.apache.http.client.fluent.Request.Post
-import org.apache.http.entity.ContentType.APPLICATION_FORM_URLENCODED
-import org.apache.http.message.BasicNameValuePair
-import org.bouncycastle.crypto.tls.ConnectionEnd
-import org.apache.http.HttpEntity
-import org.apache.http.NameValuePair
+import org.apache.http.client.fluent.Request.*
 import org.apache.http.client.methods.HttpPost
-import org.apache.http.client.methods.HttpPut
 import org.apache.http.entity.ContentType
+import org.apache.http.entity.ContentType.APPLICATION_FORM_URLENCODED
+import org.apache.http.entity.ContentType.TEXT_PLAIN
 import org.apache.http.entity.mime.MultipartEntityBuilder
 import org.apache.http.impl.client.HttpClients
-import java.io.File
-import java.io.FileInputStream
+import org.apache.http.message.BasicNameValuePair
 import java.io.InputStream
 
 
@@ -103,15 +94,42 @@ class ExternalConfigService {
         uploadFile.addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
         val response = httpClient.execute(uploadFile)
         if (response.statusLine.statusCode != 200) {
-            project.showNotification("Refresh", "Error update configurations", NotificationType.ERROR) {
+            project.showNotification("Refresh", "Error update configurations", ERROR) {
                 "${response.statusLine.statusCode} ${response.statusLine.reasonPhrase}"
             }
-            throw RuntimeException("Error send status code")
+            throw RuntimeException("Error update configuration")
         } else {
             project.showMessage(INFO) {
                 "Configs successfully update"
             }
         }
+    }
+
+    fun deleteConfig(project: Project, env: EnvironmentSettings, path: String) {
+        Delete(env.xmUrl + "/config/api/profile/refresh")
+            .addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
+            .execute().returnResponse()
+    }
+
+    fun updateFileInMemory(project: Project, env: EnvironmentSettings, path: String, content: String) {
+        val baseUrl = env.xmUrl
+
+        val response = Put(baseUrl + "/config/api/inmemory${path}")
+            .addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
+            .bodyString(content, TEXT_PLAIN)
+            .execute().returnResponse()
+
+        if (response.statusLine.statusCode != 200) {
+            project.showNotification("Refresh", "Error update configurations", ERROR) {
+                "${response.statusLine.statusCode} ${response.statusLine.reasonPhrase}"
+            }
+            throw RuntimeException("Error update configuration")
+        } else {
+            project.showMessage(INFO) {
+                "Configs successfully update"
+            }
+        }
+
     }
 
 }
