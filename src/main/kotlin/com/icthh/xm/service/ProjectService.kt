@@ -28,7 +28,7 @@ fun Project.getChangedFiles(): List<String> {
 
     val changed = selected.editedFiles.filter {
         val file = VfsUtil.findFileByURL(File(it.key).toURL())
-        file ?: return@filter false
+        file ?: return@filter true
         sha256Hex(file.contentsToByteArray()) != it.value.sha256
     }.map { it.key }
     return changed
