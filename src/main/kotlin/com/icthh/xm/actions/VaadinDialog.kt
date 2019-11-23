@@ -2,7 +2,8 @@ package com.icthh.xm.actions
 
 import com.icthh.xm.ViewRegistry.registry
 import com.icthh.xm.ViewRegistry.unregistry
-import com.icthh.xm.serverPort
+import com.icthh.xm.ViewServer
+import com.icthh.xm.ViewServer.serverPort
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.vaadin.navigator.View
@@ -21,7 +22,8 @@ abstract class VaadinDialog(val project: Project,
                             dialogTitle: String = "Dialog"): DialogWrapper(project) {
 
     init {
-        init()
+        ViewServer.startServer()
+        this.init()
         title = dialogTitle
     }
 
