@@ -5,26 +5,29 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.icthh.xm.actions.settings.EnvironmentSettings
-import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
+import com.icthh.xm.utils.log
 import com.icthh.xm.utils.readTextAndClose
 import com.intellij.notification.NotificationType.ERROR
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.MessageType.INFO
 import org.apache.http.HttpHeaders.AUTHORIZATION
 import org.apache.http.HttpHeaders.CONTENT_TYPE
 import org.apache.http.client.fluent.Request.*
-import org.apache.http.client.methods.HttpPost
-import org.apache.http.entity.ContentType
-import org.apache.http.entity.ContentType.APPLICATION_FORM_URLENCODED
-import org.apache.http.entity.ContentType.TEXT_PLAIN
+import org.apache.http.client.methods.RequestBuilder
+import org.apache.http.entity.ContentType.*
+import org.apache.http.entity.StringEntity
+import org.apache.http.entity.mime.HttpMultipartMode
 import org.apache.http.entity.mime.MultipartEntityBuilder
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicNameValuePair
 import java.io.InputStream
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 
 class ExternalConfigService {
+
+    private val tokens: MutableMap<String, TokenResponse> = ConcurrentHashMap()
 
     val objectMapper = ObjectMapper()
         .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -48,17 +51,28 @@ class ExternalConfigService {
     }
 
     fun getToken(env: EnvironmentSettings): String {
+        val cachedToken = tokens[env.id]
+        if (cachedToken != null && cachedToken.expireTime > System.currentTimeMillis()) {
+            return cachedToken.access_token
+        }
+
+        val tokenResponse = fetchToken(env)
+        tokens[env.id] = tokenResponse
+        return tokenResponse.access_token
+    }
+
+    fun fetchToken(env: EnvironmentSettings): TokenResponse {
+        val clientToken = "${env.clientId}:${env.clientPassword}".toByteArray()
         val content = Post(env.xmUrl + "/uaa/oauth/token")
             .bodyForm(
                 "grant_type" to "password",
                 "username" to env.xmSuperAdminLogin,
                 "password" to env.xmSuperAdminPassword
             )
-            .addHeader(AUTHORIZATION, "Basic d2ViYXBwOndlYmFwcA==")
+            .addHeader(AUTHORIZATION, "Basic ${Base64.getEncoder().encodeToString(clientToken)}")
             .addHeader(CONTENT_TYPE, APPLICATION_FORM_URLENCODED.toString()).execute().returnContent().asString()
 
-        val tokenResponse = objectMapper.readValue<TokenResponse>(content)
-        return tokenResponse.access_token
+        return objectMapper.readValue<TokenResponse>(content)
     }
 
     infix fun String.to(value: String) = BasicNameValuePair(this, value)
@@ -77,38 +91,50 @@ class ExternalConfigService {
     }
 
     fun updateInMemory(project: Project, env: EnvironmentSettings, files: Map<String, InputStream?>) {
-        val httpClient = HttpClients.createDefault()
-        val uploadFile = HttpPost("${env.xmUrl}/config/api/inmemory/config")
-        val builder = MultipartEntityBuilder.create()
-        files.forEach {
-            builder.addBinaryBody(
-                "files",
-                it.value,
-                ContentType.APPLICATION_OCTET_STREAM,
-                it.key
-            )
-        }
+        HttpClients.createDefault().use { httpclient ->
 
-        val multipart = builder.build()
-        uploadFile.entity = multipart
-        uploadFile.addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
-        val response = httpClient.execute(uploadFile)
-        if (response.statusLine.statusCode != 200) {
-            project.showNotification("Refresh", "Error update configurations", ERROR) {
-                "${response.statusLine.statusCode} ${response.statusLine.reasonPhrase}"
+            var builder = MultipartEntityBuilder.create()
+                .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+            files.forEach{
+                builder = builder.addBinaryBody("files", it.value, DEFAULT_BINARY, it.key)
             }
-            throw RuntimeException("Error update configuration")
-        } else {
-            project.showMessage(INFO) {
-                "Configs successfully update"
+            val data = builder.build()
+
+            val request = RequestBuilder
+                .post("${project.getSettings().selected()?.xmUrl}/config/api/inmemory/config")
+                .setHeader(AUTHORIZATION, "bearer ${getToken(env)}")
+                .setEntity(data)
+                .build()
+
+            val response = httpclient.execute(request)
+
+            if (response.statusLine.statusCode != 200) {
+                project.showNotification("Refresh", "Error update configurations", ERROR) {
+                    "${response.statusLine.statusCode} ${response.statusLine.reasonPhrase}"
+                }
+                throw RuntimeException("Error update configuration")
             }
         }
     }
 
-    fun deleteConfig(project: Project, env: EnvironmentSettings, path: String) {
-        Delete(env.xmUrl + "/config/api/profile/refresh")
-            .addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
-            .execute().returnResponse()
+    fun deleteConfig(project: Project, env: EnvironmentSettings, paths: List<String>) {
+        HttpClients.createDefault().use { httpclient ->
+            val request = RequestBuilder
+                .delete("${project.getSettings().selected()?.xmUrl}/config/api/inmemory/config/tenants/XM")
+                .setHeader(AUTHORIZATION, "bearer ${getToken(env)}")
+                .setHeader(CONTENT_TYPE, APPLICATION_JSON.mimeType)
+                .setEntity(StringEntity(objectMapper.writeValueAsString(paths)))
+                .build()
+
+            val response = httpclient.execute(request)
+
+            if (response.statusLine.statusCode != 200) {
+                project.showNotification("Refresh", "Error delete configurations", ERROR) {
+                    "${response.statusLine.statusCode} ${response.statusLine.reasonPhrase}"
+                }
+                throw RuntimeException("Error delete configuration")
+            }
+        }
     }
 
     fun updateFileInMemory(project: Project, env: EnvironmentSettings, path: String, content: String) {
@@ -124,16 +150,12 @@ class ExternalConfigService {
                 "${response.statusLine.statusCode} ${response.statusLine.reasonPhrase}"
             }
             throw RuntimeException("Error update configuration")
-        } else {
-            project.showMessage(INFO) {
-                "Configs successfully update"
-            }
         }
-
     }
-
 }
 
-data class TokenResponse(val access_token: String)
+data class TokenResponse(val access_token: String, val expires_in: Int) {
+    val expireTime: Long = System.currentTimeMillis() + (expires_in - 60) * 1000
+}
 
 class NotFoundException: RuntimeException()

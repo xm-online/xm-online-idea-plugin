@@ -20,7 +20,7 @@ class ConfigurationApp: BaseComponent {
         contextHandler.addServlet(ServletHolder(AppServlet::class.java), "/*")
         contextHandler.classLoader = AppUI::class.java.classLoader
 
-        serverPort = 64024//SocketUtils.findAvailableTcpPort();
+        serverPort = SocketUtils.findAvailableTcpPort();
 
         val embeddedServer = Server(serverPort)
         embeddedServer.setHandler(contextHandler)

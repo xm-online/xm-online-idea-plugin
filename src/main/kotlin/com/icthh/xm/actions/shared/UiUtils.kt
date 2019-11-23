@@ -14,7 +14,7 @@ import com.intellij.ui.awt.RelativePoint.*
 fun Project.showNotification(dispayId: String, title: String, notificationType: NotificationType,
                              content: () -> String) {
     ApplicationManager.getApplication().runReadAction {
-        val notification = Notification(dispayId, title, content.invoke(), notificationType)
+        val notification = Notification("XM plugin " + dispayId, title, content.invoke(), notificationType)
         notification.notify(this)
     }
 }

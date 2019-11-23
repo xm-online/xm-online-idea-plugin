@@ -4,15 +4,9 @@
     <vendor email="serhii.senko@xm-online.com" url="http://xm-online.com">XM^online</vendor>
 
     <description><![CDATA[
-     Button for deploy LEP files.
-     Configuration autocomplete and validation and inspection.
-     UI for permission edit.
-     Autocomplete inside lep.
+     This plugin add button for deploy and refresh LEP files to XM^online im memory without commit to GIT.
     ]]></description>
 
-    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
-         on how to target different products -->
-    <!-- uncomment to enable plugin in all products -->
     <depends>com.intellij.modules.lang</depends>
 
     <extensions defaultExtensionNs="com.intellij">
@@ -30,9 +24,17 @@
     </application-components>
 
     <actions>
+
+        <group id="editorPopupMenu">
+            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode" />
+            <separator/>
+            <action id="refreshCurrentFile" class="com.icthh.xm.actions.deploy.RefreshCurrentFile" text="Refresh current file"/>
+        </group>
+
         <group id="mainMenu" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup">
             <add-to-group group-id="MainMenu" anchor="last"/>
             <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSettingAction" text="Setting"/>
+            <action id="refreshAll" class="com.icthh.xm.actions.deploy.RefreshAll" text="Update ALL files in memory"/>
         </group>
 
         <action id="deployToEnvSelector" class="com.icthh.xm.actions.deploy.DeployEnvSelector"

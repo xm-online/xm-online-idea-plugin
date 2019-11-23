@@ -19,6 +19,8 @@ class StopTrackChanges() : AnAction() {
             val settings = project.getSettings().selected()
             settings?.trackChanges = false
             settings?.editedFiles?.clear()
+            settings?.atStartFilesState?.clear()
+            settings?.lastTimeTryToNotifyAboutDifference = 0
         }
         project.save()
     }

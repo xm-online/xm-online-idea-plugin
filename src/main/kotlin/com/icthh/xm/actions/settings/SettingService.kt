@@ -26,6 +26,10 @@ class SettingService: PersistentStateComponent<SettingService> {
     }
 }
 
+enum class UpdateMode {
+    INCREMENTAL, FROM_START
+}
+
 class EnvironmentSettings {
 
     var id: String = UUID.randomUUID().toString()
@@ -35,9 +39,13 @@ class EnvironmentSettings {
 
     var xmSuperAdminLogin: String = ""
     var xmSuperAdminPassword: String = ""
+    var clientId: String = "webapp"
+    var clientPassword: String = "webapp"
+    var updateMode: UpdateMode = UpdateMode.INCREMENTAL
 
     var trackChanges: Boolean = false
     var editedFiles: MutableMap<String, FileState> = HashMap()
+    var atStartFilesState: MutableMap<String, FileState> = HashMap()
     var version: String? = null
 
     var lastTimeTryToNotifyAboutDifference: Long = 0

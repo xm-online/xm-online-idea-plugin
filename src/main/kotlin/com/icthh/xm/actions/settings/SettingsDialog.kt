@@ -1,9 +1,13 @@
 package com.icthh.xm.actions.settings
 
 import com.icthh.xm.actions.VaadinDialog
+import com.icthh.xm.actions.shared.showNotification
+import com.icthh.xm.service.getExternalConfigService
 import com.icthh.xm.service.getSettings
+import com.intellij.notification.NotificationType.ERROR
 import com.intellij.openapi.project.Project
 import com.vaadin.data.Binder
+import com.vaadin.data.HasValue
 import com.vaadin.icons.VaadinIcons
 import com.vaadin.navigator.View
 import com.vaadin.server.Sizeable.Unit.PERCENTAGE
@@ -11,11 +15,12 @@ import com.vaadin.shared.ui.ValueChangeMode
 import com.vaadin.ui.*
 import com.vaadin.ui.themes.ValoTheme
 import java.awt.Dimension
+import java.lang.Exception
 import kotlin.reflect.KMutableProperty1
 
 
 class SettingsDialog(project: Project): VaadinDialog(
-    project, "settings", Dimension(700, 350), "Settings"
+    project, "settings", Dimension(820, 550), "Settings"
 ) {
 
     val data = ArrayList(project.getSettings().envs)
@@ -56,8 +61,13 @@ class SettingsDialog(project: Project): VaadinDialog(
 
             val envSelect = ListSelect<EnvironmentSettings>()
             envSelect.setItems(data)
-            envSelect.setRows(12);
-            envSelect.setWidth(100.0f, PERCENTAGE);
+            envSelect.setRows(16);
+            envSelect.setWidth(100.0f, PERCENTAGE)
+
+            val success = Label("Success")
+            val failed = Label("Failed")
+            success.isVisible = false
+            failed.isVisible = false
 
             envSelect.addValueChangeListener{
                 if (it.value.isNotEmpty() && !it.value.equals(setOf(env))) {
@@ -69,6 +79,8 @@ class SettingsDialog(project: Project): VaadinDialog(
                 }
                 remove.isEnabled = true
                 form.isEnabled = true
+                success.isVisible = false
+                failed.isVisible = false
             }
             envs.addComponent(envSelect)
 
@@ -98,15 +110,47 @@ class SettingsDialog(project: Project): VaadinDialog(
             val xmUrl = TextField("Xm base url (example: http://xm-online.com)")
             val login = TextField("Super admin login")
             val password = PasswordField("Super admin password")
+            val clientId = TextField("Client id")
+            val clientPassword = TextField("Client password")
+            val updateMode = ComboBox<UpdateMode>("Update mode");
+            updateMode.setItems(UpdateMode.values().asList())
             binder.bindField(name, EnvironmentSettings::name)
             binder.bindField(xmUrl, EnvironmentSettings::xmUrl)
             binder.bindField(login, EnvironmentSettings::xmSuperAdminLogin)
             binder.bindField(password, EnvironmentSettings::xmSuperAdminPassword)
+            binder.bindField(clientId, EnvironmentSettings::clientId)
+            binder.bindField(clientPassword, EnvironmentSettings::clientPassword)
+            binder.bindField(updateMode, EnvironmentSettings::updateMode)
             name.setSizeFull()
             xmUrl.setSizeFull()
             login.setSizeFull()
             password.setSizeFull()
-            form.addComponents(name, xmUrl, login, password)
+            clientId.setSizeFull()
+            clientPassword.setSizeFull()
+            val clientToken = HorizontalLayout()
+            clientToken.addComponents(clientId, clientPassword)
+
+            val checkConnection = HorizontalLayout()
+            checkConnection.isSpacing = true
+            val button = Button("Test connection")
+            button.addClickListener {
+                val env = this.env
+                env ?: return@addClickListener
+                try {
+                    project.getExternalConfigService().fetchToken(env)
+                    success.isVisible = true
+                    failed.isVisible = false
+                } catch (e: Exception) {
+                    success.isVisible = false
+                    failed.isVisible = true
+                    project.showNotification("TestAuth", "Error test authentication", ERROR) {
+                        e.message ?: ""
+                    }
+                }
+            }
+            checkConnection.addComponents(button, success, failed)
+
+            form.addComponents(name, xmUrl, login, password, clientToken, updateMode, checkConnection)
 
             name.valueChangeMode = ValueChangeMode.EAGER
             binder.addValueChangeListener {
@@ -118,9 +162,9 @@ class SettingsDialog(project: Project): VaadinDialog(
             return mainView
         }
 
-        private fun Binder<EnvironmentSettings>.bindField(
-            name: AbstractField<String>,
-            nameProperty: KMutableProperty1<EnvironmentSettings, String>
+        private inline fun <T> Binder<EnvironmentSettings>.bindField(
+            name: HasValue<T>,
+            nameProperty: KMutableProperty1<EnvironmentSettings, T>
         ) {
             bind(name, nameProperty.getter, nameProperty.setter)
         }

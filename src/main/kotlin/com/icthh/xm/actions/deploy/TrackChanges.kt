@@ -12,6 +12,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys.VIRTUAL_FILE
 import com.intellij.openapi.application.ApplicationManager.getApplication
+import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.inputStream
 import com.intellij.util.io.isDirectory
@@ -32,12 +33,9 @@ class TrackChanges() : AnAction() {
         settings ?: return
 
         settings.trackChanges = true
-        val basePath = project.getConfigRootDir()
-        walk(Paths.get(basePath)).use{
-            it.filter { !it.isDirectory() }.forEach{
-                settings.editedFiles.put(it.systemIndependentPath, FileState(sha256Hex(it.inputStream())))
-            }
-        }
+        project.saveCurrectFileStates()
+        settings.atStartFilesState = settings.editedFiles
+
         LocalHistory.getInstance().putUserLabel(project, "CHANGES_FROM_${settings.id}");
         project.save()
         getApplication().executeOnPooledThread {
@@ -93,6 +91,9 @@ class TrackChanges() : AnAction() {
                 val path = vFile.getConfigRelatedPath(project)
                 val fileContent = externalConfigService.getConfigFile(settings, path)
                 if (!sha256Hex.equals(sha256Hex(fileContent))) {
+                    if (fileState.isNotified.isTrue() || settings.wasNotifiedAtLastTime()) {
+                        return@executeOnPooledThread
+                    }
                     project.showNotification("WARNING", "File ${vFile.name} difference with you local.", WARNING) {
                         "When you deploy config to server you will rewrite it to you version and can LOST changes from other people"
                     }
@@ -107,9 +108,14 @@ class TrackChanges() : AnAction() {
                 project.showNotification("ERROR", "Error get ${vFile.name} from config server", ERROR) {
                     "${(e.message ?: "")} ${settings.lastTimeTryToNotifyAboutDifference}"
                 }
+            } finally {
+                getApplication().invokeLater {
+                    getApplication().runWriteAction {
+                        project.save()
+                    }
+                }
             }
         }
-
     }
 
     private fun EnvironmentSettings.wasNotifiedAtLastTime(): Boolean {
