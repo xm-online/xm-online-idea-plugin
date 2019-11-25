@@ -4,8 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 
 class Role(
     @field:JsonIgnore
-    var key: String
+    var key: String = ""
 )  : Comparable<Role> {
+
 
     var description: String? = null
     var createdDate: String? = null

@@ -5,10 +5,10 @@ import com.icthh.xm.domain.permission.ReactionStrategy.EXCEPTION
 
 data class Permission(
     @field:JsonIgnore
-    var msName: String,
+    var msName: String = "",
     @field:JsonIgnore
-    var roleKey: String,
-    var privilegeKey: String
+    var roleKey: String = "",
+    var privilegeKey: String = ""
 ): Comparable<Permission>  {
 
     var disabled: Boolean? = true

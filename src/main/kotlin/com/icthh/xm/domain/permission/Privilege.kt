@@ -5,8 +5,8 @@ import java.util.*
 
 data class Privilege(
     @field:JsonIgnore
-    var msName: String,
-    var key: String
+    var msName: String = "",
+    var key: String = ""
 ) : Comparable<Privilege> {
 
     var description: SortedMap<String, String> = TreeMap()

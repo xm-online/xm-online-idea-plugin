@@ -24,9 +24,8 @@ class PrivilegeMapper {
                 return mapper.writeValueAsString(map)
             } catch (e: Exception) {
                 log.error("Failed to create privileges YML file from collection, error: ${e.message}", e)
+                throw e
             }
-
-            return null
         }
 
         fun privilegesMapToYml(privileges: Map<String, Collection<Privilege>>): String? {
@@ -34,9 +33,8 @@ class PrivilegeMapper {
                 return mapper.writeValueAsString(privileges)
             } catch (e: Exception) {
                 log.error("Failed to create privileges YML file from map, error: ${e.message}", e)
+                throw e
             }
-
-            return null
         }
 
         fun ymlToPrivileges(yml: String): Map<String, Set<Privilege>> {
@@ -46,8 +44,7 @@ class PrivilegeMapper {
                 return map
             } catch (e: Exception) {
                 log.error("Failed to create privileges collection from YML file, error: ${e.message}", e)
+                throw e
             }
-
-            return emptyMap()
         }
 }

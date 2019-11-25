@@ -7,54 +7,66 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.icthh.xm.domain.permission.Permission
 import com.icthh.xm.domain.permission.Privilege
 import com.icthh.xm.domain.permission.Role
-import com.icthh.xm.domain.permission.dto.PermissionDTO
-import com.icthh.xm.domain.permission.dto.PermissionMatrixDTO
+import com.icthh.xm.domain.permission.dto.*
 import com.icthh.xm.domain.permission.dto.PermissionType.SYSTEM
 import com.icthh.xm.domain.permission.dto.PermissionType.TENANT
-import com.icthh.xm.domain.permission.dto.RoleDTO
-import com.icthh.xm.domain.permission.dto.RoleMatrixDTO
 import com.icthh.xm.domain.permission.mapper.PermissionDomainMapper
 import com.icthh.xm.domain.permission.mapper.PermissionMapper
 import com.icthh.xm.domain.permission.mapper.PrivilegeMapper
+import com.icthh.xm.service.configPathToRealPath
 import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.log
+import com.icthh.xm.utils.readTextAndClose
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VfsUtil
 import org.apache.commons.lang3.StringUtils.isBlank
+import java.io.File
 import java.time.Instant
 import java.util.*
 import kotlin.streams.toList
 
-class TenantRoleService {
+class TenantRoleService(val tenant: String, val project: Project) {
 
     private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule())
 
     fun getRoles(): MutableMap<String, Role> {
-        return getConfig<TreeMap<String, Role>>(ROLES_PATH) ?: TreeMap()
+        var configPath = ROLES_PATH.replace("{tenantName}", tenant)
+        configPath = project.configPathToRealPath(configPath)
+        return getConfig<TreeMap<String, Role>>(configPath) ?: TreeMap()
     }
 
     fun getPermissions(): SortedMap<String, SortedMap<String, SortedSet<Permission>>> {
-        return getConfig<SortedMap<String, SortedMap<String, SortedSet<Permission>>>>(PERMISSIONS_PATH) ?: TreeMap()
+        var configPath = PERMISSIONS_PATH.replace("{tenantName}", tenant)
+        configPath = project.configPathToRealPath(configPath)
+        return getConfig<SortedMap<String, SortedMap<String, SortedSet<Permission>>>>(configPath) ?: TreeMap()
     }
 
     fun getPrivileges(): Map<String, Set<Privilege>> {
-        return getConfigContent(PRIVILEGES_PATH).map {
+        var configPath = PRIVILEGES_PATH
+        configPath = project.configPathToRealPath(configPath)
+        return getConfigContent(configPath).map {
             PrivilegeMapper().ymlToPrivileges(it)
         }.orElse(TreeMap())
     }
 
     fun getCustomPrivileges(): Map<String, Set<Privilege>> {
-        val tenant = "tenant name"
-        return getConfigContent(CUSTOM_PRIVILEGES_PATH.replace("{tenantName}", tenant)).map {
+        var configPath = CUSTOM_PRIVILEGES_PATH.replace("{tenantName}", tenant)
+        configPath = project.configPathToRealPath(configPath)
+        return getConfigContent(configPath).map {
             PrivilegeMapper().ymlToPrivileges(it)
         }.orElse(TreeMap())
     }
 
+    fun getEnvironments(): List<String>? {
+        var configPath = ENV_PATH
+        configPath = project.configPathToRealPath(configPath)
+        return getConfig<List<String>>(configPath)
+    }
 
     fun getAllRoles() = getRoles().entries.stream()
         .peek { it.value.key = it.key }
         .map{ it.value }
         .map{ RoleDTO(it) }.toList().toSet()
-
-    fun getEnvironments() = getConfig<List<String>>(ENV_PATH)
 
     // map key = MS_NAME:PRIVILEGE_KEY, value = PermissionMatrixDTO
     // create permissions matrix dto with role permissions
@@ -142,7 +154,7 @@ class TenantRoleService {
         val role = roles[roleDto.roleKey] ?: throw RuntimeException("Role doesn't exist")
 
         role.description = roleDto.description
-        role.updatedBy = "rbd"
+        role.updatedBy = "tbd"
         role.updatedDate = Instant.now().toString()
         roles[roleDto.roleKey] = role
         updateRoles(mapper.writeValueAsString(roles))
@@ -171,9 +183,13 @@ class TenantRoleService {
             .orElse(emptyList())
     }
 
-    private fun updateRoles(rolesYml: String) {}
+    private fun updateRoles(rolesYml: String) {
+        // TODO
+    }
 
-    private fun updatePermissions(permissionsYml: String) {}
+    private fun updatePermissions(permissionsYml: String) {
+        // TODO
+    }
 
     fun getRole(roleKey: String): Optional<RoleDTO> {
         val role = getRoles()[roleKey] ?: return Optional.empty()
@@ -336,13 +352,15 @@ class TenantRoleService {
     }
 
     private fun getConfigContent(configPath: String): Optional<String> {
-        val tenant = "tenant name" // TODO
-        var config: String? = null
-        config = "config content" // TODO
-        if (isBlank(config) || EMPTY_YAML == config) {
-            config = null
+        val virtualFile = VfsUtil.findFile(File(configPath).toPath(), true)
+        if (virtualFile?.exists() != true) {
+            return Optional.empty()
         }
-        return Optional.empty()
+        val config = virtualFile.inputStream.readTextAndClose()
+        if (isBlank(config) || EMPTY_YAML == config) {
+            return Optional.empty()
+        }
+        return Optional.of(config)
     }
 
     companion object {

@@ -39,6 +39,9 @@ fun Project?.isConfigProject(): Boolean {
 }
 fun Project?.isSupportProject() = isConfigProject()
 fun Project.getConfigRootDir() = this.basePath + "/config"
+fun Project.configPathToRealPath(configPath: String): String {
+    return this.basePath + configPath
+}
 
 fun Project.saveCurrectFileStates() {
     val settings = getSettings()?.selected()
@@ -91,12 +94,17 @@ private fun Project.addNewFiels(
 
 fun Project.allPaths() = allFilesStream().map { it.systemIndependentPath }.toList().toMutableSet()
 
+
 fun VirtualFile.getTenantRelatedPath(project: Project): String {
     return getPathRelatedTo(project, "/tenants")
 }
 
 fun VirtualFile.getConfigRelatedPath(project: Project): String {
     return getPathRelatedTo(project)
+}
+
+fun VirtualFile.getTenantName(project: Project): String {
+    return getConfigRelatedPath(project).substringAfter("/").substringBefore("/")
 }
 
 fun VirtualFile.getConfigRootRelatedPath(project: Project): String {
