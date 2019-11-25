@@ -7,6 +7,7 @@ import com.icthh.xm.ViewServer.serverPort
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.vaadin.navigator.View
+import com.vaadin.ui.Component
 import javafx.application.Platform.runLater
 import javafx.application.Platform.setImplicitExit
 import javafx.embed.swing.JFXPanel
@@ -45,7 +46,13 @@ abstract class VaadinDialog(val project: Project,
         return fxPanel
     }
 
-    abstract fun view() : View
+    abstract fun component() : Component
+
+    open fun view() = object: View {
+        override fun getViewComponent(): Component {
+            return component()
+        }
+    }
 
     override fun dispose() {
         super.dispose()

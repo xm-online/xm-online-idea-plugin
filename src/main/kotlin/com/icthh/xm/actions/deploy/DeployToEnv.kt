@@ -11,6 +11,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.ui.MessageType.INFO
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.psi.PsiManager
 import java.io.File
 import java.io.InputStream
 import org.apache.http.client.ClientProtocolException
@@ -39,7 +40,13 @@ class DeployToEnv() : AnAction() {
         selected ?: return
 
         val changesFiles = project.getChangedFiles()
-        project.updateFilesInMemory(changesFiles, selected)
+
+        val fileListDialog = FileListDialog(project, changesFiles)
+        fileListDialog.show()
+        if (fileListDialog.isOK) {
+            project.updateFilesInMemory(changesFiles, selected)
+        }
+
     }
 
 

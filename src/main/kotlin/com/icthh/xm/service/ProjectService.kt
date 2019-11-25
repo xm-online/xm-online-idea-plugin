@@ -15,6 +15,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.util.io.inputStream
 import com.intellij.util.io.isDirectory
 import com.intellij.util.io.systemIndependentPath
@@ -113,6 +115,10 @@ fun VirtualFile.getConfigRootRelatedPath(project: Project): String {
 
 fun VirtualFile.isConfigFile(project: Project): Boolean {
     return this.path.startsWith(project.getConfigRootDir())
+}
+
+fun VirtualFile.toPsiFile(project: Project): PsiFile? {
+    return PsiManager.getInstance(project).findFile(this)
 }
 
 private fun VirtualFile.getPathRelatedTo(
