@@ -6,6 +6,8 @@ import com.icthh.xm.service.getConfigRootDir
 import com.icthh.xm.service.toPsiFile
 import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.util.ProgressIndicatorBase
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.vaadin.ui.Component
@@ -39,9 +41,9 @@ class FileListDialog(project: Project, val fields: List<String>): VaadinDialog(
                         onLayoutClick {
                             val component = it.clickedComponent ?: return@onLayoutClick
                             if (link == component) {
-                                getApplication().invokeAndWait ({
+                                getApplication().invokeLater ({
                                     VfsUtil.findFile(File(fileName).toPath(), false)?.toPsiFile(project)?.navigate(true)
-                                }, ModalityState.any())
+                                }, ModalityState.stateForComponent(rootPane))
                             }
                         }
                     }
