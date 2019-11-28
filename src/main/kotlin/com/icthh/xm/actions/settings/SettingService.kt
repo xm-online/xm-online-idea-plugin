@@ -41,7 +41,7 @@ class EnvironmentSettings {
     var xmSuperAdminPassword: String = ""
     var clientId: String = "webapp"
     var clientPassword: String = "webapp"
-    var updateMode: UpdateMode = UpdateMode.INCREMENTAL
+    var updateMode: UpdateMode = UpdateMode.FROM_START
 
     var trackChanges: Boolean = false
     var editedFiles: MutableMap<String, FileState> = HashMap()

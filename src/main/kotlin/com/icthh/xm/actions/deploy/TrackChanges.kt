@@ -13,6 +13,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys.VIRTUAL_FILE
 import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.util.io.inputStream
 import com.intellij.util.io.isDirectory
@@ -25,12 +26,13 @@ import java.nio.file.Paths
 
 class TrackChanges() : AnAction() {
 
-
     override fun actionPerformed(anActionEvent: AnActionEvent) {
         val project = anActionEvent.project
         project ?: return
         val settings = project.getSettings()?.selected()
         settings ?: return
+
+        FileDocumentManager.getInstance().saveAllDocuments()
 
         settings.trackChanges = true
         project.saveCurrectFileStates()

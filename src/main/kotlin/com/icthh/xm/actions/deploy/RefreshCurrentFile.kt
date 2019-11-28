@@ -9,6 +9,7 @@ import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys.VIRTUAL_FILE
+import com.intellij.openapi.fileEditor.FileDocumentManager
 
 class RefreshCurrentFile: AnAction() {
 
@@ -19,7 +20,14 @@ class RefreshCurrentFile: AnAction() {
         selected ?: return
         val file = e.getDataContext().getData(VIRTUAL_FILE)
         file ?: return
-        project.updateFilesInMemory(listOf(file.path), selected)
+
+        FileDocumentManager.getInstance().saveAllDocuments()
+
+        val fileListDialog = FileListDialog(project, listOf(file.path))
+        fileListDialog.show()
+        if (fileListDialog.isOK) {
+            project.updateFilesInMemory(listOf(file.path), selected)
+        }
     }
 
     override fun update(anActionEvent: AnActionEvent) {
