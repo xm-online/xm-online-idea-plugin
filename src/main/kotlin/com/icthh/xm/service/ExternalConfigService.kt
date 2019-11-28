@@ -8,6 +8,7 @@ import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.utils.log
 import com.icthh.xm.utils.readTextAndClose
+import com.icthh.xm.utils.templateOrEmpty
 import com.intellij.notification.NotificationType.ERROR
 import com.intellij.openapi.project.Project
 import org.apache.http.HttpHeaders.AUTHORIZATION
@@ -33,11 +34,11 @@ class ExternalConfigService {
         .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
         .registerModule(KotlinModule())
 
-    fun getConfigFile(env: EnvironmentSettings, path: String): String {
+    fun getConfigFile(project: Project, env: EnvironmentSettings, path: String, version: String? = env.version): String {
         val baseUrl = env.xmUrl
         val accessToken = getToken(env)
 
-        val response = Get(baseUrl + "/config/api/config/tenants${path}?version=${env.version?:""}")
+        val response = Get(baseUrl + "/config/api/config/tenants${path}?${version.templateOrEmpty{"version=${it}"}}")
             .addHeader(AUTHORIZATION, "bearer $accessToken")
             .execute()
 
@@ -45,6 +46,12 @@ class ExternalConfigService {
             val returnResponse = response.returnResponse()
             if (returnResponse.statusLine.statusCode == 404) {
                 throw NotFoundException();
+            }
+            if (returnResponse.statusLine.statusCode != 200) {
+                project.showNotification("Get configuration", "Error get configurations", ERROR) {
+                    "${returnResponse.statusLine.statusCode} ${returnResponse.statusLine.reasonPhrase}"
+                }
+                throw RuntimeException(returnResponse.statusLine.reasonPhrase)
             }
             returnResponse.entity.content.readTextAndClose()
         }

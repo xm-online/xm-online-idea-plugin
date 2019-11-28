@@ -25,3 +25,8 @@ fun showDiffDialog(windowTitle: String, content: String, title1: String,
     val request = SimpleDiffRequest(windowTitle, content1, content2, title1, title2)
     DiffManager.getInstance().showDiff(project, request)
 }
+
+fun String?.templateOrEmpty(template: (String) -> String): String {
+    this ?: return ""
+    return template.invoke(this)
+}

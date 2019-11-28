@@ -78,7 +78,7 @@ class FileListDialog(project: Project, val fields: List<String>): VaadinDialog(
         getApplication().executeOnPooledThread {
             val configService = project.getExternalConfigService()
             val settings = project.getSettings()?.selected() ?: return@executeOnPooledThread
-            val config = configService.getConfigFile(settings, virtualFile.getConfigRelatedPath(project))
+            val config = configService.getConfigFile(project, settings, virtualFile.getConfigRelatedPath(project), null)
 
             val sha256Hex = settings.editedFiles.get(virtualFile.path)?.sha256
             if (!sha256Hex(config).equals(sha256Hex)) {

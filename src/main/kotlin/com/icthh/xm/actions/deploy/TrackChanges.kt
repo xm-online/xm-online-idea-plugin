@@ -89,7 +89,7 @@ class TrackChanges() : AnAction() {
         getApplication().executeOnPooledThread {
             try {
                 val path = vFile.getConfigRelatedPath(project)
-                val fileContent = externalConfigService.getConfigFile(settings, path)
+                val fileContent = externalConfigService.getConfigFile(project, settings, path)
                 if (!sha256Hex.equals(sha256Hex(fileContent))) {
                     if (fileState.isNotified.isTrue() || settings.wasNotifiedAtLastTime()) {
                         return@executeOnPooledThread
