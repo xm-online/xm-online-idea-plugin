@@ -29,6 +29,7 @@ class TrackChanges() : AnAction() {
     override fun actionPerformed(anActionEvent: AnActionEvent) {
         val project = anActionEvent.project
         project ?: return
+        FileDocumentManager.getInstance().saveAllDocuments()
         project.startTrackChanges()
     }
 

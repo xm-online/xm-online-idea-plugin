@@ -3,10 +3,12 @@ package com.icthh.xm.actions.deploy
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.service.*
+import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.readTextAndClose
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager.getApplication
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.ui.MessageType.INFO
@@ -39,6 +41,8 @@ class DeployToEnv() : AnAction() {
         val selected = project.getSettings().selected()
         selected ?: return
 
+        FileDocumentManager.getInstance().saveAllDocuments()
+
         val changesFiles = project.getChangedFiles()
 
         val fileListDialog = FileListDialog(project, changesFiles)
@@ -56,7 +60,7 @@ class DeployToEnv() : AnAction() {
             return
         }
         val project = anActionEvent.project ?: return
-
-        anActionEvent.presentation.isEnabled = project.getSettings().selected()?.trackChanges ?: false
+        val selected = project.getSettings().selected()
+        anActionEvent.presentation.isEnabled = selected?.trackChanges.isTrue() || (selected?.startTrackChangesOnEdit.isTrue())
     }
 }

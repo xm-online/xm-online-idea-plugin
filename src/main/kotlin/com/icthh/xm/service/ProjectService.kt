@@ -82,8 +82,10 @@ fun Project.getChangedFiles(): List<String> {
         sha256Hex(file.contentsToByteArray()) != it.value.sha256
     }.map { it.key }.toMutableSet()
 
-    addNewFiels(editedFiles, changed)
-    addNewFiels(selected.editedFiles, changed)
+    if (editedFiles.isNotEmpty()) {
+        addNewFiels(editedFiles, changed)
+        addNewFiels(selected.editedFiles, changed)
+    }
 
     return changed.toList()
 }
@@ -98,7 +100,6 @@ fun Project.startTrackChanges(): Boolean {
 
     settings.trackChanges = true
 
-    FileDocumentManager.getInstance().saveAllDocuments()
     saveCurrectFileStates()
     settings.atStartFilesState = settings.editedFiles
 
