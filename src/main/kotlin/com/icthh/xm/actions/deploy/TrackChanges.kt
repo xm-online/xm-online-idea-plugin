@@ -29,31 +29,7 @@ class TrackChanges() : AnAction() {
     override fun actionPerformed(anActionEvent: AnActionEvent) {
         val project = anActionEvent.project
         project ?: return
-        val settings = project.getSettings()?.selected()
-        settings ?: return
-
-        FileDocumentManager.getInstance().saveAllDocuments()
-
-        settings.trackChanges = true
-        project.saveCurrectFileStates()
-        settings.atStartFilesState = settings.editedFiles
-
-        LocalHistory.getInstance().putUserLabel(project, "CHANGES_FROM_${settings.id}");
-        project.save()
-        getApplication().executeOnPooledThread {
-            settings.version = getVersion(project, settings)
-        }
-    }
-
-    private fun getVersion(project: Project, settings: EnvironmentSettings): String {
-        try {
-            return project.getExternalConfigService().getCurrentVersion(settings)
-        } catch (e: Exception) {
-            project.showNotification("getVersion", "Error get current version of config", ERROR) {
-                e.message ?: ""
-            }
-            throw e;
-        }
+        project.startTrackChanges()
     }
 
     override fun update(anActionEvent: AnActionEvent) {

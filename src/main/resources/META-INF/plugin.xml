@@ -23,6 +23,12 @@
         </component>
     </application-components>
 
+    <project-components>
+        <component>
+            <implementation-class>com.icthh.xm.ConfigurationProjectApp</implementation-class>
+        </component>
+    </project-components>
+
     <actions>
 
         <group id="editorPopupMenu">

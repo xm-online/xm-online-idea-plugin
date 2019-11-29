@@ -42,6 +42,7 @@ class EnvironmentSettings {
     var clientId: String = "webapp"
     var clientPassword: String = "webapp"
     var updateMode: UpdateMode = UpdateMode.FROM_START
+    var startTrackChangesOnEdit: Boolean = true
 
     var trackChanges: Boolean = false
     var editedFiles: MutableMap<String, FileState> = HashMap()

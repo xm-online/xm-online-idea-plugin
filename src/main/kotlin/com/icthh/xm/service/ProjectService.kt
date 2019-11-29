@@ -5,8 +5,11 @@ import com.icthh.xm.actions.settings.FileState
 import com.icthh.xm.actions.settings.SettingService
 import com.icthh.xm.actions.settings.UpdateMode.INCREMENTAL
 import com.icthh.xm.actions.shared.showMessage
+import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.utils.readTextAndClose
+import com.intellij.history.LocalHistory
 import com.intellij.ide.util.PropertiesComponent
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
@@ -83,6 +86,39 @@ fun Project.getChangedFiles(): List<String> {
     addNewFiels(selected.editedFiles, changed)
 
     return changed.toList()
+}
+
+fun Project.startTrackChanges(): Boolean {
+    val settings = getSettings()?.selected()
+    settings ?: return false
+
+    if (settings.trackChanges) {
+        return false
+    }
+
+    settings.trackChanges = true
+
+    FileDocumentManager.getInstance().saveAllDocuments()
+    saveCurrectFileStates()
+    settings.atStartFilesState = settings.editedFiles
+
+    LocalHistory.getInstance().putUserLabel(this, "CHANGES_FROM_${settings.id}");
+    this.save()
+    ApplicationManager.getApplication().executeOnPooledThread {
+        settings.version = getVersion(settings)
+    }
+    return true
+}
+
+private fun Project.getVersion(settings: EnvironmentSettings): String {
+    try {
+        return getExternalConfigService().getCurrentVersion(settings)
+    } catch (e: Exception) {
+        showNotification("getVersion", "Error get current version of config", NotificationType.ERROR) {
+            e.message ?: ""
+        }
+        throw e;
+    }
 }
 
 private fun Project.addNewFiels(

@@ -13,12 +13,13 @@ import com.vaadin.server.Sizeable.Unit.PERCENTAGE
 import com.vaadin.shared.ui.ValueChangeMode
 import com.vaadin.ui.*
 import com.vaadin.ui.themes.ValoTheme
+import org.tukaani.xz.check.Check
 import java.awt.Dimension
 import kotlin.reflect.KMutableProperty1
 
 
 class SettingsDialog(project: Project): VaadinDialog(
-    project, "settings", Dimension(820, 550), "Settings"
+    project, "settings", Dimension(820, 580), "Settings"
 ) {
 
     val data = ArrayList(project.getSettings().envs)
@@ -57,7 +58,7 @@ class SettingsDialog(project: Project): VaadinDialog(
 
         val envSelect = ListSelect<EnvironmentSettings>()
         envSelect.setItems(data)
-        envSelect.setRows(16);
+        envSelect.setRows(21);
         envSelect.setWidth(100.0f, PERCENTAGE)
 
         val success = Label("Success")
@@ -110,6 +111,7 @@ class SettingsDialog(project: Project): VaadinDialog(
         val clientPassword = TextField("Client password")
         val updateMode = ComboBox<UpdateMode>("Update mode");
         updateMode.setItems(UpdateMode.values().asList())
+        val startTrackChangesOnEdit = CheckBox("Start track changes on edit")
         binder.bindField(name, EnvironmentSettings::name)
         binder.bindField(xmUrl, EnvironmentSettings::xmUrl)
         binder.bindField(login, EnvironmentSettings::xmSuperAdminLogin)
@@ -117,6 +119,7 @@ class SettingsDialog(project: Project): VaadinDialog(
         binder.bindField(clientId, EnvironmentSettings::clientId)
         binder.bindField(clientPassword, EnvironmentSettings::clientPassword)
         binder.bindField(updateMode, EnvironmentSettings::updateMode)
+        binder.bindField(startTrackChangesOnEdit, EnvironmentSettings::startTrackChangesOnEdit)
         name.setSizeFull()
         xmUrl.setSizeFull()
         login.setSizeFull()
@@ -146,7 +149,7 @@ class SettingsDialog(project: Project): VaadinDialog(
         }
         checkConnection.addComponents(button, success, failed)
 
-        form.addComponents(name, xmUrl, login, password, clientToken, updateMode, checkConnection)
+        form.addComponents(name, xmUrl, login, password, clientToken, updateMode, startTrackChangesOnEdit, checkConnection)
 
         name.valueChangeMode = ValueChangeMode.EAGER
         binder.addValueChangeListener {
