@@ -11,7 +11,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys.VIRTUAL_FILE
 import com.intellij.openapi.fileEditor.FileDocumentManager
 
-class RefreshCurrentFile: AnAction() {
+class DeployCurrentFile: AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project

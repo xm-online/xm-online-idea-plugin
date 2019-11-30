@@ -13,8 +13,10 @@ import com.vaadin.ui.Component
 import javafx.application.Platform
 import javafx.embed.swing.JFXPanel
 import javafx.scene.Scene
+import javafx.scene.layout.StackPane
 import javafx.scene.layout.VBox
 import javafx.scene.web.WebView
+import java.awt.Color
 import java.awt.Dimension
 import java.beans.PropertyChangeListener
 import javax.swing.JComponent
@@ -36,14 +38,14 @@ abstract class VaadinEditor(val project: Project,
         })
 
         val fxPanel = JFXPanel()
-        fxPanel.preferredSize = dimension
+        //fxPanel.preferredSize = dimension
         Platform.setImplicitExit(false)
         Platform.runLater {
-            val root = VBox()
+            val root = StackPane()
             val scene = Scene(root)
             val webView = WebView()
             webView.engine.load("http://localhost:${ViewServer.serverPort}/#!$viewName")
-            root.setMinSize(dimension.getWidth(), dimension.getHeight())
+            //root.setMinSize(dimension.getWidth(), dimension.getHeight())
             root.getChildren().add(webView)
             fxPanel.scene = scene
         }

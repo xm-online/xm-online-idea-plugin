@@ -13,9 +13,9 @@ data class Permission(
 
     var disabled: Boolean? = true
     var deleted: Boolean? = false
-    var reactionStrategy: ReactionStrategy? = EXCEPTION
     var envCondition: String? = null
     var resourceCondition: String? = null
+    var reactionStrategy: ReactionStrategy? = EXCEPTION
 
     override fun compareTo(other: Permission) = privilegeKey.compareTo(other.privilegeKey)
 }

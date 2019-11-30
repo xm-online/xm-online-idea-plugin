@@ -34,7 +34,7 @@
         <group id="editorPopupMenu">
             <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode" />
             <separator/>
-            <action id="refreshCurrentFile" class="com.icthh.xm.actions.deploy.RefreshCurrentFile" text="Update current file in memory"/>
+            <action id="refreshCurrentFile" class="com.icthh.xm.actions.deploy.DeployCurrentFile" text="Update current file in memory"/>
         </group>
 
         <group id="mainMenu" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup">

@@ -188,7 +188,9 @@ class TenantRoleService(val tenant: String, val project: Project) {
     }
 
     private fun updatePermissions(permissionsYml: String) {
-        // TODO
+        var configPath = PERMISSIONS_PATH.replace("{tenantName}", tenant)
+        configPath = project.configPathToRealPath(configPath)
+        saveConfigContent(permissionsYml, configPath)
     }
 
     fun getRole(roleKey: String): Optional<RoleDTO> {
@@ -361,6 +363,14 @@ class TenantRoleService(val tenant: String, val project: Project) {
             return Optional.empty()
         }
         return Optional.of(config)
+    }
+
+    private fun saveConfigContent(content: String, configPath: String) {
+        val virtualFile = VfsUtil.findFile(File(configPath).toPath(), true)
+        if (virtualFile?.exists() != true) {
+            return
+        }
+        virtualFile.setBinaryContent(content.toByteArray())
     }
 
     companion object {
