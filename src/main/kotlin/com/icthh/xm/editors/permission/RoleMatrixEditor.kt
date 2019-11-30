@@ -1,31 +1,35 @@
 package com.icthh.xm.editors.permission
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.mvysny.karibudsl.v8.*
 import com.icthh.xm.domain.permission.dto.PermissionMatrixDTO
+import com.icthh.xm.domain.permission.dto.RoleMatrixDTO
 import com.icthh.xm.editors.VaadinEditor
 import com.icthh.xm.service.getTenantName
 import com.icthh.xm.service.permission.TenantRoleService
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationManager.getApplication
-import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.util.Alarm
+import com.intellij.util.Alarm.ThreadToUse.SWING_THREAD
 import com.vaadin.data.provider.DataProvider
-import com.vaadin.data.provider.DataProviderListener
-import com.vaadin.data.provider.Query
-import com.vaadin.server.Sizeable.Unit.PERCENTAGE
 import com.vaadin.server.Sizeable.Unit.PIXELS
-import com.vaadin.shared.Registration
-import com.vaadin.ui.*
-import java.util.*
-import java.util.stream.Stream
+import com.vaadin.ui.CheckBox
+import com.vaadin.ui.Component
+import com.vaadin.ui.Grid
+import com.vaadin.ui.VerticalLayout
+
 
 class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile): VaadinEditor(currentProject, "role-matrix", "Role matrix") {
+
+    var myDocumentAlarm = Alarm(SWING_THREAD, this)
+
     override fun viewComponent(): Component {
 
         val tenantName = currentFile.getTenantName(project)
         val tenantRoleService = TenantRoleService(tenantName, currentProject)
-        var roleMatrix = tenantRoleService.getRoleMatrix()
+        val roleMatrix = tenantRoleService.getRoleMatrix()
 
         lateinit var grid: Grid<PermissionMatrixDTO>
         val rootLayout = VerticalLayout().apply {
@@ -59,13 +63,11 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
                                 } else {
                                     column.roles.remove(role)
                                 }
-                                getApplication().invokeLater ({
-                                    getApplication().runWriteAction {
-                                        tenantRoleService.updateRoleMatrix(roleMatrix)
-                                        roleMatrix = tenantRoleService.getRoleMatrix()
-                                        grid.refresh()
-                                    }
-                                }, ModalityState.stateForComponent(getComponent()))
+                                update {
+                                    val mapper = jacksonObjectMapper()
+                                    val roleMatrixDTO = mapper.readValue<RoleMatrixDTO>(mapper.writeValueAsBytes(roleMatrix))
+                                    tenantRoleService.updateRoleMatrix(roleMatrixDTO)
+                                }
                             }
                         }
                     }
@@ -85,5 +87,23 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
         }
         return rootLayout
     }
+
+    fun update(update: () -> Unit) {
+        if (myDocumentAlarm.isDisposed) {
+            return
+        }
+
+        myDocumentAlarm.cancelAllRequests()
+        myDocumentAlarm.addRequest({
+            getApplication().runWriteAction {
+                update.invoke()
+            }
+        }, 50)
+    }
+
+    override fun getFile(): VirtualFile {
+        return currentFile
+    }
+
 }
 
