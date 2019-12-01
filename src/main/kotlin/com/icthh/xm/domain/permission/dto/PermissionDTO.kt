@@ -1,5 +1,6 @@
 package com.icthh.xm.domain.permission.dto
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.icthh.xm.domain.permission.Permission
 import com.icthh.xm.utils.isTrue
 
@@ -7,7 +8,8 @@ data class PermissionDTO(
     val msName: String,
     val roleKey: String,
     val privilegeKey: String,
-    val enabled: Boolean
+    var enabled: Boolean,
+    var newPermission: Boolean? = null
 ) : Comparable<PermissionDTO> {
 
 

@@ -18,6 +18,7 @@ import com.vaadin.server.Sizeable.Unit.PIXELS
 import com.vaadin.ui.CheckBox
 import com.vaadin.ui.Component
 import com.vaadin.ui.Grid
+import com.vaadin.ui.Grid.SelectionMode.NONE
 import com.vaadin.ui.VerticalLayout
 
 
@@ -57,6 +58,7 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
             grid = grid {
                 expandRatio = 1f;
                 setColumnReorderingAllowed(true);
+                setSelectionMode(NONE)
                 setSizeFull()
 
                 val privilegeKey = addColumn{ it.privilegeKey }
@@ -90,11 +92,12 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
                 }
                 setDataProvider( DataProvider.fromCallbacks(
                     { query ->
-                        val offset = query.getOffset();
-                        val limit = query.getLimit();
-                        getPermission(roleMatrix).toList().subList(offset, offset + limit).stream()
+                        val permission = getPermission(roleMatrix)
+                        val start = query.getOffset()
+                        val end = Math.min(query.getLimit() + start, permission.size)
+                        permission.toList().subList(start, end).stream()
                     },
-                    {query -> getPermission(roleMatrix).size}
+                    { getPermission(roleMatrix).size }
                 ))
             }
         }

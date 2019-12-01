@@ -193,8 +193,8 @@ class TenantRoleService(val tenant: String, val project: Project) {
         saveConfigContent(permissionsYml, configPath)
     }
 
-    fun getRole(roleKey: String): Optional<RoleDTO> {
-        val role = getRoles()[roleKey] ?: return Optional.empty()
+    fun getRole(roleKey: String): RoleDTO {
+        val role = getRoles()[roleKey] ?: return RoleDTO(Role())
         role.key = roleKey
         val roleDto = RoleDTO(role)
         roleDto.permissions = TreeSet()
@@ -235,7 +235,7 @@ class TenantRoleService(val tenant: String, val project: Project) {
 
         roleDto.env = getEnvironments()
 
-        return Optional.of(roleDto)
+        return roleDto
     }
 
     fun privilegesProcessor(msName: String, privileges: Set<Privilege>, permissions: TreeMap<String, PermissionDTO>,
@@ -243,7 +243,7 @@ class TenantRoleService(val tenant: String, val project: Project) {
         privileges.forEach { privilege ->
             var permission: PermissionDTO? = permissions[msName + ":" + privilege.key]
             if (permission == null) {
-                permission = PermissionDTO(msName, roleKey, privilege.key, false)
+                permission = PermissionDTO(msName, roleKey, privilege.key, false, true)
             }
             permission.resources = privilege.resources
             roleDto.permissions?.add(permission)
@@ -338,7 +338,7 @@ class TenantRoleService(val tenant: String, val project: Project) {
         existingPermissions: SortedMap<String, SortedMap<String, SortedSet<Permission>>>,
         newPermissions: Collection<PermissionDTO>
     ) {
-        newPermissions.forEach { permissionDto ->
+        newPermissions.filter { it.enabled || !it.newPermission.isTrue() }.forEach { permissionDto ->
             val msPermissions = existingPermissions.getOrPut(permissionDto.msName, {TreeMap()})
             val rolePermissions = msPermissions.getOrPut(permissionDto.roleKey, {TreeSet()})
             val permission = PermissionDomainMapper().permissionDtoToPermission(permissionDto)

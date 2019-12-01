@@ -6,10 +6,6 @@ import com.icthh.xm.domain.permission.dto.PermissionDTO
 
 class PermissionDomainMapper {
 
-    fun permissionToPermissionDto(permission: Permission): PermissionDTO {
-        return PermissionDTO(permission)
-    }
-
     fun permissionDtoToPermission(permissionDto: PermissionDTO): Permission {
         val permission = Permission(
             permissionDto.msName,
