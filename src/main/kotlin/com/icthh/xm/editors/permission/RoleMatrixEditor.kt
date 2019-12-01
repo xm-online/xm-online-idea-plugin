@@ -23,22 +23,35 @@ import com.vaadin.ui.VerticalLayout
 
 class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile): VaadinEditor(currentProject, "role-matrix", "Role matrix") {
 
-    var myDocumentAlarm = Alarm(SWING_THREAD, this)
+    var documentAlarm = Alarm(SWING_THREAD, this)
+    var selectedMs: String? = null
+    var permissionToSearch: String? = null
 
     override fun viewComponent(): Component {
 
         val tenantName = currentFile.getTenantName(project)
         val tenantRoleService = TenantRoleService(tenantName, currentProject)
         val roleMatrix = tenantRoleService.getRoleMatrix()
+        val msNames = getPermission(roleMatrix).map { it.msName }.toSet()
 
         lateinit var grid: Grid<PermissionMatrixDTO>
         val rootLayout = VerticalLayout().apply {
             setSizeFull()
 
             horizontalLayout {
-                comboBox<String> {  }
+                comboBox<String> {
+                    setItems(msNames)
+                    addValueChangeListener {
+                        selectedMs = it.value
+                        grid.refresh()
+                    }
+                }
                 textField {
                     setWidth(300f, PIXELS)
+                    onEnterPressed {
+                        permissionToSearch = it.value
+                        grid.refresh()
+                    }
                 }
             }
             grid = grid {
@@ -79,22 +92,28 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
                     { query ->
                         val offset = query.getOffset();
                         val limit = query.getLimit();
-                        roleMatrix.permissions.toList().subList(offset, offset + limit).stream()
+                        getPermission(roleMatrix).toList().subList(offset, offset + limit).stream()
                     },
-                    {query -> roleMatrix.permissions.size}
+                    {query -> getPermission(roleMatrix).size}
                 ))
             }
         }
         return rootLayout
     }
 
+    private fun getPermission(roleMatrix: RoleMatrixDTO): List<PermissionMatrixDTO> {
+        return roleMatrix.permissions
+            .filter { if (selectedMs == null) true else it.msName.equals(selectedMs) }
+            .filter { it.privilegeKey.contains(permissionToSearch ?: "") }
+    }
+
     fun update(update: () -> Unit) {
-        if (myDocumentAlarm.isDisposed) {
+        if (documentAlarm.isDisposed) {
             return
         }
 
-        myDocumentAlarm.cancelAllRequests()
-        myDocumentAlarm.addRequest({
+        documentAlarm.cancelAllRequests()
+        documentAlarm.addRequest({
             getApplication().runWriteAction {
                 update.invoke()
             }
