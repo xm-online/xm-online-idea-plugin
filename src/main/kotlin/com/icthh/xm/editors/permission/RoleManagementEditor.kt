@@ -19,8 +19,7 @@ import com.vaadin.icons.VaadinIcons
 import com.vaadin.icons.VaadinIcons.EDIT
 import com.vaadin.server.Sizeable.Unit.PIXELS
 import com.vaadin.shared.ui.ValueChangeMode
-import com.vaadin.shared.ui.ValueChangeMode.BLUR
-import com.vaadin.shared.ui.ValueChangeMode.TIMEOUT
+import com.vaadin.shared.ui.ValueChangeMode.*
 import com.vaadin.ui.*
 import com.vaadin.ui.Grid.SelectionMode.NONE
 import java.awt.Dialog
@@ -120,7 +119,7 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                                     rows = 5
                                     setWidth(600F, PIXELS)
                                     value = permission.resourceCondition ?: ""
-                                    valueChangeMode = TIMEOUT
+                                    valueChangeMode = BLUR
                                     addValueChangeListener {
                                         permission.resourceCondition = it.value.ifEmpty { null }
                                         updateValue(role, tenantRoleService)
@@ -129,9 +128,7 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                                 }
                             }
                         )
-                        popupView.addPopupVisibilityListener{
-
-                        }
+                        popupView.isHideOnMouseOut = false
                         addComponent(popupView)
                     }
                 }
@@ -155,7 +152,7 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                                     rows = 5
                                     setWidth(600F, PIXELS)
                                     value = permission.envCondition ?: ""
-                                    valueChangeMode = TIMEOUT
+                                    valueChangeMode = BLUR
                                     addValueChangeListener {
                                         permission.envCondition = it.value.ifEmpty { null }
                                         updateValue(role, tenantRoleService)
@@ -164,6 +161,7 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                                 }
                             }
                         )
+                        popupView.isHideOnMouseOut = false
                         addComponent(popupView)
                     }
                 }
