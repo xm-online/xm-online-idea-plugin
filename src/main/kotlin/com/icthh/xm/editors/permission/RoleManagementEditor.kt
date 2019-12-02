@@ -35,15 +35,25 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
 
         val tenantName = currentFile.getTenantName(project)
         val tenantRoleService = TenantRoleService(tenantName, currentProject)
-        val role = tenantRoleService.getRole(tenantRoleService.getAllRoles().first().roleKey)
+        val allRoles = tenantRoleService.getAllRoles()
+        var role = tenantRoleService.getRole(allRoles.first().roleKey)
         val msNames = getPermission(role.permissions).map { it.msName }.toSet()
 
         lateinit var grid: Grid<PermissionDTO>
         val rootLayout = VerticalLayout().apply {
-            val main = this
             setSizeFull()
 
             horizontalLayout {
+                comboBox<String> {
+                    placeholder = "Role"
+                    isEmptySelectionAllowed = false
+                    setItems(allRoles.map { it.roleKey })
+                    setSelectedItem(allRoles.first().roleKey)
+                    addValueChangeListener {
+                        role = tenantRoleService.getRole(it.value)
+                        grid.refresh()
+                    }
+                }
                 comboBox<String> {
                     setItems(msNames)
                     addValueChangeListener {
@@ -52,6 +62,7 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                     }
                 }
                 textField {
+                    placeholder = "Privilege"
                     setWidth(300f, PIXELS)
                     onEnterPressed {
                         permissionToSearch = it.value
@@ -61,7 +72,7 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                         permissionToSearch = it.value
                         grid.refresh()
                     }
-                    valueChangeMode = ValueChangeMode.TIMEOUT
+                    valueChangeMode = TIMEOUT
                 }
             }
             grid = grid {
@@ -142,10 +153,10 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                             VerticalLayout().apply {
                                 label {
                                     html("""
-                                        1. use SpEL functionality
-                                        2. use # before variable
-                                        3. #subject.role, #subject.userKey, #subject.login are available
-                                        4. #env['ipAddress'] is available          
+                                        1. use SpEL functionality<br>
+                                        2. use # before variable<br>
+                                        3. #subject.role, #subject.userKey, #subject.login are available<br>
+                                        4. #env['ipAddress'] is available
                                     """.trimIndent())
                                 }
                                 textArea {
