@@ -36,7 +36,7 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
         val tenantName = currentFile.getTenantName(project)
         val tenantRoleService = TenantRoleService(tenantName, currentProject)
         val allRoles = tenantRoleService.getAllRoles()
-        var role = tenantRoleService.getRole(allRoles.first().roleKey)
+        var role = tenantRoleService.getRole(allRoles.firstOrNull()?.roleKey ?: "")
         val msNames = getPermission(role.permissions).map { it.msName }.toSet()
 
         lateinit var grid: Grid<PermissionDTO>
@@ -48,7 +48,7 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                     placeholder = "Role"
                     isEmptySelectionAllowed = false
                     setItems(allRoles.map { it.roleKey })
-                    setSelectedItem(allRoles.first().roleKey)
+                    setSelectedItem(allRoles.firstOrNull()?.roleKey ?: "")
                     addValueChangeListener {
                         role = tenantRoleService.getRole(it.value)
                         grid.refresh()
