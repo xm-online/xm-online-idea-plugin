@@ -15,10 +15,15 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.Alarm
 import com.intellij.util.Alarm.ThreadToUse.SWING_THREAD
 import com.vaadin.data.provider.DataProvider
+import com.vaadin.icons.VaadinIcons
+import com.vaadin.icons.VaadinIcons.EDIT
 import com.vaadin.server.Sizeable.Unit.PIXELS
+import com.vaadin.shared.ui.ValueChangeMode
 import com.vaadin.shared.ui.ValueChangeMode.BLUR
+import com.vaadin.shared.ui.ValueChangeMode.TIMEOUT
 import com.vaadin.ui.*
 import com.vaadin.ui.Grid.SelectionMode.NONE
+import java.awt.Dialog
 
 
 class RoleManagementEditor(val currentProject: Project, val currentFile: VirtualFile): VaadinEditor(currentProject, "role-management", "Role management") {
@@ -36,6 +41,7 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
 
         lateinit var grid: Grid<PermissionDTO>
         val rootLayout = VerticalLayout().apply {
+            val main = this
             setSizeFull()
 
             horizontalLayout {
@@ -52,6 +58,11 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                         permissionToSearch = it.value
                         grid.refresh()
                     }
+                    addValueChangeListener {
+                        permissionToSearch = it.value
+                        grid.refresh()
+                    }
+                    valueChangeMode = ValueChangeMode.TIMEOUT
                 }
             }
             grid = grid {
@@ -93,34 +104,67 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                 onForbid.isHidable = true
 
                 val resourceCondition = addComponentColumn { permission ->
-                    TextArea().apply {
-                        value = permission.resourceCondition ?: ""
-                        valueChangeMode = BLUR
-                        onEnterPressed {
-                            permission.resourceCondition = it.value.ifEmpty { null }
-                            updateValue(role, tenantRoleService)
+                    val resources = permission.resources
+                    HorizontalLayout().apply {
+                        val popupView = PopupView(permission.resourceCondition ?: EDIT.html,
+                            VerticalLayout().apply {
+                                label {
+                                    html("""
+                                        1. use SpEL functionality<br>
+                                        2. use # before variable<br>
+                                        3. #subject.role, #subject.userKey, #subject.login are available<br>
+                                        ${resources?.joinToString(separator = ", ", prefix = "Available variables: ")}            
+                                    """.trimIndent())
+                                }
+                                textArea {
+                                    rows = 5
+                                    setWidth(600F, PIXELS)
+                                    value = permission.resourceCondition ?: ""
+                                    valueChangeMode = TIMEOUT
+                                    addValueChangeListener {
+                                        permission.resourceCondition = it.value.ifEmpty { null }
+                                        updateValue(role, tenantRoleService)
+                                        grid.refresh()
+                                    }
+                                }
+                            }
+                        )
+                        popupView.addPopupVisibilityListener{
+
                         }
-                        addValueChangeListener {
-                            permission.resourceCondition = it.value.ifEmpty { null }
-                            updateValue(role, tenantRoleService)
-                        }
+                        addComponent(popupView)
                     }
                 }
+
                 resourceCondition.caption = "Resource Condition"
                 resourceCondition.isHidable = true
 
                 val envCondition = addComponentColumn { permission ->
-                    TextArea().apply {
-                        value = permission.envCondition ?: ""
-                        valueChangeMode = BLUR
-                        onEnterPressed {
-                            permission.envCondition = it.value.ifEmpty { null }
-                            updateValue(role, tenantRoleService)
-                        }
-                        addValueChangeListener {
-                            permission.envCondition = it.value.ifEmpty { null }
-                            updateValue(role, tenantRoleService)
-                        }
+                    HorizontalLayout().apply {
+                        val popupView = PopupView(permission.envCondition ?: EDIT.html,
+                            VerticalLayout().apply {
+                                label {
+                                    html("""
+                                        1. use SpEL functionality
+                                        2. use # before variable
+                                        3. #subject.role, #subject.userKey, #subject.login are available
+                                        4. #env['ipAddress'] is available          
+                                    """.trimIndent())
+                                }
+                                textArea {
+                                    rows = 5
+                                    setWidth(600F, PIXELS)
+                                    value = permission.envCondition ?: ""
+                                    valueChangeMode = TIMEOUT
+                                    addValueChangeListener {
+                                        permission.envCondition = it.value.ifEmpty { null }
+                                        updateValue(role, tenantRoleService)
+                                        grid.refresh()
+                                    }
+                                }
+                            }
+                        )
+                        addComponent(popupView)
                     }
                 }
                 envCondition.caption = "Environment Condition"

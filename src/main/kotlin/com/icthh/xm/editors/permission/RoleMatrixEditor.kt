@@ -15,6 +15,7 @@ import com.intellij.util.Alarm
 import com.intellij.util.Alarm.ThreadToUse.SWING_THREAD
 import com.vaadin.data.provider.DataProvider
 import com.vaadin.server.Sizeable.Unit.PIXELS
+import com.vaadin.shared.ui.ValueChangeMode.TIMEOUT
 import com.vaadin.ui.CheckBox
 import com.vaadin.ui.Component
 import com.vaadin.ui.Grid
@@ -53,6 +54,11 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
                         permissionToSearch = it.value
                         grid.refresh()
                     }
+                    addValueChangeListener {
+                        permissionToSearch = it.value
+                        grid.refresh()
+                    }
+                    valueChangeMode = TIMEOUT
                 }
             }
             grid = grid {
