@@ -35,6 +35,10 @@ class ExternalConfigService {
         .registerModule(KotlinModule())
 
     fun getConfigFile(project: Project, env: EnvironmentSettings, path: String, version: String? = env.version): String {
+        return getConfigFileIfExists(project, env, path, version) ?: throw NotFoundException()
+    }
+
+    fun getConfigFileIfExists(project: Project, env: EnvironmentSettings, path: String, version: String? = env.version): String? {
         val baseUrl = env.xmUrl
         val accessToken = getToken(env)
 
@@ -45,7 +49,7 @@ class ExternalConfigService {
         return response.handleResponse {
             val returnResponse = response.returnResponse()
             if (returnResponse.statusLine.statusCode == 404) {
-                throw NotFoundException();
+                return@handleResponse null
             }
             if (returnResponse.statusLine.statusCode != 200) {
                 project.showNotification("Get configuration", "Error get configurations", ERROR) {

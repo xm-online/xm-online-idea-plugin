@@ -9,7 +9,8 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.vaadin.icons.VaadinIcons.WARNING
+import com.vaadin.icons.VaadinIcons
+import com.vaadin.icons.VaadinIcons.*
 import com.vaadin.shared.ui.ContentMode.HTML
 import com.vaadin.ui.*
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
@@ -33,21 +34,35 @@ class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
                         caption = "Already up to update"
                     }
                 }
-                val configRootDir = project.getConfigRootDir()
                 changes.changesFiles.forEach { fileName ->
-                    val warning = Label("${WARNING.getHtml()} File changed", HTML)
+                    val warning = Label("${WARNING.html} File changed", HTML)
                     warning.isVisible = false
 
-                    val configPath = "/config" + fileName.substring(configRootDir.length)
+                    val configPath = fileName
                     val line = horizontalLayout {
                         link { caption = configPath }
                     }
                     line.addComponent(warning)
-                    val virtualFile = VfsUtil.findFile(File(fileName).toPath(), false)
+
+                    val path = project.configPathToRealPath(fileName)
+                    val virtualFile = VfsUtil.findFile(File(path).toPath(), false)
                     if (virtualFile != null) {
                         markFileAsChanged(warning, line, configPath, virtualFile, ui)
                     }
                     line.apply {
+                        if (changes.toDelete.contains(fileName)) {
+                            label{
+                                description = "It's file was deleted"
+                                html(TRASH.html)
+                            }
+                        }
+                        if (changes.editedInThisIteration.contains(fileName)) {
+                            label{
+                                description = "It's file edited in you version after last update"
+                                html(EDIT.html)
+                                id = "EDIT"
+                            }
+                        }
                         onLayoutClick {
                             if (it.clickedComponent == null || !(it.clickedComponent is Link)) {
                                 return@onLayoutClick
@@ -76,11 +91,25 @@ class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
         getApplication().executeOnPooledThread {
             val configService = project.getExternalConfigService()
             val settings = project.getSettings()?.selected() ?: return@executeOnPooledThread
-            val config = configService.getConfigFile(project, settings, virtualFile.getConfigRelatedPath(project), null)
+            val config = configService.getConfigFileIfExists(project, settings, virtualFile.getConfigRelatedPath(project), null)
+
+            if (config == null) {
+                ui.access {
+                    removeEditIcon(line)
+                    line.apply {
+                        label{
+                            description = "It's new file"
+                            html(FILE_ADD.html)
+                        }
+                    }
+                }
+                return@executeOnPooledThread
+            }
 
             val sha256Hex = settings.editedFiles.get(virtualFile.path)?.sha256
             if (!sha256Hex(config).equals(sha256Hex)) {
                 ui.access {
+                    removeEditIcon(line)
                     warning.isVisible = true
 
                     line.apply {
@@ -94,10 +123,15 @@ class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
                             }, ModalityState.stateForComponent(rootPane))
                         }
                     }
+
                 }
             }
 
         }
+    }
+
+    private fun removeEditIcon(line: HorizontalLayout) {
+        line.filter { it.id == "EDIT" }.forEach { line.removeComponent(it) }
     }
 
 }

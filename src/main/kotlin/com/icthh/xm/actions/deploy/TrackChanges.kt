@@ -83,7 +83,7 @@ class TrackChanges() : AnAction() {
                 fileState.isNotified = true
             } catch (e: Exception) {
                 settings.lastTimeTryToNotifyAboutDifference = currentTimeMillis()
-                log.error("Error compare config file ", e)
+                log.warn("Error compare config file ", e)
                 project.showNotification("ERROR", "Error get ${vFile.name} from config server", ERROR) {
                     "${(e.message ?: "")} ${settings.lastTimeTryToNotifyAboutDifference}"
                 }

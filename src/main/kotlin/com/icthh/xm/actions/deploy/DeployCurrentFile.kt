@@ -24,7 +24,7 @@ class DeployCurrentFile: AnAction() {
 
         FileDocumentManager.getInstance().saveAllDocuments()
 
-        val changes = project.getChangedFiles(setOf(file.path))
+        val changes = project.getChangedFiles(setOf(file.path), true)
 
         val fileListDialog = FileListDialog(project, changes)
         fileListDialog.show()

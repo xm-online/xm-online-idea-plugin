@@ -3,11 +3,9 @@ package com.icthh.xm.service
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.FileState
 import com.icthh.xm.actions.settings.SettingService
-import com.icthh.xm.actions.settings.UpdateMode.FROM_START
 import com.icthh.xm.actions.settings.UpdateMode.INCREMENTAL
 import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
-import com.icthh.xm.utils.readTextAndClose
 import com.intellij.history.LocalHistory
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.NotificationType
@@ -160,18 +158,18 @@ fun Project.getChangedFiles(): ChangesFiles {
     return getChangedFiles(allFiles)
 }
 
-fun Project.getChangedFiles(allFiles: Set<String>): ChangesFiles {
+fun Project.getChangedFiles(files: Set<String>, forceUpdate: Boolean = false): ChangesFiles {
     val selected = getSettings().selected()
     selected ?: return ChangesFiles()
 
     val toDelete = LinkedHashSet<String>()
-    val editedInThisIteration = LinkedHashSet<String>()
-    val editedFromStart = LinkedHashSet<String>()
+    val filesForUpdate = HashSet<String>()
     val bigFiles = LinkedHashSet<String>()
-    val newFiles = HashSet<String>()
+    val editedFromStart = LinkedHashSet<String>()
+    val editedInThisIteration = LinkedHashSet<String>()
     val updatedFileContent = HashMap<String, ByteArrayInputStream>()
 
-    allFiles.forEach {
+    files.forEach {
         val file = VfsUtil.findFileByURL(File(it).toURL())
         if (file == null) {
             toDelete.add("/config" + it.substringAfter(this.getConfigRootDir()))
@@ -179,79 +177,44 @@ fun Project.getChangedFiles(allFiles: Set<String>): ChangesFiles {
         }
 
         val byteArray = file.contentsToByteArray()
-        if (byteArray.isEmpty() || byteArray.size >= 1024 * 1024) {
-            bigFiles.add(file.getConfigRootRelatedPath(this))
-        }
+        val relatedPath = file.getConfigRootRelatedPath(this)
 
-        if (!selected.editedFiles.containsKey(it)) {
-            newFiles.add(file.getConfigRootRelatedPath(this))
+        if (byteArray.isEmpty() || byteArray.size >= 1024 * 1024) {
+            bigFiles.add(relatedPath)
         }
 
         val sha256Hex = sha256Hex(byteArray)
         if (selected.editedFiles[it]?.sha256 != sha256Hex) {
-            editedInThisIteration.add(file.getConfigRootRelatedPath(this))
-            updatedFileContent.put(it, ByteArrayInputStream(byteArray))
+            editedInThisIteration.add(relatedPath)
+            updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
         }
         if (selected.atStartFilesState[it]?.sha256 != sha256Hex) {
-            editedFromStart.add(file.getConfigRootRelatedPath(this))
-            updatedFileContent.put(file.getConfigRootRelatedPath(this), ByteArrayInputStream(byteArray))
+            editedFromStart.add(relatedPath)
+            updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
+        }
+        if (forceUpdate) {
+            filesForUpdate.add(relatedPath)
+            updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
         }
     }
 
-    val filesForUpdate: MutableSet<String> = if (selected.updateMode == INCREMENTAL) {
-        editedInThisIteration
+    if (selected.updateMode == INCREMENTAL) {
+        filesForUpdate.addAll(editedInThisIteration)
     } else {
-        ArrayList<String>().union(editedFromStart).union(editedInThisIteration).toMutableSet()
+        filesForUpdate.addAll(editedFromStart)
+        filesForUpdate.addAll(editedInThisIteration)
     }
+
     val changesFiles = ArrayList<String>().union(filesForUpdate).union(toDelete)
-    return ChangesFiles(editedInThisIteration, editedFromStart, filesForUpdate, changesFiles, newFiles, bigFiles, toDelete)
-}
-
-fun Project.buildForseUpdateChangedFiles(allFiles: Set<String>): ChangesFiles {
-    val selected = getSettings().selected()
-    selected ?: return ChangesFiles()
-
-    val toDelete = LinkedHashSet<String>()
-    val editedInThisIteration = LinkedHashSet<String>()
-    val editedFromStart = LinkedHashSet<String>()
-    val bigFiles = LinkedHashSet<String>()
-    val newFiles = HashSet<String>()
-    val updatedFileContent = HashMap<String, ByteArrayInputStream>()
-
-    allFiles.forEach {
-        val file = VfsUtil.findFileByURL(File(it).toURL())
-        if (file == null) {
-            toDelete.add("/config" + it.substringAfter(this.getConfigRootDir()))
-            return@forEach
-        }
-
-        val byteArray = file.contentsToByteArray()
-        if (byteArray.isEmpty() || byteArray.size >= 1024 * 1024) {
-            bigFiles.add(file.getConfigRootRelatedPath(this))
-        }
-
-        if (!selected.editedFiles.containsKey(it)) {
-            newFiles.add(file.getConfigRootRelatedPath(this))
-        }
-
-        val sha256Hex = sha256Hex(byteArray)
-        if (selected.editedFiles[it]?.sha256 != sha256Hex) {
-            editedInThisIteration.add(file.getConfigRootRelatedPath(this))
-            updatedFileContent.put(it, ByteArrayInputStream(byteArray))
-        }
-        if (selected.atStartFilesState[it]?.sha256 != sha256Hex) {
-            editedFromStart.add(file.getConfigRootRelatedPath(this))
-            updatedFileContent.put(file.getConfigRootRelatedPath(this), ByteArrayInputStream(byteArray))
-        }
-    }
-
-    val filesForUpdate: MutableSet<String> = if (selected.updateMode == INCREMENTAL) {
-        editedInThisIteration
-    } else {
-        ArrayList<String>().union(editedFromStart).union(editedInThisIteration).toMutableSet()
-    }
-    val changesFiles = ArrayList<String>().union(filesForUpdate).union(toDelete)
-    return ChangesFiles(editedInThisIteration, editedFromStart, filesForUpdate, changesFiles, newFiles, bigFiles, toDelete)
+    return ChangesFiles(
+        editedInThisIteration,
+        editedFromStart,
+        filesForUpdate,
+        changesFiles,
+        bigFiles,
+        toDelete,
+        updatedFileContent
+    )
 }
 
 data class ChangesFiles(
@@ -259,7 +222,6 @@ data class ChangesFiles(
     val editedFromStart: Set<String> = emptySet(),
     val forUpdate: Set<String> = emptySet(),
     val changesFiles: Set<String> = emptySet(),
-    val newFiles: Set<String> = emptySet(),
     val bigFiles: Set<String> = emptySet(),
     val toDelete: Set<String> = emptySet(),
     val updatedFileContent: Map<String, InputStream> = emptyMap()

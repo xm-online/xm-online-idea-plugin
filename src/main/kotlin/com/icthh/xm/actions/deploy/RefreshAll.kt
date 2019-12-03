@@ -26,7 +26,8 @@ class RefreshAll() : AnAction() {
 
         getApplication().executeOnPooledThread{
             project.allPaths().chunked(999).forEach {
-                project.updateFilesInMemory(it, selected).get()
+                val changesFiles = project.getChangedFiles(it.toSet(), true)
+                project.updateFilesInMemory(changesFiles, selected).get()
             }
         }
     }
