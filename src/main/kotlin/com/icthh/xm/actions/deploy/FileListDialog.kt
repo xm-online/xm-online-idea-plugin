@@ -9,16 +9,14 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.PsiFile
 import com.vaadin.icons.VaadinIcons.WARNING
 import com.vaadin.shared.ui.ContentMode.HTML
 import com.vaadin.ui.*
-import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 import java.awt.Dimension
 import java.io.File
 
-class FileListDialog(project: Project, val fields: List<String>): VaadinDialog(
+class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
     project = project, viewName = "file-list", dialogTitle = "File to update",
     dimension = Dimension(1024, 300)
 ) {
@@ -30,13 +28,13 @@ class FileListDialog(project: Project, val fields: List<String>): VaadinDialog(
             addChild(VerticalLayout().apply {
                 setSizeUndefined()
 
-                fields.ifEmpty {
+                changes.changesFiles.ifEmpty {
                     label {
                         caption = "Already up to update"
                     }
                 }
                 val configRootDir = project.getConfigRootDir()
-                fields.forEach { fileName ->
+                changes.changesFiles.forEach { fileName ->
                     val warning = Label("${WARNING.getHtml()} File changed", HTML)
                     warning.isVisible = false
 

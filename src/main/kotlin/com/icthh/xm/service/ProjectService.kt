@@ -3,6 +3,7 @@ package com.icthh.xm.service
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.FileState
 import com.icthh.xm.actions.settings.SettingService
+import com.icthh.xm.actions.settings.UpdateMode.FROM_START
 import com.icthh.xm.actions.settings.UpdateMode.INCREMENTAL
 import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
@@ -24,6 +25,7 @@ import com.intellij.util.io.inputStream
 import com.intellij.util.io.isDirectory
 import com.intellij.util.io.systemIndependentPath
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Files
@@ -67,29 +69,6 @@ fun Project.saveCurrectFileStates() {
     }
 }
 
-fun Project.allFilesStream() = Files.walk(Paths.get(getConfigRootDir())).asSequence().filter { !it.isDirectory() }
-
-fun Project.getChangedFiles(): List<String> {
-    val selected = getSettings().selected()
-    selected ?: return emptyList()
-
-    FileDocumentManager.getInstance().saveAllDocuments()
-
-    val editedFiles = if (selected.updateMode == INCREMENTAL) selected.editedFiles else selected.atStartFilesState
-    val changed = editedFiles.filter {
-        val file = VfsUtil.findFileByURL(File(it.key).toURL())
-        file ?: return@filter true
-        sha256Hex(file.contentsToByteArray()) != it.value.sha256
-    }.map { it.key }.toMutableSet()
-
-    if (editedFiles.isNotEmpty()) {
-        addNewFiels(editedFiles, changed)
-        addNewFiels(selected.editedFiles, changed)
-    }
-
-    return changed.toList()
-}
-
 fun Project.startTrackChanges(): Boolean {
     val settings = getSettings()?.selected()
     settings ?: return false
@@ -122,17 +101,7 @@ private fun Project.getVersion(settings: EnvironmentSettings): String {
     }
 }
 
-private fun Project.addNewFiels(
-    editedFiles: MutableMap<String, FileState>,
-    changed: MutableSet<String>
-) {
-    val files = allPaths()
-    files.removeAll(editedFiles.keys)
-    changed.addAll(files)
-}
-
 fun Project.allPaths() = allFilesStream().map { it.systemIndependentPath }.toList().toMutableSet()
-
 
 fun VirtualFile.getTenantRelatedPath(project: Project): String {
     return getPathRelatedTo(project, "/tenants")
@@ -176,33 +145,138 @@ fun AnActionEvent.updateSupported(): Boolean? {
     return if (presentation.isVisible) true else null
 }
 
-fun Project.updateFilesInMemory(changesFiles: List<String>, selected: EnvironmentSettings): Future<*> {
-    val toDelete = ArrayList<String>()
-    val individualFiles = ArrayList<String>()
-    val map = HashMap<String, InputStream?>()
 
-    changesFiles.forEach {
-        val virtualFile = VfsUtil.findFileByURL(File(it).toURL())
-        if (virtualFile != null) {
-            val content = virtualFile.inputStream.readTextAndClose()
-            if (content.isEmpty() || content.length >= 1024 * 1024) {
-                individualFiles.add(virtualFile.getConfigRootRelatedPath(this))
-            } else {
-                map.put(virtualFile.getConfigRootRelatedPath(this), virtualFile.inputStream)
-            }
-        } else {
+fun Project.allFilesStream() = Files.walk(Paths.get(getConfigRootDir())).asSequence().filter { !it.isDirectory() }
+
+fun Project.getChangedFiles(): ChangesFiles {
+    val selected = getSettings().selected()
+    selected ?: return ChangesFiles()
+
+    FileDocumentManager.getInstance().saveAllDocuments()
+
+    val allFiles = allPaths()
+    allFiles.addAll(selected.editedFiles.keys)
+    allFiles.addAll(selected.atStartFilesState.keys)
+    return getChangedFiles(allFiles)
+}
+
+fun Project.getChangedFiles(allFiles: Set<String>): ChangesFiles {
+    val selected = getSettings().selected()
+    selected ?: return ChangesFiles()
+
+    val toDelete = LinkedHashSet<String>()
+    val editedInThisIteration = LinkedHashSet<String>()
+    val editedFromStart = LinkedHashSet<String>()
+    val bigFiles = LinkedHashSet<String>()
+    val newFiles = HashSet<String>()
+    val updatedFileContent = HashMap<String, ByteArrayInputStream>()
+
+    allFiles.forEach {
+        val file = VfsUtil.findFileByURL(File(it).toURL())
+        if (file == null) {
             toDelete.add("/config" + it.substringAfter(this.getConfigRootDir()))
+            return@forEach
+        }
+
+        val byteArray = file.contentsToByteArray()
+        if (byteArray.isEmpty() || byteArray.size >= 1024 * 1024) {
+            bigFiles.add(file.getConfigRootRelatedPath(this))
+        }
+
+        if (!selected.editedFiles.containsKey(it)) {
+            newFiles.add(file.getConfigRootRelatedPath(this))
+        }
+
+        val sha256Hex = sha256Hex(byteArray)
+        if (selected.editedFiles[it]?.sha256 != sha256Hex) {
+            editedInThisIteration.add(file.getConfigRootRelatedPath(this))
+            updatedFileContent.put(it, ByteArrayInputStream(byteArray))
+        }
+        if (selected.atStartFilesState[it]?.sha256 != sha256Hex) {
+            editedFromStart.add(file.getConfigRootRelatedPath(this))
+            updatedFileContent.put(file.getConfigRootRelatedPath(this), ByteArrayInputStream(byteArray))
         }
     }
 
+    val filesForUpdate: MutableSet<String> = if (selected.updateMode == INCREMENTAL) {
+        editedInThisIteration
+    } else {
+        ArrayList<String>().union(editedFromStart).union(editedInThisIteration).toMutableSet()
+    }
+    val changesFiles = ArrayList<String>().union(filesForUpdate).union(toDelete)
+    return ChangesFiles(editedInThisIteration, editedFromStart, filesForUpdate, changesFiles, newFiles, bigFiles, toDelete)
+}
+
+fun Project.buildForseUpdateChangedFiles(allFiles: Set<String>): ChangesFiles {
+    val selected = getSettings().selected()
+    selected ?: return ChangesFiles()
+
+    val toDelete = LinkedHashSet<String>()
+    val editedInThisIteration = LinkedHashSet<String>()
+    val editedFromStart = LinkedHashSet<String>()
+    val bigFiles = LinkedHashSet<String>()
+    val newFiles = HashSet<String>()
+    val updatedFileContent = HashMap<String, ByteArrayInputStream>()
+
+    allFiles.forEach {
+        val file = VfsUtil.findFileByURL(File(it).toURL())
+        if (file == null) {
+            toDelete.add("/config" + it.substringAfter(this.getConfigRootDir()))
+            return@forEach
+        }
+
+        val byteArray = file.contentsToByteArray()
+        if (byteArray.isEmpty() || byteArray.size >= 1024 * 1024) {
+            bigFiles.add(file.getConfigRootRelatedPath(this))
+        }
+
+        if (!selected.editedFiles.containsKey(it)) {
+            newFiles.add(file.getConfigRootRelatedPath(this))
+        }
+
+        val sha256Hex = sha256Hex(byteArray)
+        if (selected.editedFiles[it]?.sha256 != sha256Hex) {
+            editedInThisIteration.add(file.getConfigRootRelatedPath(this))
+            updatedFileContent.put(it, ByteArrayInputStream(byteArray))
+        }
+        if (selected.atStartFilesState[it]?.sha256 != sha256Hex) {
+            editedFromStart.add(file.getConfigRootRelatedPath(this))
+            updatedFileContent.put(file.getConfigRootRelatedPath(this), ByteArrayInputStream(byteArray))
+        }
+    }
+
+    val filesForUpdate: MutableSet<String> = if (selected.updateMode == INCREMENTAL) {
+        editedInThisIteration
+    } else {
+        ArrayList<String>().union(editedFromStart).union(editedInThisIteration).toMutableSet()
+    }
+    val changesFiles = ArrayList<String>().union(filesForUpdate).union(toDelete)
+    return ChangesFiles(editedInThisIteration, editedFromStart, filesForUpdate, changesFiles, newFiles, bigFiles, toDelete)
+}
+
+data class ChangesFiles(
+    val editedInThisIteration: Set<String> = emptySet(),
+    val editedFromStart: Set<String> = emptySet(),
+    val forUpdate: Set<String> = emptySet(),
+    val changesFiles: Set<String> = emptySet(),
+    val newFiles: Set<String> = emptySet(),
+    val bigFiles: Set<String> = emptySet(),
+    val toDelete: Set<String> = emptySet(),
+    val updatedFileContent: Map<String, InputStream> = emptyMap()
+)
+
+fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: EnvironmentSettings): Future<*> {
+
     return ApplicationManager.getApplication().executeOnPooledThread {
-        if (map.isNotEmpty()) {
+        val regularUpdateFiles = changesFiles.forUpdate.filterNot { it in changesFiles.bigFiles}
+        if (regularUpdateFiles.isNotEmpty()) {
+            val map = changesFiles.updatedFileContent.filterKeys { it in changesFiles.forUpdate }
             this.getExternalConfigService().updateInMemory(this, selected, map)
         }
-        if (toDelete.isNotEmpty()) {
-            this.getExternalConfigService().deleteConfig(this, selected, toDelete)
+        if (changesFiles.toDelete.isNotEmpty()) {
+            this.getExternalConfigService().deleteConfig(this, selected, changesFiles.toDelete.toList())
         }
-        individualFiles.forEach {
+        changesFiles.bigFiles.forEach {
             this.getExternalConfigService().updateFileInMemory(this, selected, it, "")
         }
         this.showMessage(MessageType.INFO) {

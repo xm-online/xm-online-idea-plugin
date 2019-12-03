@@ -1,5 +1,6 @@
 package com.icthh.xm.actions.deploy
 
+import com.icthh.xm.service.getChangedFiles
 import com.icthh.xm.service.getSettings
 import com.icthh.xm.service.updateFilesInMemory
 import com.icthh.xm.service.updateSupported
@@ -23,10 +24,12 @@ class DeployCurrentFile: AnAction() {
 
         FileDocumentManager.getInstance().saveAllDocuments()
 
-        val fileListDialog = FileListDialog(project, listOf(file.path))
+        val changes = project.getChangedFiles(setOf(file.path))
+
+        val fileListDialog = FileListDialog(project, changes)
         fileListDialog.show()
         if (fileListDialog.isOK) {
-            project.updateFilesInMemory(listOf(file.path), selected)
+            project.updateFilesInMemory(changes, selected)
         }
     }
 

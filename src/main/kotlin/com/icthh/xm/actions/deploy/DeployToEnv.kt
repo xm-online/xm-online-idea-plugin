@@ -25,6 +25,7 @@ class DeployToEnv() : AnAction() {
         val fileListDialog = FileListDialog(project, changesFiles)
         fileListDialog.show()
         if (fileListDialog.isOK) {
+            FileDocumentManager.getInstance().saveAllDocuments()
             project.updateFilesInMemory(changesFiles, selected)
         }
 

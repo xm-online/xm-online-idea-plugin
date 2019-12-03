@@ -6,6 +6,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 
 @State(name = "xm^Online.Settings")
 class SettingService: PersistentStateComponent<SettingService> {
@@ -46,6 +47,7 @@ class EnvironmentSettings {
 
     var trackChanges: Boolean = false
     var editedFiles: MutableMap<String, FileState> = HashMap()
+    var ignoredFiles: MutableSet<String> = HashSet()
     var atStartFilesState: MutableMap<String, FileState> = HashMap()
     var version: String? = null
 
