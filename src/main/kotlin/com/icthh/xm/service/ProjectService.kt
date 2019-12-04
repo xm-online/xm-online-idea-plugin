@@ -6,6 +6,7 @@ import com.icthh.xm.actions.settings.SettingService
 import com.icthh.xm.actions.settings.UpdateMode.INCREMENTAL
 import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
+import com.icthh.xm.utils.readTextAndClose
 import com.intellij.history.LocalHistory
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.NotificationType
@@ -213,7 +214,8 @@ fun Project.getChangedFiles(files: Set<String>, forceUpdate: Boolean = false): C
         changesFiles,
         bigFiles,
         toDelete,
-        updatedFileContent
+        updatedFileContent,
+        forceUpdate
     )
 }
 
@@ -224,22 +226,40 @@ data class ChangesFiles(
     val changesFiles: Set<String> = emptySet(),
     val bigFiles: Set<String> = emptySet(),
     val toDelete: Set<String> = emptySet(),
-    val updatedFileContent: Map<String, InputStream> = emptyMap()
-)
+    val updatedFileContent: Map<String, InputStream> = emptyMap(),
+    val isForceUpdate: Boolean = false
+) {
+    fun forRegularUpdate(ignoredFiles: Set<String>) : Set<String> {
+        var list = forUpdate.filterNot { it in bigFiles }
+        if (!isForceUpdate) {
+            list = list.filterNot { it in ignoredFiles }
+        }
+        return list.toSet()
+    }
+
+    fun getBigFilesForUpdate(ignoredFiles: Set<String>): Set<String> {
+        var list = changesFiles.filter { it in bigFiles }
+        if (!isForceUpdate) {
+            list = list.filterNot { it in ignoredFiles }
+        }
+        return list.toSet()
+    }
+}
 
 fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: EnvironmentSettings): Future<*> {
 
     return ApplicationManager.getApplication().executeOnPooledThread {
-        val regularUpdateFiles = changesFiles.forUpdate.filterNot { it in changesFiles.bigFiles}
+        val regularUpdateFiles = changesFiles.forRegularUpdate(selected.ignoredFiles)
         if (regularUpdateFiles.isNotEmpty()) {
-            val map = changesFiles.updatedFileContent.filterKeys { it in changesFiles.forUpdate }
+            val map = changesFiles.updatedFileContent.filterKeys { it in regularUpdateFiles}
             this.getExternalConfigService().updateInMemory(this, selected, map)
         }
         if (changesFiles.toDelete.isNotEmpty()) {
             this.getExternalConfigService().deleteConfig(this, selected, changesFiles.toDelete.toList())
         }
-        changesFiles.bigFiles.forEach {
-            this.getExternalConfigService().updateFileInMemory(this, selected, it, "")
+        changesFiles.getBigFilesForUpdate(selected.ignoredFiles).forEach {
+            val content = changesFiles.updatedFileContent[it]?.readTextAndClose() ?: ""
+            this.getExternalConfigService().updateFileInMemory(this, selected, it, content)
         }
         this.showMessage(MessageType.INFO) {
             "Configs successfully update"

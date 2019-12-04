@@ -59,8 +59,8 @@ class TrackChanges() : AnAction() {
             return
         }
 
-        val sha256Hex = sha256Hex(vFile.inputStream)
         if (fileState == null) {
+            val sha256Hex = sha256Hex(vFile.inputStream)
             fileState = FileState(sha256Hex)
             editedFiles.put(vFile.path, fileState)
         }
@@ -69,7 +69,7 @@ class TrackChanges() : AnAction() {
             try {
                 val path = vFile.getConfigRelatedPath(project)
                 val fileContent = externalConfigService.getConfigFile(project, settings, path)
-                if (!sha256Hex.equals(sha256Hex(fileContent))) {
+                if (!sha256Hex(fileContent).equals(editedFiles.get(vFile.path)?.sha256)) {
                     if (fileState.isNotified.isTrue() || settings.wasNotifiedAtLastTime()) {
                         return@executeOnPooledThread
                     }
