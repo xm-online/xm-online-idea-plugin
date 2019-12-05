@@ -43,19 +43,21 @@ class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
                     caption = "Already up to update"
                 }
             }
+
+            val ignoredFiles: MutableSet<String> = project.getSettings().selected()?.ignoredFiles ?: HashSet()
             changes.changesFiles
                 .filter { it in changes.editedInThisIteration }
-                .filterNot { it in project.getSettings().selected()?.ignoredFiles ?: emptySet<String>() }
+                .filterNot { it in ignoredFiles }
                 .forEach { fileName ->
                     renderFileInformationLine(fileName, ui)
                 }
             changes.changesFiles
                 .filterNot { it in changes.editedInThisIteration }
-                .filterNot { it in project.getSettings().selected()?.ignoredFiles ?: emptySet<String>() }
+                .filterNot { it in ignoredFiles }
                 .forEach { fileName ->
                     renderFileInformationLine(fileName, ui)
                 }
-            project.getSettings().selected()?.ignoredFiles?.forEach { fileName ->
+            ignoredFiles.filter { it in changes.changesFiles }.forEach { fileName ->
                 val line = HorizontalLayout().apply {
                     label {
                         html("""<span><strike>${fileName}</strike></span>""")
@@ -65,7 +67,7 @@ class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
                 val actions = HorizontalLayout().apply {
                     link(" remove from ignored") {
                         addLayoutClickListener {
-                            project.getSettings().selected()?.ignoredFiles?.remove(fileName)
+                            ignoredFiles.remove(fileName)
                             mainComponent.removeAllComponents()
                             mainComponent.addChild(mainComponent(ui))
                         }

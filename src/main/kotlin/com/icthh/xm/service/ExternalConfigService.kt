@@ -128,7 +128,7 @@ class ExternalConfigService {
         }
     }
 
-    fun deleteConfig(project: Project, env: EnvironmentSettings, paths: List<String>) {
+    fun deleteConfig(project: Project, env: EnvironmentSettings, paths: Set<String>) {
         HttpClients.createDefault().use { httpclient ->
             val request = RequestBuilder
                 .delete("${project.getSettings().selected()?.xmUrl}/config/api/inmemory/config/tenants/XM")

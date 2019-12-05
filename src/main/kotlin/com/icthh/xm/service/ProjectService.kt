@@ -32,8 +32,6 @@ import java.nio.file.Paths
 import java.util.concurrent.Future
 import kotlin.streams.asSequence
 
-fun Project.getProperties() = PropertiesComponent.getInstance(this)
-
 fun Project.getSettings() = ServiceManager.getService(this, SettingService::class.java)
 fun Project.getExternalConfigService() = ServiceManager.getService(this, ExternalConfigService::class.java)
 fun Project?.isConfigProject(): Boolean {
@@ -185,11 +183,11 @@ fun Project.getChangedFiles(files: Set<String>, forceUpdate: Boolean = false): C
         }
 
         val sha256Hex = sha256Hex(byteArray)
-        if (selected.editedFiles[it]?.sha256 != sha256Hex) {
+        if (selected.editedFiles.isNotEmpty() && selected.editedFiles[it]?.sha256 != sha256Hex) {
             editedInThisIteration.add(relatedPath)
             updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
         }
-        if (selected.atStartFilesState[it]?.sha256 != sha256Hex) {
+        if (selected.atStartFilesState.isNotEmpty() && selected.atStartFilesState[it]?.sha256 != sha256Hex) {
             editedFromStart.add(relatedPath)
             updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
         }
@@ -244,6 +242,13 @@ data class ChangesFiles(
         }
         return list.toSet()
     }
+
+    fun toDelete(ignoredFiles: Set<String>): Set<String> {
+        if (!isForceUpdate) {
+            return toDelete.filterNot { it in ignoredFiles }.toSet()
+        }
+        return toDelete
+    }
 }
 
 fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: EnvironmentSettings): Future<*> {
@@ -254,8 +259,9 @@ fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: Environmen
             val map = changesFiles.updatedFileContent.filterKeys { it in regularUpdateFiles}
             this.getExternalConfigService().updateInMemory(this, selected, map)
         }
-        if (changesFiles.toDelete.isNotEmpty()) {
-            this.getExternalConfigService().deleteConfig(this, selected, changesFiles.toDelete.toList())
+        val toDelete = changesFiles.toDelete(selected.ignoredFiles)
+        if (toDelete.isNotEmpty()) {
+            this.getExternalConfigService().deleteConfig(this, selected, toDelete)
         }
         changesFiles.getBigFilesForUpdate(selected.ignoredFiles).forEach {
             val content = changesFiles.updatedFileContent[it]?.readTextAndClose() ?: ""

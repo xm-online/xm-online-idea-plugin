@@ -20,6 +20,7 @@ class StopTrackChanges() : AnAction() {
             settings?.trackChanges = false
             settings?.editedFiles?.clear()
             settings?.atStartFilesState?.clear()
+            settings?.ignoredFiles?.clear()
             settings?.lastTimeTryToNotifyAboutDifference = 0
         }
         project.save()
