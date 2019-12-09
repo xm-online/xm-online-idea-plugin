@@ -29,6 +29,8 @@ class DeployCurrentFile: AnAction() {
         val fileListDialog = FileListDialog(project, changes)
         fileListDialog.show()
         if (fileListDialog.isOK) {
+            FileDocumentManager.getInstance().saveAllDocuments()
+            changes.refresh(project)
             project.updateFilesInMemory(changes, selected)
         }
     }
