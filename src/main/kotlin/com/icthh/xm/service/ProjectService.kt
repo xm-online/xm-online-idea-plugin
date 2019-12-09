@@ -8,7 +8,6 @@ import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.utils.readTextAndClose
 import com.intellij.history.LocalHistory
-import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
@@ -175,7 +174,7 @@ fun Project.getChangedFiles(files: Set<String>, forceUpdate: Boolean = false): C
     val bigFiles = LinkedHashSet<String>()
     val editedFromStart = LinkedHashSet<String>()
     val editedInThisIteration = LinkedHashSet<String>()
-    val updatedFileContent = HashMap<String, ByteArrayInputStream>()
+    val updatedFileContent: MutableMap<String, InputStream> = HashMap()
 
     files.forEach {
         val file = VfsUtil.findFileByURL(File(it).toURL())
@@ -233,7 +232,7 @@ data class ChangesFiles(
     val changesFiles: Set<String> = emptySet(),
     val bigFiles: Set<String> = emptySet(),
     val toDelete: Set<String> = emptySet(),
-    val updatedFileContent: Map<String, InputStream> = emptyMap(),
+    val updatedFileContent: MutableMap<String, InputStream> = HashMap(),
     val isForceUpdate: Boolean = false
 ) {
     fun forRegularUpdate(ignoredFiles: Set<String>) : Set<String> {
@@ -257,6 +256,19 @@ data class ChangesFiles(
             return toDelete.filterNot { it in ignoredFiles }.toSet()
         }
         return toDelete
+    }
+
+    fun refresh(project: Project) {
+        updatedFileContent.keys.toList().forEach {
+            updatedFileContent[it] = readFile(project, it)
+        }
+    }
+
+    private fun readFile(project: Project, key: String): InputStream {
+        val path = project.configPathToRealPath(key)
+        val vf = VfsUtil.findFile(File(path).toPath(), true)
+        val content = vf?.contentsToByteArray()
+        return ByteArrayInputStream(content)
     }
 }
 

@@ -26,6 +26,7 @@ class DeployToEnv() : AnAction() {
         fileListDialog.show()
         if (fileListDialog.isOK) {
             FileDocumentManager.getInstance().saveAllDocuments()
+            changesFiles.refresh(project)
             project.updateFilesInMemory(changesFiles, selected)
         }
 
