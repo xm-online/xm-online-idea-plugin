@@ -23,6 +23,8 @@ import com.intellij.psi.PsiManager
 import com.intellij.util.io.inputStream
 import com.intellij.util.io.isDirectory
 import com.intellij.util.io.systemIndependentPath
+import git4idea.repo.GitRepository
+import git4idea.repo.GitRepositoryManager
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -45,6 +47,13 @@ fun Project?.isSupportProject() = isConfigProject()
 fun Project.getConfigRootDir() = this.basePath + "/config"
 fun Project.configPathToRealPath(configPath: String): String {
     return this.basePath + configPath
+}
+
+fun Project.getRepository(): GitRepository? {
+    val repos = GitRepositoryManager.getInstance(this).getRepositories()
+    val path = VfsUtil.findFile(File(this.getConfigRootDir()).toPath(), true)?.parent?.path
+    val repo = repos.findLast { it.root.path == path }
+    return repo
 }
 
 fun Project.saveCurrectFileStates() {

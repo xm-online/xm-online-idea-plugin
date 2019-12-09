@@ -16,16 +16,19 @@ import com.icthh.xm.domain.permission.mapper.PrivilegeMapper
 import com.icthh.xm.service.configPathToRealPath
 import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.log
+import com.icthh.xm.utils.logger
 import com.icthh.xm.utils.readTextAndClose
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
+import org.apache.commons.lang.time.StopWatch
 import org.apache.commons.lang3.StringUtils.isBlank
 import java.io.File
 import java.time.Instant
 import java.util.*
+import kotlin.collections.HashSet
 import kotlin.streams.toList
 
-class TenantRoleService(val tenant: String, val project: Project) {
+class TenantRoleService(val tenant: String, val project: Project, val writeAction: (() -> Unit) -> Unit = { it.invoke() }) {
 
     private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule())
 
@@ -72,7 +75,7 @@ class TenantRoleService(val tenant: String, val project: Project) {
     // create permissions matrix dto with role permissions
     // enrich role permissions with missing privileges
     fun getRoleMatrix(): RoleMatrixDTO {
-        val roleMatrix = RoleMatrixDTO(getRoles().keys)
+        val roleMatrix = RoleMatrixDTO(HashSet(getRoles().keys))
         val matrixPermissions = HashMap<String, PermissionMatrixDTO>()
         getPermissions().forEach { (msName, rolePermissions) ->
             rolePermissions.forEach { (roleKey, permissions) ->
@@ -353,7 +356,7 @@ class TenantRoleService(val tenant: String, val project: Project) {
         return mapper.readValue<T>(config)
     }
 
-    private fun getConfigContent(configPath: String): Optional<String> {
+    open protected fun getConfigContent(configPath: String): Optional<String> {
         val virtualFile = VfsUtil.findFile(File(configPath).toPath(), true)
         if (virtualFile?.exists() != true) {
             return Optional.empty()
@@ -367,10 +370,15 @@ class TenantRoleService(val tenant: String, val project: Project) {
 
     private fun saveConfigContent(content: String, configPath: String) {
         val virtualFile = VfsUtil.findFile(File(configPath).toPath(), true)
-        if (virtualFile?.exists() != true) {
-            return
+        val byteArray = content.toByteArray()
+        writeAction.invoke {
+            val time = StopWatch()
+            time.start()
+            if (virtualFile?.exists() == true) {
+                virtualFile.setBinaryContent(byteArray)
+            }
+            logger.info("Time save file ${time.time}")
         }
-        virtualFile.setBinaryContent(content.toByteArray())
     }
 
     companion object {

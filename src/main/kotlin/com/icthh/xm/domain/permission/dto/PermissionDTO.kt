@@ -1,8 +1,8 @@
 package com.icthh.xm.domain.permission.dto
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.icthh.xm.domain.permission.Permission
 import com.icthh.xm.utils.isTrue
+import java.io.Serializable
 
 data class PermissionDTO(
     val msName: String,
@@ -10,8 +10,7 @@ data class PermissionDTO(
     val privilegeKey: String,
     var enabled: Boolean,
     var newPermission: Boolean? = null
-) : Comparable<PermissionDTO> {
-
+) : Comparable<PermissionDTO>, Serializable {
 
     var reactionStrategy: String? = null
     var envCondition: String? = null
@@ -30,10 +29,35 @@ data class PermissionDTO(
         resourceCondition = permission.resourceCondition
     }
 
+    fun toPrivilege() = Privilege(msName, privilegeKey, roleKey)
+
     override fun compareTo(o: PermissionDTO): Int {
         return Comparator.comparing<PermissionDTO, String>{ it.msName }
             .thenComparing<String>{ it.roleKey }
             .thenComparing<String>{ it.privilegeKey }
             .compare(this, o)
     }
+
 }
+
+fun PermissionDTO?.same(other: PermissionDTO?): Boolean {
+    if (this == null) {
+        return other == null
+    }
+
+    if (other == null) return false
+    if (this === other) return true
+
+    if (msName != other.msName) return false
+    if (roleKey != other.roleKey) return false
+    if (privilegeKey != other.privilegeKey) return false
+    if (enabled != other.enabled) return false
+    if (reactionStrategy != other.reactionStrategy) return false
+    if (envCondition != other.envCondition) return false
+    if (resourceCondition != other.resourceCondition) return false
+    if (permissionType != other.permissionType) return false
+
+    return true
+}
+
+data class Privilege(val msName: String, val privilegeKey: String, val role: String)

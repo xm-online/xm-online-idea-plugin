@@ -57,6 +57,7 @@ compileTestKotlin {
 intellij {
     version = '2018.3.2'
     updateSinceUntilBuild = false
+    plugins 'git4idea'
 }
 patchPluginXml {
     changeNotes """

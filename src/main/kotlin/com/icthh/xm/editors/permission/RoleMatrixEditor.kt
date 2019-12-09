@@ -32,7 +32,7 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
     override fun viewComponent(): Component {
 
         val tenantName = currentFile.getTenantName(project)
-        val tenantRoleService = TenantRoleService(tenantName, currentProject)
+        val tenantRoleService = TenantRoleService(tenantName, currentProject) { writeAction(it) }
         val roleMatrix = tenantRoleService.getRoleMatrix()
         val msNames = getPermission(roleMatrix).map { it.msName }.toSet()
 
@@ -67,14 +67,16 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
                 setSelectionMode(NONE)
                 setSizeFull()
 
+
                 val privilegeKey = addColumn{ it.privilegeKey }
                 privilegeKey.setCaption("Privilege key")
+                privilegeKey.isSortable = true
 
                 val msName = addColumn{ it.msName }
                 msName.setCaption("MS name")
                 msName.isHidable = true
 
-                roleMatrix.roles.forEach { role ->
+                roleMatrix.roles.forEachIndexed { index, role ->
                     val column = addComponentColumn { column ->
                         CheckBox().apply {
                             value = column.roles.contains(role)
@@ -84,10 +86,8 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
                                 } else {
                                     column.roles.remove(role)
                                 }
-                                update {
-                                    val mapper = jacksonObjectMapper()
-                                    val roleMatrixDTO = mapper.readValue<RoleMatrixDTO>(mapper.writeValueAsBytes(roleMatrix))
-                                    tenantRoleService.updateRoleMatrix(roleMatrixDTO)
+                                getApplication().executeOnPooledThread {
+                                    tenantRoleService.updateRoleMatrix(roleMatrix.copy())
                                 }
                             }
                         }
@@ -95,6 +95,9 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
                     column.isSortable = false
                     column.caption = role
                     column.isHidable = true
+                    if (index != 0) {
+                        column.isHidden = true
+                    }
                 }
                 setDataProvider( DataProvider.fromCallbacks(
                     { query ->
@@ -116,7 +119,7 @@ class RoleMatrixEditor(val currentProject: Project, val currentFile: VirtualFile
             .filter { it.privilegeKey.contains(permissionToSearch ?: "") }
     }
 
-    fun update(update: () -> Unit) {
+    fun writeAction(update: () -> Unit) {
         if (documentAlarm.isDisposed) {
             return
         }

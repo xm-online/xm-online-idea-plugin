@@ -1,17 +1,29 @@
 package com.icthh.xm.domain.permission.dto
 
+import java.io.*
 import java.util.*
 
 
 data class RoleMatrixDTO @JvmOverloads constructor (
     val roles: Collection<String>,
     val permissions: SortedSet<PermissionMatrixDTO> = TreeSet()
-)
+): Serializable {
+    fun copy(): RoleMatrixDTO {
+        val stream = ByteArrayOutputStream()
+        ObjectOutputStream(stream).use {
+            it.writeObject(this)
+            val buffer = ByteArrayInputStream(stream.toByteArray())
+            ObjectInputStream(buffer).use {
+                return it.readObject() as RoleMatrixDTO
+            }
+        }
+    }
+}
 
 data class PermissionMatrixDTO(
     val msName: String,
     val privilegeKey: String
-): Comparable<PermissionMatrixDTO> {
+): Comparable<PermissionMatrixDTO>, Serializable {
 
     var permissionType: PermissionType? = null
     val roles: SortedSet<String> = TreeSet()
@@ -22,3 +34,4 @@ data class PermissionMatrixDTO(
             .compare(this, o)
     }
 }
+

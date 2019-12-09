@@ -8,6 +8,9 @@
     ]]></description>
 
     <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.vcs</depends>
+    <depends>Git4Idea</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.icthh.xm.actions.settings.SettingService"/>
@@ -16,6 +19,9 @@
         <treeStructureProvider implementation="com.icthh.xm.extensions.TreeProvider" />
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />
+
+        <!--<vcs name="svn" vcsClass="org.jetbrains.idea."/>-->
+
     </extensions>
 
     <application-components>
@@ -36,6 +42,7 @@
             <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode" />
             <separator/>
             <action id="refreshCurrentFile" class="com.icthh.xm.actions.deploy.DeployCurrentFile" text="Update current file in memory"/>
+            <action id="comparePermissionBranch" class="com.icthh.xm.actions.permission.ComparePermissionBranch" text="Compare with branch"/>
         </group>
 
         <group id="mainMenu" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup">

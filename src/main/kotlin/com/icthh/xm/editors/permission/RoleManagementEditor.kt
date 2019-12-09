@@ -1,11 +1,8 @@
 package com.icthh.xm.editors.permission
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.mvysny.karibudsl.v8.*
 import com.icthh.xm.domain.permission.ReactionStrategy
 import com.icthh.xm.domain.permission.dto.PermissionDTO
-import com.icthh.xm.domain.permission.dto.RoleDTO
 import com.icthh.xm.editors.VaadinEditor
 import com.icthh.xm.service.getTenantName
 import com.icthh.xm.service.permission.TenantRoleService
@@ -15,14 +12,12 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.Alarm
 import com.intellij.util.Alarm.ThreadToUse.SWING_THREAD
 import com.vaadin.data.provider.DataProvider
-import com.vaadin.icons.VaadinIcons
 import com.vaadin.icons.VaadinIcons.EDIT
 import com.vaadin.server.Sizeable.Unit.PIXELS
-import com.vaadin.shared.ui.ValueChangeMode
-import com.vaadin.shared.ui.ValueChangeMode.*
+import com.vaadin.shared.ui.ValueChangeMode.BLUR
+import com.vaadin.shared.ui.ValueChangeMode.TIMEOUT
 import com.vaadin.ui.*
 import com.vaadin.ui.Grid.SelectionMode.NONE
-import java.awt.Dialog
 
 
 class RoleManagementEditor(val currentProject: Project, val currentFile: VirtualFile): VaadinEditor(currentProject, "role-management", "Role management") {
@@ -34,10 +29,11 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
     override fun viewComponent(): Component {
 
         val tenantName = currentFile.getTenantName(project)
-        val tenantRoleService = TenantRoleService(tenantName, currentProject)
+        val tenantRoleService = TenantRoleService(tenantName, currentProject) { writeAction(it) }
         val allRoles = tenantRoleService.getAllRoles()
         var role = tenantRoleService.getRole(allRoles.firstOrNull()?.roleKey ?: "")
         val msNames = getPermission(role.permissions).map { it.msName }.toSet()
+        val reactions = ReactionStrategy.values().toList().map { it.name }
 
         lateinit var grid: Grid<PermissionDTO>
         val rootLayout = VerticalLayout().apply {
@@ -83,6 +79,7 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
 
                 val privilegeKey = addColumn{ it.privilegeKey }
                 privilegeKey.setCaption("Privilege key")
+                privilegeKey.isSortable = true
 
                 val msName = addColumn{ it.msName }
                 msName.setCaption("MS name")
@@ -93,7 +90,9 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                         value = permission.enabled
                         addValueChangeListener {
                             permission.enabled = it.value
-                            updateValue(role, tenantRoleService)
+                            getApplication().executeOnPooledThread {
+                                tenantRoleService.updateRole(role.copy())
+                            }
                         }
                     }
                 }
@@ -102,11 +101,13 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
 
                 val onForbid = addComponentColumn { permission ->
                     ComboBox<String>().apply {
-                        setItems(ReactionStrategy.values().toList().map { it.name })
+                        setItems(reactions)
                         permission.reactionStrategy?.apply { setSelectedItem(this) }
                         addValueChangeListener {
                             permission.reactionStrategy = it.value
-                            updateValue(role, tenantRoleService)
+                            getApplication().executeOnPooledThread {
+                                tenantRoleService.updateRole(role.copy())
+                            }
                         }
                     }
                 }
@@ -133,7 +134,9 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                                     valueChangeMode = BLUR
                                     addValueChangeListener {
                                         permission.resourceCondition = it.value.ifEmpty { null }
-                                        updateValue(role, tenantRoleService)
+                                        getApplication().executeOnPooledThread {
+                                            tenantRoleService.updateRole(role.copy())
+                                        }
                                         grid.refresh()
                                     }
                                 }
@@ -166,7 +169,9 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
                                     valueChangeMode = BLUR
                                     addValueChangeListener {
                                         permission.envCondition = it.value.ifEmpty { null }
-                                        updateValue(role, tenantRoleService)
+                                        getApplication().executeOnPooledThread {
+                                            tenantRoleService.updateRole(role.copy())
+                                        }
                                         grid.refresh()
                                     }
                                 }
@@ -193,24 +198,13 @@ class RoleManagementEditor(val currentProject: Project, val currentFile: Virtual
         return rootLayout
     }
 
-    private fun updateValue(
-        role: RoleDTO,
-        tenantRoleService: TenantRoleService
-    ) {
-        update {
-            val mapper = jacksonObjectMapper()
-            val copy = mapper.readValue<RoleDTO>(mapper.writeValueAsBytes(role))
-            tenantRoleService.updateRole(copy)
-        }
-    }
-
     private fun getPermission(rolePermissions: Collection<PermissionDTO>?): List<PermissionDTO> {
         return (rolePermissions ?: emptyList())
             .filter { if (selectedMs == null) true else it.msName.equals(selectedMs) }
             .filter { it.privilegeKey.contains(permissionToSearch ?: "") }
     }
 
-    fun update(update: () -> Unit) {
+    fun writeAction(update: () -> Unit) {
         if (documentAlarm.isDisposed) {
             return
         }
