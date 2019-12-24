@@ -28,7 +28,7 @@ import java.util.*
 import kotlin.collections.HashSet
 import kotlin.streams.toList
 
-class TenantRoleService(val tenant: String, val project: Project, val writeAction: (() -> Unit) -> Unit = { it.invoke() }) {
+open class TenantRoleService(val tenant: String, val project: Project, val writeAction: (() -> Unit) -> Unit = { it.invoke() }) {
 
     private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule())
 

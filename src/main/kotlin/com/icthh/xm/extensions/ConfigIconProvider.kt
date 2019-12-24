@@ -9,6 +9,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileSystemItem
+import net.sf.image4j.codec.ico.ICODecoder
+import org.apache.commons.imaging.Imaging
 import org.apache.http.client.fluent.Request.Get
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -94,7 +96,14 @@ class ConfigIconProvider: IconProvider() {
         try {
             val stream = Get(data).execute()?.returnContent()?.asStream()
             stream ?: return
-            val icon = ImageIO.read(stream)?.scaleToIcon()
+            val imageContent = stream.readBytes()
+            val image = ImageIO.read(ByteArrayInputStream(imageContent))
+            val icon = if (image == null) {
+                val icons = ICODecoder.read(ByteArrayInputStream(imageContent))
+                icons?.first()
+            } else {
+                image.scaleToIcon()
+            }
             icon ?: return
             imagesCache.put(tenant, ImageIcon(icon))
             virtualFile.refresh(true, false)

@@ -1,140 +1,104 @@
 package com.icthh.xm.editors
 
-import com.github.mvysny.karibudsl.v8.expandRatio
-import com.github.mvysny.karibudsl.v8.grid
+import com.github.mvysny.karibudsl.v8.*
+import com.icthh.xm.actions.VaadinDialog
+import com.icthh.xm.actions.permission.GitContentProvider
 import com.icthh.xm.domain.permission.dto.PermissionDTO
-import com.icthh.xm.domain.permission.dto.Privilege
 import com.icthh.xm.domain.permission.dto.RoleDTO
 import com.icthh.xm.domain.permission.dto.same
+import com.icthh.xm.service.getTenantName
 import com.icthh.xm.service.permission.TenantRoleService
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.Alarm
 import com.vaadin.data.provider.DataProvider
-import com.vaadin.ui.CheckBox
-import com.vaadin.ui.Component
-import com.vaadin.ui.Grid
-import com.vaadin.ui.VerticalLayout
+import com.vaadin.ui.*
 import java.awt.Dimension
 import java.awt.Toolkit
+import java.util.*
+import kotlin.collections.ArrayList
 
-class PermissionDialog(project: Project, val currentFile: VirtualFile, val diffContent: String, val branchName: String) :
-    VaadinEditor(project, "permission-diff", "Permission difference", getDialogSize()) {
+class PermissionDialog(project: Project,
+                       val currentFile: VirtualFile,
+                       val contentProvider: GitContentProvider,
+                       val branchName: String) :
+    VaadinDialog(project, "permission-diff", getDialogSize(), "Permission difference") {
 
-    var documentAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
+    //var documentAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
-    override fun viewComponent(): Component {
-        val onBranchPermissions = toMatrix(diffContent)
-        val tenantRoleService = TenantRoleService(diffContent, project) {writeAction(it)}
-        val roles = tenantRoleService.getAllRoles().map { it.roleKey to tenantRoleService.getRole(it.roleKey) }.toMap()
-        val currentPermissions = roles.flatMap { toPermissions(it.value) }
+    override fun component(): Component {
+        val tenantName = currentFile.getTenantName(project)
+        val onBranchPermissions = toMatrix(tenantName)
+        val tenantRoleService = TenantRoleService(tenantName, project) //{writeAction(it)}
+        val roles = tenantRoleService.getAllRoles().map { tenantRoleService.getRole(it.roleKey) }
+        val currentPermissions = roles.flatMap { it.permissions ?: ArrayList() }
 
-        val otherPrivileges = onBranchPermissions.map { it.toPrivilege() to it }.toMap()
-        val thisPrivileges = currentPermissions.map { it.toPrivilege() to it }.toMap()
+        val otherPrivileges = onBranchPermissions.map { it.toKey() to it }.toMap()
+        val thisPrivileges = currentPermissions.map { it.toKey() to it }.toMap()
 
-        val allPrivileges = ArrayList<Privilege>()
+        val allPrivileges = ArrayList<PrivilegeItemKey>()
             .union(otherPrivileges.keys)
             .union(thisPrivileges.keys)
             .toSet()
 
-        val diffPermissions = ArrayList<ComparePermissionDiff>()
-        allPrivileges.filter { thisPrivileges[it].same(otherPrivileges[it]) }.forEach {
-            val branch = otherPrivileges[it]
-            val current = thisPrivileges[it]
-            val permission = ComparePermissionDiff(it.privilegeKey, it.msName, branch, current, roles[it.role]!!)
-            diffPermissions.add(permission)
+        val diffPermissions = allPrivileges.filter { !thisPrivileges[it].same(otherPrivileges[it]) }.map {
+            val permission = it
+            val roleDTO = roles.first { it.roleKey == permission.role }
+            ComparePermissionDiff(it, otherPrivileges[it], thisPrivileges[it], roleDTO)
         }
 
         lateinit var grid: Grid<ComparePermissionDiff>
-        return VerticalLayout().apply {
+        return Panel().apply {
             setSizeFull()
 
-            grid = grid {
-                expandRatio = 1f;
-                setColumnReorderingAllowed(true);
-                setSelectionMode(Grid.SelectionMode.NONE)
-                setSizeFull()
-
-                val role = addColumn{ it.roleDto.roleKey }
-                role.setCaption("Role")
-                role.isHidable = true
-
-                val privilegeKey = addColumn{ it.privilegeKey }
-                privilegeKey.setCaption("Privilege key")
-                privilegeKey.isHidable = true
-
-                val msName = addColumn{ it.msName }
-                msName.setCaption("MS name")
-                msName.isHidable = true
-                msName.isHidden = true
-
-                val enabledOnBranch = addColumn{
-                    // it.branchPermissionDTO.enabled
-                }
-                enabledOnBranch.setCaption("Enabled on ${branchName} ")
-                enabledOnBranch.isHidable = true
-
-                val spelOnBranch = addColumn{
-                    // it.branchPermissionDTO.resourceCondition
-                }
-                spelOnBranch.setCaption("Spel on ${branchName} ")
-                spelOnBranch.isHidable = true
-
-                val column = addComponentColumn { column ->
-                    //val permission = column.thisBranch
-                    CheckBox().apply {
-                        //value = permission.roles.contains(role)
-                        addValueChangeListener {
-                            if (it.value) {
-                                //permission.roles.add(role)
-                            } else {
-                                //permission.roles.remove(role)
-                            }
-                            ApplicationManager.getApplication().executeOnPooledThread {
-                                //tenantRoleService.updateRoleMatrix(roles[it])
-                            }
-                        }
+            verticalLayout {
+                diffPermissions.forEach {
+                    horizontalLayout {
+                        setSizeFull()
+                        permissionCart()
+                        permissionCart()
                     }
                 }
-                column.isHidable = true
-
-                setDataProvider( DataProvider.fromCallbacks(
-                    { query ->
-                        val permission = diffPermissions
-                        val start = query.getOffset()
-                        val end = Math.min(query.getLimit() + start, permission.size)
-                        permission.toList().subList(start, end).stream()
-                    },
-                    { diffPermissions.size }
-                ))
             }
-
-
         }
     }
 
-
-    fun writeAction(update: () -> Unit) {
-        if (documentAlarm.isDisposed) {
-            return
+    private fun @VaadinDsl HorizontalLayout.permissionCart() {
+        verticalLayout {
+            setSizeFull()
+            
         }
+    }
 
-        documentAlarm.cancelAllRequests()
-        documentAlarm.addRequest({
-            ApplicationManager.getApplication().runWriteAction {
-                update.invoke()
+//    fun writeAction(update: () -> Unit) {
+//        if (documentAlarm.isDisposed) {
+//            return
+//        }
+//
+//        documentAlarm.cancelAllRequests()
+//        documentAlarm.addRequest({
+//            ApplicationManager.getApplication().runWriteAction {
+//                update.invoke()
+//            }
+//        }, 50)
+//    }
+
+    private fun toMatrix(tenantName: String): List<PermissionDTO> {
+        val tenantRoleService = object: TenantRoleService(tenantName, project) {
+            override fun getConfigContent(configPath: String): Optional<String> {
+                val content = contentProvider.getFileContent(configPath)
+                if (content.isBlank()) {
+                    return Optional.of("---")
+                }
+                return Optional.of(content)
             }
-        }, 50)
+        }
+        return tenantRoleService.getAllRoles().flatMap { toPermissions(tenantRoleService, it) }
     }
 
-    private fun toMatrix(diffContent: String): List<PermissionDTO> {
-        val tenantRoleService = TenantRoleService(diffContent, project) {writeAction(it)}
-        return tenantRoleService.getAllRoles().flatMap { toPermissions(it) }
-    }
-
-    private fun toPermissions(roleDTO: RoleDTO): List<PermissionDTO> {
-        return roleDTO.permissions?.toList() ?: ArrayList()
+    private fun toPermissions(tenantRoleService: TenantRoleService, roleDTO: RoleDTO): List<PermissionDTO> {
+        return tenantRoleService.getRole(roleDTO.roleKey).permissions?.toList() ?: ArrayList()
     }
 }
 
@@ -144,11 +108,13 @@ fun getDialogSize(): Dimension {
 }
 
 data class ComparePermissionDiff(
-    val privilegeKey: String,
-    val msName: String,
-    val branchPermissionDTO: PermissionDTO?,
-    val thisPermissionDTO: PermissionDTO?,
-    val roleDto: RoleDTO
-) {
+    val privilege: PrivilegeItemKey,
+    val currentBranch: PermissionDTO?,
+    val otherBranch: PermissionDTO?,
+    val origin: RoleDTO
+)
 
-}
+data class PrivilegeItemKey(val privilegeKey: String, val msName: String, val role: String)
+
+fun PermissionDTO.toKey() = PrivilegeItemKey(privilegeKey, msName, roleKey)
+
