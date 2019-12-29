@@ -12,6 +12,7 @@ import javafx.application.Platform.runLater
 import javafx.application.Platform.setImplicitExit
 import javafx.embed.swing.JFXPanel
 import javafx.scene.Scene
+import javafx.scene.layout.StackPane
 import javafx.scene.layout.VBox
 import javafx.scene.web.WebView
 import java.awt.Dimension
@@ -26,6 +27,7 @@ abstract class VaadinDialog(val project: Project,
         ViewServer.startServer()
         this.init()
         title = dialogTitle
+
     }
 
     override fun createCenterPanel(): JComponent? {
@@ -35,11 +37,11 @@ abstract class VaadinDialog(val project: Project,
         fxPanel.preferredSize = dimension
         setImplicitExit(false)
         runLater {
-            val root = VBox()
+            val root = StackPane()
             val scene = Scene(root)
             val webView = WebView()
-            webView.engine.load("http://localhost:$serverPort/#!$viewName")
-            root.setMinSize(dimension.getWidth(), dimension.getHeight())
+            webView.engine.load("http://localhost:${ViewServer.serverPort}/#!$viewName")
+            //root.setMinSize(dimension.getWidth(), dimension.getHeight())
             root.getChildren().add(webView)
             fxPanel.scene = scene
         }
@@ -53,6 +55,8 @@ abstract class VaadinDialog(val project: Project,
             return component()
         }
     }
+
+    override fun shouldCloseOnCross() = true
 
     override fun dispose() {
         super.dispose()

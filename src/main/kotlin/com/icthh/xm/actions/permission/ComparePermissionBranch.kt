@@ -7,6 +7,7 @@ import com.icthh.xm.service.updateSupported
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys.VIRTUAL_FILE
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.PopupStep
@@ -31,7 +32,7 @@ class ComparePermissionBranch() : AnAction() {
             return
         }
         val repository = project.getRepository() ?: return
-        val branches = repository.branches.localBranches.map { it.name }
+        val branches = repository.branches.localBranches.map { it.name }.filter { repository.currentBranch?.name != it }
         val baseListPopupStep = object: BaseListPopupStep<String>("Branches", branches) {
             override fun onChosen(selectedValue: String?, finalChoice: Boolean): PopupStep<*>? {
                 if (selectedValue != null) {
@@ -46,7 +47,9 @@ class ComparePermissionBranch() : AnAction() {
 
     private fun onChosen(project: Project, file: VirtualFile, repository: GitRepository, selectedValue: String) {
         val contentProvider = GitContentProvider(project, repository, selectedValue)
-        PermissionDialog(project, file, contentProvider, selectedValue).show()
+        ApplicationManager.getApplication().invokeLater {
+            PermissionDialog(project, file, contentProvider, selectedValue).show()
+        }
     }
 
     override fun update(anActionEvent: AnActionEvent) {
