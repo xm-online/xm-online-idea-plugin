@@ -37,7 +37,7 @@ class GitFileChange(
         val files = HashSet<String>()
         files.addAll(localChanges.map { it.afterRevision?.file?.path }.filterNotNull())
         files.addAll(localChanges.map { it.beforeRevision?.file?.path }.filterNotNull())
-        files.addAll(selected.lastUpdatedFiles.map { toAbsolutePath(it) })
+        files.addAll(selected.lastChangedFiles.map { toAbsolutePath(it) })
         return getChangedFiles(files)
     }
 
@@ -77,9 +77,15 @@ class GitFileChange(
                 bigFiles.add(relatedPath)
             }
 
-            //type == MODIFICATION || type == NEW
-            editedFromStart.add(relatedPath)
-            updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
+            if (changes.containsKey(it)) {
+                editedInThisIteration.add(relatedPath)
+                updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
+            }
+
+            if (selected.lastChangedFiles.contains(relatedPath)) {
+                editedFromStart.add(relatedPath)
+                updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
+            }
 
             if (forceUpdate) {
                 filesForUpdate.add(relatedPath)

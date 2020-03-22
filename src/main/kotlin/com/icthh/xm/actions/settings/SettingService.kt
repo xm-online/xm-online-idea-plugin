@@ -49,7 +49,7 @@ class EnvironmentSettings {
     var startTrackChangesOnEdit: Boolean = true
 
     var trackChanges: Boolean = false
-    var lastUpdatedFiles: MutableSet<String> = HashSet()
+    var lastChangedFiles: MutableSet<String> = HashSet()
     var editedFiles: MutableMap<String, FileState> = HashMap()
     var ignoredFiles: MutableSet<String> = HashSet()
     var atStartFilesState: MutableMap<String, FileState> = HashMap()

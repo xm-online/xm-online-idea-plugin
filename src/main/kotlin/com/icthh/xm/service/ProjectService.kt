@@ -3,7 +3,6 @@ package com.icthh.xm.service
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.FileState
 import com.icthh.xm.actions.settings.SettingService
-import com.icthh.xm.actions.settings.UpdateMode.*
 import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.service.filechanges.ChangesFiles
@@ -27,9 +26,7 @@ import com.intellij.util.io.systemIndependentPath
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
-import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.concurrent.Future
@@ -74,7 +71,7 @@ class RepositoryNotFound : Exception()
 fun Project.root() =
     VfsUtil.findFile(File(this.getConfigRootDir()).toPath(), true)?.parent
 
-fun Project.saveCurrectFileStates() {
+fun Project.saveCurrentFileStates() {
     val settings = getSettings()?.selected()
     settings ?: return
     val notified = settings.editedFiles.filter { it.value.isNotified }.keys
@@ -103,7 +100,7 @@ fun Project.startTrackChanges(): Boolean {
 
     settings.trackChanges = true
 
-    saveCurrectFileStates()
+    saveCurrentFileStates()
     settings.atStartFilesState = settings.editedFiles
 
     LocalHistory.getInstance().putUserLabel(this, "CHANGES_FROM_${settings.id}");
@@ -197,9 +194,9 @@ fun Project.getChangedFiles(files: Set<String>, forceUpdate: Boolean = false): C
 }
 
 fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: EnvironmentSettings): Future<*> {
-    selected.lastUpdatedFiles.clear()
-    selected.lastUpdatedFiles.addAll(changesFiles.changesFiles)
-    selected.lastUpdatedFiles.removeAll(selected.ignoredFiles)
+    selected.lastChangedFiles.clear()
+    selected.lastChangedFiles.addAll(changesFiles.editedInThisIteration)
+    selected.lastChangedFiles.removeAll(selected.ignoredFiles)
     save()
     return ApplicationManager.getApplication().executeOnPooledThread {
         val regularUpdateFiles = changesFiles.forRegularUpdate(selected.ignoredFiles)
@@ -218,7 +215,7 @@ fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: Environmen
         this.showMessage(MessageType.INFO) {
             "Configs successfully update"
         }
-        this.saveCurrectFileStates()
+        this.saveCurrentFileStates()
     }
 }
 

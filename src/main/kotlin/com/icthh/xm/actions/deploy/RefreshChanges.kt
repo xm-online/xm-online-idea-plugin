@@ -18,6 +18,7 @@ class RefreshChanges() : AnAction() {
         val selected = project.getSettings().selected() ?: return
         val externalConfigService = project.getExternalConfigService()
 
+
         getApplication().executeOnPooledThread{
             try {
                 externalConfigService.refresh(selected)
@@ -25,6 +26,9 @@ class RefreshChanges() : AnAction() {
                     """
                         Configuration updated
                     """.trimIndent()
+                }
+                if (selected.updateMode.isGitMode) {
+                    selected.lastChangedFiles.clear()
                 }
             } catch (e: Exception) {
                 project.showNotification("ERROR", "Error update configuration", ERROR) {

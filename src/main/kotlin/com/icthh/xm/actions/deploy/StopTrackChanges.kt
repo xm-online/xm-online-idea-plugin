@@ -22,7 +22,7 @@ class StopTrackChanges() : AnAction() {
             settings?.editedFiles?.clear()
             settings?.atStartFilesState?.clear()
             settings?.ignoredFiles?.clear()
-            settings?.lastUpdatedFiles?.clear()
+            settings?.lastChangedFiles?.clear()
             settings?.lastTimeTryToNotifyAboutDifference = 0
         }
         project.save()
@@ -34,8 +34,8 @@ class StopTrackChanges() : AnAction() {
         val project = anActionEvent.project
         val settings = project?.getSettings()?.selected()
 
+        anActionEvent.presentation.isVisible = !settings?.updateMode?.isGitMode.isTrue()
         if (settings?.updateMode?.isGitMode.isTrue()) {
-            anActionEvent.presentation.isVisible = false
             return
         }
 

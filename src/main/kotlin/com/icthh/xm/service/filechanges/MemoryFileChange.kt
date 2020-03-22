@@ -1,5 +1,6 @@
 package com.icthh.xm.service.filechanges
 
+import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.UpdateMode
 import com.icthh.xm.service.*
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -56,7 +57,7 @@ class MemoryFileChange(
                 editedInThisIteration.add(relatedPath)
                 updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
             }
-            if (selected.atStartFilesState.isNotEmpty() && selected.atStartFilesState[it]?.sha256 != sha256Hex) {
+            if (isEditedFromStart(selected, it, relatedPath, sha256Hex)) {
                 editedFromStart.add(relatedPath)
                 updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
             }
@@ -84,6 +85,11 @@ class MemoryFileChange(
             updatedFileContent,
             forceUpdate
         )
+    }
+
+    private fun isEditedFromStart(selected: EnvironmentSettings, filePath: String, relatedPath: String, sha256Hex: String?): Boolean {
+        val asStartFilesState = selected.atStartFilesState
+        return (selected.lastChangedFiles.contains(relatedPath) || (asStartFilesState.isNotEmpty() && asStartFilesState[filePath]?.sha256 != sha256Hex))
     }
 
 }

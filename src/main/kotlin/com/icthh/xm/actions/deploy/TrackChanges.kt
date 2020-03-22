@@ -39,8 +39,8 @@ class TrackChanges() : AnAction() {
         val project = anActionEvent.project
         val settings = project?.getSettings()?.selected()
 
+        anActionEvent.presentation.isVisible = !settings?.updateMode?.isGitMode.isTrue()
         if (settings?.updateMode?.isGitMode.isTrue()) {
-            anActionEvent.presentation.isVisible = false
             return
         }
 
