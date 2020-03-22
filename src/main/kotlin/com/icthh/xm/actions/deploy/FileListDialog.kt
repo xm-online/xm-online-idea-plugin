@@ -214,16 +214,17 @@ class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
         settings: EnvironmentSettings,
         fileName: String
     ): Boolean {
-        if (isGitChangeMode(settings)) {
-            val content = GitContentProvider(project, GitRevisionNumber.HEAD.rev).getFileContent(fileName)
-            return (!sha256Hex(config).equals(sha256Hex(content))) && isGitChangeMode(settings)
+        if (settings.updateMode.isGitMode) {
+            var branchName = GitRevisionNumber.HEAD.rev
+            if (settings.updateMode == UpdateMode.GIT_BRANCH_DIFFERENCE) {
+                branchName = settings.branchName
+            }
+            val content = GitContentProvider(project, branchName).getFileContent(fileName)
+            return (!sha256Hex(config).equals(sha256Hex(content)))
         } else {
             return (!sha256Hex(config).equals(settings.editedFiles.get(fileName)?.sha256)) && settings.editedFiles.isNotEmpty()
         }
     }
-
-    private fun isGitChangeMode(settings: EnvironmentSettings) =
-        settings.updateMode == UpdateMode.GIT_LOCAL_CHANGES || settings.updateMode == UpdateMode.GIT_BRANCH_DIFFERENCE
 
     private fun removeEditIcon(line: HorizontalLayout) {
         line.filter { it.id == "EDIT" }.forEach { line.removeComponent(it) }

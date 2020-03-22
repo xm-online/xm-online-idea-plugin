@@ -1,9 +1,8 @@
 package com.icthh.xm.actions.deploy
 
-import com.icthh.xm.service.getChangedFiles
-import com.icthh.xm.service.getSettings
-import com.icthh.xm.service.updateFilesInMemory
-import com.icthh.xm.service.updateSupported
+import com.icthh.xm.actions.shared.ConfirmDialog
+import com.icthh.xm.service.*
+import com.icthh.xm.service.filechanges.UncorrectStateOfRepository
 import com.icthh.xm.utils.isTrue
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -20,16 +19,24 @@ class DeployToEnv() : AnAction() {
 
         FileDocumentManager.getInstance().saveAllDocuments()
 
-        val changesFiles = project.getChangedFiles()
+        try {
+            val changesFiles = project.getChangedFiles()
 
-        val fileListDialog = FileListDialog(project, changesFiles)
-        fileListDialog.show()
-        if (fileListDialog.isOK) {
-            FileDocumentManager.getInstance().saveAllDocuments()
-            changesFiles.refresh(project)
-            project.updateFilesInMemory(changesFiles, selected)
+            val fileListDialog = FileListDialog(project, changesFiles)
+            fileListDialog.show()
+            if (fileListDialog.isOK) {
+                FileDocumentManager.getInstance().saveAllDocuments()
+                changesFiles.refresh(project)
+                project.updateFilesInMemory(changesFiles, selected)
+            }
+
+        } catch (e: UncorrectStateOfRepository) {
+            val content = """
+            Uncorrect state of repository ${project.getRepository().state.name}
+        """.trimIndent()
+            val dialog = ConfirmDialog("Uncorrect state for repository", content)
+            dialog.show()
         }
-
     }
 
 

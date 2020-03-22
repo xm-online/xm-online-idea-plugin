@@ -52,7 +52,14 @@ fun Project.configPathToRealPath(configPath: String): String {
     return this.basePath + configPath
 }
 
-fun Project.toRelatedPath(absolutePath: String) = CONFIG_DIR_NAME + absolutePath.substringAfter(getConfigRootDir())
+fun Project.toAbsolutePath(relatedPath: String) = configPathToRealPath(toRelatedPath(relatedPath))
+fun Project.toRelatedPath(absolutePath: String): String {
+    if (absolutePath.startsWith(getConfigRootDir())) {
+        return CONFIG_DIR_NAME + absolutePath.substringAfter(getConfigRootDir())
+    } else {
+        return absolutePath
+    }
+}
 
 fun Project.getRepository(): GitRepository {
     val repos = GitRepositoryManager.getInstance(this).getRepositories()
@@ -180,17 +187,20 @@ fun Project.getChangedFiles(files: Set<String>, forceUpdate: Boolean = false): C
     val selected = getSettings().selected()
     selected ?: return ChangesFiles()
 
-    if (selected.updateMode == INCREMENTAL || selected.updateMode == FROM_START) {
+    if (!selected.updateMode.isGitMode) {
         return MemoryFileChange(this).getChangedFiles(files, forceUpdate)
     }
-    if (selected.updateMode == GIT_BRANCH_DIFFERENCE || selected.updateMode == GIT_LOCAL_CHANGES) {
+    if (selected.updateMode.isGitMode) {
         return GitFileChange(this).getChangedFiles(files, forceUpdate)
     }
     return ChangesFiles()
 }
 
 fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: EnvironmentSettings): Future<*> {
-
+    selected.lastUpdatedFiles.clear()
+    selected.lastUpdatedFiles.addAll(changesFiles.changesFiles)
+    selected.lastUpdatedFiles.removeAll(selected.ignoredFiles)
+    save()
     return ApplicationManager.getApplication().executeOnPooledThread {
         val regularUpdateFiles = changesFiles.forRegularUpdate(selected.ignoredFiles)
         if (regularUpdateFiles.isNotEmpty()) {

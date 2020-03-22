@@ -37,6 +37,7 @@ class GitFileChange(
         val files = HashSet<String>()
         files.addAll(localChanges.map { it.afterRevision?.file?.path }.filterNotNull())
         files.addAll(localChanges.map { it.beforeRevision?.file?.path }.filterNotNull())
+        files.addAll(selected.lastUpdatedFiles.map { toAbsolutePath(it) })
         return getChangedFiles(files)
     }
 
@@ -76,10 +77,9 @@ class GitFileChange(
                 bigFiles.add(relatedPath)
             }
 
-            if (type == MODIFICATION || type == NEW) {
-                editedFromStart.add(relatedPath)
-                updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
-            }
+            //type == MODIFICATION || type == NEW
+            editedFromStart.add(relatedPath)
+            updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
 
             if (forceUpdate) {
                 filesForUpdate.add(relatedPath)
@@ -106,14 +106,16 @@ class GitFileChange(
     private fun Project.getChanges(): MutableCollection<Change> {
         val repository = this.getRepository()
         val settings = project.getSettings()?.selected() ?: return mutableListOf()
+        val changes = HashSet<Change>()
         if (settings.updateMode == UpdateMode.GIT_LOCAL_CHANGES) {
             val branchName = repository.currentBranch?.name ?: HEAD.rev
-            return getDiffWithWorkingTree(repository, branchName, false) ?: mutableListOf()
+            changes.addAll(getDiffWithWorkingTree(repository, branchName, false) ?: mutableListOf())
         } else if (settings.updateMode == UpdateMode.GIT_BRANCH_DIFFERENCE) {
             val currentBranch = repository.currentBranch?.name ?: HEAD.rev
-            return getDiff(repository, settings.branchName, currentBranch, false) ?: mutableListOf()
+            changes.addAll(getDiffWithWorkingTree(repository, currentBranch, false) ?: mutableListOf())
+            changes.addAll(getDiff(repository, settings.branchName, currentBranch, false) ?: mutableListOf())
         }
-        return mutableListOf()
+        return changes
     }
 
 }

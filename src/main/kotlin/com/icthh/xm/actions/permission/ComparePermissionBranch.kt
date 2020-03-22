@@ -13,13 +13,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
-import com.intellij.openapi.ui.popup.util.BaseStep
 import com.intellij.openapi.vcs.VcsException
-import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import git4idea.repo.GitRepository
 import git4idea.util.GitFileUtils
-import java.io.File
 import java.nio.charset.StandardCharsets.UTF_8
 
 
@@ -57,10 +53,10 @@ class ComparePermissionBranch() : AnAction() {
         super.update(anActionEvent)
         anActionEvent.updateSupported()
         val file = anActionEvent.getDataContext().getData(VIRTUAL_FILE) ?: return
-        var isVisibale = anActionEvent.presentation.isVisible
-        isVisibale = isVisibale && file.path.endsWith("/permissions.yml")
-        isVisibale = isVisibale && anActionEvent.project.isConfigProject()
-        anActionEvent.presentation.isVisible = isVisibale && anActionEvent.project?.getRepository() != null
+        var isVisible = anActionEvent.presentation.isVisible
+        isVisible = isVisible && file.path.endsWith("/permissions.yml")
+        isVisible = isVisible && anActionEvent.project.isConfigProject()
+        anActionEvent.presentation.isVisible = isVisible && anActionEvent.project?.getRepository() != null
     }
 }
 

@@ -4,6 +4,7 @@ import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.service.getSettings
 import com.icthh.xm.utils.log
 import com.icthh.xm.service.updateSupported
+import com.icthh.xm.utils.logger
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.Presentation
@@ -21,25 +22,31 @@ import javax.swing.ListCellRenderer
 class DeployEnvSelector() : AnAction(), CustomComponentAction {
 
     var project: Project? = null
-    val comboBox = ComboBox<EnvironmentSettings>()
+    val comboBoxes = HashMap<String, ComboBox<EnvironmentSettings>>()
     var envs: MutableList<EnvironmentSettings> = ArrayList()
 
+
     override fun createCustomComponent(presentation: Presentation): JComponent {
+        val comboBox = ComboBox<EnvironmentSettings>()
+        val project = this.project
         comboBox.addItemListener {
-            project?.getSettings()?.select(comboBox.selectedItem as EnvironmentSettings?)
+            this.project?.getSettings()?.select(comboBox.selectedItem as EnvironmentSettings?)
         }
         val placeholder = "Select deploy environment"
-        setPlaceholder(placeholder)
+        setPlaceholder(comboBox, placeholder)
         comboBox.toolTipText = placeholder
         val dimension = Dimension(150, 30)
         //comboBox.maximumSize = dimension
         comboBox.preferredSize = dimension
         //comboBox.size = dimension
         //comboBox.minimumSize = dimension
+        if (project != null) {
+            comboBoxes.put(project.locationHash, comboBox)
+        }
         return comboBox
     }
 
-    private fun setPlaceholder(placeholder: String) {
+    private fun setPlaceholder(comboBox: ComboBox<EnvironmentSettings>, placeholder: String) {
         val renderer = comboBox.renderer
         comboBox.renderer = object : ListCellRenderer<EnvironmentSettings> {
             override fun getListCellRendererComponent(
@@ -75,7 +82,7 @@ class DeployEnvSelector() : AnAction(), CustomComponentAction {
     override fun update(anActionEvent: AnActionEvent) {
         anActionEvent.updateSupported() ?: return
 
-        log.info("update: ${anActionEvent}")
+        logger.info("update: ${anActionEvent}")
         val project = anActionEvent.project
         anActionEvent.presentation.isEnabled = project != null
         if (project != null) {
@@ -84,11 +91,16 @@ class DeployEnvSelector() : AnAction(), CustomComponentAction {
             return
         }
 
+        val comboBox = comboBoxes.get(project.locationHash) ?: return
+
         val envs = project.getSettings().envs
         if (this.envs.equals(envs)) {
             comboBox.updateUI()
             return
         }
+
+        logger.info("${project} >>> envs not the same ${envs} <<<>>> ${this.envs}")
+
         this.envs.clear()
         this.envs.addAll(envs)
         val selected = project.getSettings().selected()
