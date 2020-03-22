@@ -38,6 +38,12 @@ class TrackChanges() : AnAction() {
 
         val project = anActionEvent.project
         val settings = project?.getSettings()?.selected()
+
+        if (settings?.updateMode?.isGitMode.isTrue()) {
+            anActionEvent.presentation.isVisible = false
+            return
+        }
+
         anActionEvent.presentation.isEnabled = project != null && settings != null
         anActionEvent.presentation.isVisible = settings?.trackChanges?.not() ?: true
 

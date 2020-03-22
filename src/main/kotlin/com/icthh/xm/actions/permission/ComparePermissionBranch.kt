@@ -1,6 +1,7 @@
 package com.icthh.xm.actions.permission
 
 import com.icthh.xm.editors.PermissionDialog
+import com.icthh.xm.service.getLocalBranches
 import com.icthh.xm.service.getRepository
 import com.icthh.xm.service.isConfigProject
 import com.icthh.xm.service.updateSupported
@@ -31,12 +32,12 @@ class ComparePermissionBranch() : AnAction() {
         if (!file.path.endsWith("/permissions.yml")) {
             return
         }
-        val repository = project.getRepository() ?: return
-        val branches = repository.branches.localBranches.map { it.name }.filter { repository.currentBranch?.name != it }
+        val repository = project.getRepository()
+        val branches = repository.getLocalBranches()
         val baseListPopupStep = object: BaseListPopupStep<String>("Branches", branches) {
             override fun onChosen(selectedValue: String?, finalChoice: Boolean): PopupStep<*>? {
                 if (selectedValue != null) {
-                    onChosen(project, file, repository, selectedValue)
+                    onChosen(project, file, selectedValue)
                 }
                 return PopupStep.FINAL_CHOICE
             }
@@ -45,8 +46,8 @@ class ComparePermissionBranch() : AnAction() {
         listPopup.showCenteredInCurrentWindow(project)
     }
 
-    private fun onChosen(project: Project, file: VirtualFile, repository: GitRepository, selectedValue: String) {
-        val contentProvider = GitContentProvider(project, repository, selectedValue)
+    private fun onChosen(project: Project, file: VirtualFile, selectedValue: String) {
+        val contentProvider = GitContentProvider(project, selectedValue)
         ApplicationManager.getApplication().invokeLater {
             PermissionDialog(project, file, contentProvider, selectedValue).show()
         }
@@ -65,10 +66,10 @@ class ComparePermissionBranch() : AnAction() {
 
 class GitContentProvider(
     val project: Project,
-    val repository: GitRepository,
     val branch: String
 ) {
     fun getFileContent(filePath: String): String {
+        val repository = project.getRepository()
         val relativePath = filePath.substringAfter(repository.root.path)
         try {
             val fileContent = GitFileUtils.getFileContent(project, repository.root, branch, "." + relativePath)

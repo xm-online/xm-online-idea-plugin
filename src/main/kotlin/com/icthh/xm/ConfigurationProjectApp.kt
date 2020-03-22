@@ -1,21 +1,15 @@
 package com.icthh.xm
 
-import com.icthh.xm.actions.settings.MainSettingAction
 import com.icthh.xm.actions.settings.SettingsDialog
 import com.icthh.xm.actions.shared.showMessage
-import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.actions.shared.showNotificationWithAction
 import com.icthh.xm.service.getConfigRootDir
 import com.icthh.xm.service.getSettings
 import com.icthh.xm.service.startTrackChanges
 import com.icthh.xm.utils.isTrue
 import com.intellij.ide.DataManager
-import com.intellij.notification.Notification
-import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationListener
-import com.intellij.notification.NotificationType
 import com.intellij.notification.NotificationType.INFORMATION
-import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataKeys
 import com.intellij.openapi.components.ProjectComponent
 import com.intellij.openapi.ui.MessageType.INFO
@@ -46,7 +40,8 @@ class ConfigurationProjectApp: ProjectComponent {
                 if (!fileOrDirectory.path.startsWith(project.getConfigRootDir())) {
                     return
                 }
-                if (!project.getSettings().selected()?.startTrackChangesOnEdit.isTrue()) {
+                val selected = project.getSettings().selected()
+                if (selected == null || !selected.startTrackChangesOnEdit.isTrue() || selected.updateMode.isGitMode) {
                     return
                 }
                 if (!project.startTrackChanges()) {

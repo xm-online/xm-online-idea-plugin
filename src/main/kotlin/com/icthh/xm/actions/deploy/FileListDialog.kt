@@ -2,8 +2,13 @@ package com.icthh.xm.actions.deploy
 
 import com.github.mvysny.karibudsl.v8.*
 import com.icthh.xm.actions.VaadinDialog
+import com.icthh.xm.actions.permission.GitContentProvider
+import com.icthh.xm.actions.settings.EnvironmentSettings
+import com.icthh.xm.actions.settings.UpdateMode
 import com.icthh.xm.service.*
+import com.icthh.xm.service.filechanges.ChangesFiles
 import com.icthh.xm.utils.Icons
+import com.icthh.xm.utils.readTextAndClose
 import com.icthh.xm.utils.showDiffDialog
 import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.application.ModalityState
@@ -13,6 +18,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.vaadin.icons.VaadinIcons.*
 import com.vaadin.shared.ui.ContentMode.HTML
 import com.vaadin.ui.*
+import git4idea.GitRevisionNumber
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 import java.awt.Dimension
 import java.io.File
@@ -122,11 +128,7 @@ class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
                 }
             }
             if (changes.editedInThisIteration.contains(fileName)) {
-                label {
-                    description = "It's file edited in you version after last update"
-                    html(PENCIL.html)
-                    id = "EDIT"
-                }
+                addEditIcon(line)
             }
             onLayoutClick {
                 if (it.clickedComponent == null || !(it.clickedComponent is Link)) {
@@ -166,8 +168,15 @@ class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
                 return@executeOnPooledThread
             }
 
-            val sha256Hex = settings.editedFiles.get(fileName)?.sha256
-            if (!sha256Hex(config).equals(sha256Hex) && settings.editedFiles.isNotEmpty()) {
+            val content = virtualFile.inputStream.use{it.readTextAndClose()}
+            if (!config.equals(content)){
+                ui.access {
+                    removeEditIcon(line)
+                    addEditIcon(line)
+                }
+            }
+
+            if (!config.equals(content) && wasChanged(config, settings, fileName)) {
                 ui.access {
                     removeEditIcon(line)
                     warning.isVisible = true
@@ -189,6 +198,32 @@ class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
 
         }
     }
+
+    private fun addEditIcon(line: HorizontalLayout) {
+        line.apply {
+            label {
+                description = "It's file edited in you version after last update"
+                html(PENCIL.html)
+                id = "EDIT"
+            }
+        }
+    }
+
+    private fun wasChanged(
+        config: String?,
+        settings: EnvironmentSettings,
+        fileName: String
+    ): Boolean {
+        if (isGitChangeMode(settings)) {
+            val content = GitContentProvider(project, GitRevisionNumber.HEAD.rev).getFileContent(fileName)
+            return (!sha256Hex(config).equals(sha256Hex(content))) && isGitChangeMode(settings)
+        } else {
+            return (!sha256Hex(config).equals(settings.editedFiles.get(fileName)?.sha256)) && settings.editedFiles.isNotEmpty()
+        }
+    }
+
+    private fun isGitChangeMode(settings: EnvironmentSettings) =
+        settings.updateMode == UpdateMode.GIT_LOCAL_CHANGES || settings.updateMode == UpdateMode.GIT_BRANCH_DIFFERENCE
 
     private fun removeEditIcon(line: HorizontalLayout) {
         line.filter { it.id == "EDIT" }.forEach { line.removeComponent(it) }

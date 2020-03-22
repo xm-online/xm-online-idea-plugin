@@ -3,16 +3,18 @@ package com.icthh.xm.service
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.FileState
 import com.icthh.xm.actions.settings.SettingService
-import com.icthh.xm.actions.settings.UpdateMode.INCREMENTAL
+import com.icthh.xm.actions.settings.UpdateMode.*
 import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
+import com.icthh.xm.service.filechanges.ChangesFiles
+import com.icthh.xm.service.filechanges.GitFileChange
+import com.icthh.xm.service.filechanges.MemoryFileChange
 import com.icthh.xm.utils.readTextAndClose
 import com.intellij.history.LocalHistory
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.vfs.VfsUtil
@@ -33,6 +35,8 @@ import java.nio.file.Paths
 import java.util.concurrent.Future
 import kotlin.streams.asSequence
 
+const val CONFIG_DIR_NAME = "/config"
+
 fun Project.getSettings() = ServiceManager.getService(this, SettingService::class.java)
 fun Project.getExternalConfigService() = ServiceManager.getService(this, ExternalConfigService::class.java)
 fun Project?.isConfigProject(): Boolean {
@@ -43,17 +47,25 @@ fun Project?.isConfigProject(): Boolean {
             File(getConfigRootDir() + "/tenants/tenants-list.json").exists()
 }
 fun Project?.isSupportProject() = isConfigProject()
-fun Project.getConfigRootDir() = this.basePath + "/config"
+fun Project.getConfigRootDir() = this.basePath + CONFIG_DIR_NAME
 fun Project.configPathToRealPath(configPath: String): String {
     return this.basePath + configPath
 }
 
-fun Project.getRepository(): GitRepository? {
+fun Project.toRelatedPath(absolutePath: String) = CONFIG_DIR_NAME + absolutePath.substringAfter(getConfigRootDir())
+
+fun Project.getRepository(): GitRepository {
     val repos = GitRepositoryManager.getInstance(this).getRepositories()
-    val path = VfsUtil.findFile(File(this.getConfigRootDir()).toPath(), true)?.parent?.path
+    val path = root()?.path
     val repo = repos.findLast { it.root.path == path }
+    repo ?: throw RepositoryNotFound()
     return repo
 }
+
+class RepositoryNotFound : Exception()
+
+fun Project.root() =
+    VfsUtil.findFile(File(this.getConfigRootDir()).toPath(), true)?.parent
 
 fun Project.saveCurrectFileStates() {
     val settings = getSettings()?.selected()
@@ -157,119 +169,24 @@ fun Project.getChangedFiles(): ChangesFiles {
     val selected = getSettings().selected()
     selected ?: return ChangesFiles()
 
-    FileDocumentManager.getInstance().saveAllDocuments()
-
-    val allFiles = allPaths()
-    allFiles.addAll(selected.editedFiles.keys)
-    allFiles.addAll(selected.atStartFilesState.keys)
-    return getChangedFiles(allFiles)
+    if (selected.updateMode.isGitMode) {
+        return GitFileChange(this).getChangedFiles()
+    } else {
+        return MemoryFileChange(this).getChangedFiles()
+    }
 }
 
 fun Project.getChangedFiles(files: Set<String>, forceUpdate: Boolean = false): ChangesFiles {
     val selected = getSettings().selected()
     selected ?: return ChangesFiles()
 
-    val toDelete = LinkedHashSet<String>()
-    val filesForUpdate = HashSet<String>()
-    val bigFiles = LinkedHashSet<String>()
-    val editedFromStart = LinkedHashSet<String>()
-    val editedInThisIteration = LinkedHashSet<String>()
-    val updatedFileContent: MutableMap<String, InputStream> = HashMap()
-
-    files.forEach {
-        val file = VfsUtil.findFileByURL(File(it).toURL())
-        if (file == null) {
-            toDelete.add("/config" + it.substringAfter(this.getConfigRootDir()))
-            return@forEach
-        }
-
-        val byteArray = file.contentsToByteArray()
-        val relatedPath = file.getConfigRootRelatedPath(this)
-
-        if (byteArray.isEmpty() || byteArray.size >= 1024 * 1024) {
-            bigFiles.add(relatedPath)
-        }
-
-        val sha256Hex = sha256Hex(byteArray)
-        if (selected.editedFiles.isNotEmpty() && selected.editedFiles[it]?.sha256 != sha256Hex) {
-            editedInThisIteration.add(relatedPath)
-            updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
-        }
-        if (selected.atStartFilesState.isNotEmpty() && selected.atStartFilesState[it]?.sha256 != sha256Hex) {
-            editedFromStart.add(relatedPath)
-            updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
-        }
-        if (forceUpdate) {
-            filesForUpdate.add(relatedPath)
-            updatedFileContent.put(relatedPath, ByteArrayInputStream(byteArray))
-        }
+    if (selected.updateMode == INCREMENTAL || selected.updateMode == FROM_START) {
+        return MemoryFileChange(this).getChangedFiles(files, forceUpdate)
     }
-
-    if (selected.updateMode == INCREMENTAL) {
-        filesForUpdate.addAll(editedInThisIteration)
-    } else {
-        filesForUpdate.addAll(editedFromStart)
-        filesForUpdate.addAll(editedInThisIteration)
+    if (selected.updateMode == GIT_BRANCH_DIFFERENCE || selected.updateMode == GIT_LOCAL_CHANGES) {
+        return GitFileChange(this).getChangedFiles(files, forceUpdate)
     }
-
-    val changesFiles = ArrayList<String>().union(filesForUpdate).union(toDelete)
-    return ChangesFiles(
-        editedInThisIteration,
-        editedFromStart,
-        filesForUpdate,
-        changesFiles,
-        bigFiles,
-        toDelete,
-        updatedFileContent,
-        forceUpdate
-    )
-}
-
-data class ChangesFiles(
-    val editedInThisIteration: Set<String> = emptySet(),
-    val editedFromStart: Set<String> = emptySet(),
-    val forUpdate: Set<String> = emptySet(),
-    val changesFiles: Set<String> = emptySet(),
-    val bigFiles: Set<String> = emptySet(),
-    val toDelete: Set<String> = emptySet(),
-    val updatedFileContent: MutableMap<String, InputStream> = HashMap(),
-    val isForceUpdate: Boolean = false
-) {
-    fun forRegularUpdate(ignoredFiles: Set<String>) : Set<String> {
-        var list = forUpdate.filterNot { it in bigFiles }
-        if (!isForceUpdate) {
-            list = list.filterNot { it in ignoredFiles }
-        }
-        return list.toSet()
-    }
-
-    fun getBigFilesForUpdate(ignoredFiles: Set<String>): Set<String> {
-        var list = changesFiles.filter { it in bigFiles }
-        if (!isForceUpdate) {
-            list = list.filterNot { it in ignoredFiles }
-        }
-        return list.toSet()
-    }
-
-    fun toDelete(ignoredFiles: Set<String>): Set<String> {
-        if (!isForceUpdate) {
-            return toDelete.filterNot { it in ignoredFiles }.toSet()
-        }
-        return toDelete
-    }
-
-    fun refresh(project: Project) {
-        updatedFileContent.keys.toList().forEach {
-            updatedFileContent[it] = readFile(project, it)
-        }
-    }
-
-    private fun readFile(project: Project, key: String): InputStream {
-        val path = project.configPathToRealPath(key)
-        val vf = VfsUtil.findFile(File(path).toPath(), true)
-        val content = vf?.contentsToByteArray()
-        return ByteArrayInputStream(content)
-    }
+    return ChangesFiles()
 }
 
 fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: EnvironmentSettings): Future<*> {
@@ -293,4 +210,9 @@ fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: Environmen
         }
         this.saveCurrectFileStates()
     }
+}
+
+fun GitRepository.getLocalBranches(): List<String> {
+    val repository = project.getRepository()
+    return repository.branches.localBranches.map { it.name }.filter { repository.currentBranch?.name != it }
 }

@@ -1,5 +1,7 @@
 package com.icthh.xm.actions.settings
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.util.xmlb.XmlSerializerUtil
@@ -27,8 +29,8 @@ class SettingService: PersistentStateComponent<SettingService> {
     }
 }
 
-enum class UpdateMode {
-    INCREMENTAL, FROM_START
+enum class UpdateMode(val isGitMode: Boolean) {
+    INCREMENTAL(false), FROM_START(false), GIT_LOCAL_CHANGES(true), GIT_BRANCH_DIFFERENCE(true)
 }
 
 class EnvironmentSettings {
@@ -42,7 +44,8 @@ class EnvironmentSettings {
     var xmSuperAdminPassword: String = ""
     var clientId: String = "webapp"
     var clientPassword: String = "webapp"
-    var updateMode: UpdateMode = UpdateMode.FROM_START
+    var updateMode: UpdateMode = UpdateMode.GIT_LOCAL_CHANGES
+    var branchName: String = "HEAD"
     var startTrackChangesOnEdit: Boolean = true
 
     var trackChanges: Boolean = false
@@ -69,6 +72,8 @@ class EnvironmentSettings {
     override fun hashCode(): Int {
         return id.hashCode()
     }
+
+    fun copy(): EnvironmentSettings = jacksonObjectMapper().readValue(jacksonObjectMapper().writeValueAsString(this))
 
 }
 

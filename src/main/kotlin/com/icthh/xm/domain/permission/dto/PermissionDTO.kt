@@ -2,7 +2,7 @@ package com.icthh.xm.domain.permission.dto
 
 import com.icthh.xm.domain.permission.Permission
 import com.icthh.xm.utils.isTrue
-import java.io.Serializable
+import java.io.*
 
 data class PermissionDTO(
     val msName: String,
@@ -36,6 +36,24 @@ data class PermissionDTO(
             .thenComparing<String>{ it.roleKey }
             .thenComparing<String>{ it.privilegeKey }
             .compare(this, o)
+    }
+
+    fun apply(other: PermissionDTO) {
+        this.resourceCondition = other.resourceCondition
+        this.enabled = other.enabled
+        this.envCondition = other.envCondition
+        this.reactionStrategy = other.reactionStrategy
+    }
+
+    fun copy(): PermissionDTO {
+        val stream = ByteArrayOutputStream()
+        ObjectOutputStream(stream).use {
+            it.writeObject(this)
+            val buffer = ByteArrayInputStream(stream.toByteArray())
+            ObjectInputStream(buffer).use {
+                return it.readObject() as PermissionDTO
+            }
+        }
     }
 
 }

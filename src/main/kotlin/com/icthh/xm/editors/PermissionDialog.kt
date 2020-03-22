@@ -9,10 +9,13 @@ import com.icthh.xm.domain.permission.dto.RoleDTO
 import com.icthh.xm.domain.permission.dto.same
 import com.icthh.xm.service.getTenantName
 import com.icthh.xm.service.permission.TenantRoleService
+import com.icthh.xm.utils.log
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.vaadin.server.Sizeable.Unit.PIXELS
 import com.vaadin.shared.ui.MarginInfo
+import com.vaadin.shared.ui.ValueChangeMode
 import com.vaadin.ui.*
 import com.vaadin.ui.Alignment.MIDDLE_CENTER
 import java.awt.Dimension
@@ -30,14 +33,17 @@ class PermissionDialog(project: Project,
     //var documentAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
     val reactions = ReactionStrategy.values().toList().map { it.name }
-
+    val tenantRoleService = TenantRoleService(currentFile.getTenantName(project), project) //{writeAction(it)}
 
     override fun component(): Component {
         val tenantName = currentFile.getTenantName(project)
         val onBranchPermissions = toMatrix(tenantName)
-        val tenantRoleService = TenantRoleService(tenantName, project) //{writeAction(it)}
+
         val roles = tenantRoleService.getAllRoles().map { tenantRoleService.getRole(it.roleKey) }
         val currentPermissions = roles.flatMap { it.permissions ?: ArrayList() }
+
+        val roleService = tenantRoleServiceFromGit(tenantName)
+        val branchRoles = roleService.getAllRoles().map { roleService.getRole(it.roleKey) }
 
         val otherPrivileges = onBranchPermissions.map { it.toKey() to it }.toMap()
         val thisPrivileges = currentPermissions.map { it.toKey() to it }.toMap()
@@ -49,7 +55,8 @@ class PermissionDialog(project: Project,
 
         var diffPermissions = allPrivileges.filter { !thisPrivileges[it].same(otherPrivileges[it]) }.map {
             val permission = it
-            val roleDTO = roles.first { it.roleKey == permission.role }
+            var roleDTO = roles.firstOrNull { it.roleKey == permission.role }
+            roleDTO = roleDTO ?: branchRoles.first { it.roleKey == permission.role }
             ComparePermissionDiff(it, thisPrivileges[it], otherPrivileges[it], roleDTO)
         }
 
@@ -125,7 +132,7 @@ class PermissionDialog(project: Project,
             max = 0;
         }
         viewCards.forEach {
-            val row = createRow(it.permissionDiff, it)
+            val row = createRow(it)
             permissionRows.add(row)
             if (it.position < min) {
                 this.addComponent(row, 0)
@@ -149,31 +156,42 @@ class PermissionDialog(project: Project,
 
     private fun HorizontalLayout.getCardData() = this.data as PermissionCard?
 
-    private fun VerticalLayout.createRow(
-        permission: ComparePermissionDiff,
-        card: PermissionCard
-    ): HorizontalLayout {
+    private fun createRow(card: PermissionCard): HorizontalLayout {
+        val permission: ComparePermissionDiff = card.permissionDiff
+        val role: RoleDTO = permission.origin
         val currentBranch = permission.currentBranch
         val otherBranch = permission.otherBranch
+
         return HorizontalLayout().apply {
             setSizeFull()
             data = card
             val left = permissionCart(
-                otherBranch,
+                role, otherBranch,
                 permission.isBranchPermissionNeedResourceSpel(),
                 permission.isBranchPermissionNeedEnvSpel(),
                 readOnly = true
             )
             val apply = verticalLayout {
                 val button = button(">>") {
-
+                    addClickListener {
+                        if (currentBranch == null) {
+                            val perm = otherBranch?.copy()
+                            if (perm != null) {
+                                role.permissions?.add(perm)
+                            }
+                        } else if (otherBranch == null) {
+                            role.permissions?.removeIf { it.privilegeKey == currentBranch.privilegeKey }
+                        } else {
+                            currentBranch.apply(otherBranch)
+                        }
+                    }
                 }
                 setComponentAlignment(button, MIDDLE_CENTER)
                 isSpacing = false
                 margin = MarginInfo(true, false, false, false)
             }
             val right = permissionCart(
-                currentBranch,
+                role, currentBranch,
                 permission.isCurrentPermissionNeedResourceSpel(),
                 permission.isCurrentPermissionNeedEnvSpel()
             )
@@ -204,7 +222,8 @@ class PermissionDialog(project: Project,
         """.trimIndent())
     }
 
-    private fun HorizontalLayout.permissionCart(permission: PermissionDTO?,
+    private fun HorizontalLayout.permissionCart(role: RoleDTO,
+                                                permission: PermissionDTO?,
                                                 needResourceSpel: Boolean,
                                                 needEnvSpel: Boolean,
                                                 readOnly: Boolean = false) = panel {
@@ -226,7 +245,7 @@ class PermissionDialog(project: Project,
                     permission.reactionStrategy?.apply { setSelectedItem(this) }
                     addValueChangeListener {
                         permission.reactionStrategy = it.value
-                        // TODO
+                        updateValue(role)
                     }
                     placeholder = "On Forbid"
                 }
@@ -235,6 +254,10 @@ class PermissionDialog(project: Project,
                     caption = "Enabled"
                 ) {
                     isReadOnly = readOnly
+                    addValueChangeListener {
+                        permission.enabled = it.value
+                        updateValue(role)
+                    }
                 }
                 setComponentAlignment(isEnabled, MIDDLE_CENTER)
             }
@@ -244,7 +267,12 @@ class PermissionDialog(project: Project,
                         caption = "Resource condition"
                         value = permission.resourceCondition ?: ""
                         isReadOnly = readOnly
+                        valueChangeMode = ValueChangeMode.BLUR
                         setSizeFull()
+                        addValueChangeListener {
+                            permission.resourceCondition = it.value
+                            updateValue(role)
+                        }
                     }
                     setSizeFull()
                 }
@@ -255,7 +283,12 @@ class PermissionDialog(project: Project,
                         caption = "Environment condition"
                         value = permission.envCondition ?: ""
                         isReadOnly = readOnly
+                        valueChangeMode = ValueChangeMode.BLUR
                         setSizeFull()
+                        addValueChangeListener {
+                            permission.envCondition = it.value
+                            updateValue(role)
+                        }
                     }
                     setSizeFull()
                 }
@@ -263,22 +296,20 @@ class PermissionDialog(project: Project,
         }
     }
 
+    private fun updateValue(role: RoleDTO) {
+        ApplicationManager.getApplication().executeOnPooledThread {
+            tenantRoleService.updateRole(role.copy())
+        }
+    }
 
-    //    fun writeAction(update: () -> Unit) {
-//        if (documentAlarm.isDisposed) {
-//            return
-//        }
-//
-//        documentAlarm.cancelAllRequests()
-//        documentAlarm.addRequest({
-//            ApplicationManager.getApplication().runWriteAction {
-//                update.invoke()
-//            }
-//        }, 50)
-//    }
 
     private fun toMatrix(tenantName: String): List<PermissionDTO> {
-        val tenantRoleService = object: TenantRoleService(tenantName, project) {
+        val tenantRoleService = tenantRoleServiceFromGit(tenantName)
+        return tenantRoleService.getAllRoles().flatMap { tenantRoleService.toPermissions(it) }
+    }
+
+    private fun tenantRoleServiceFromGit(tenantName: String): TenantRoleService {
+        return object : TenantRoleService(tenantName, project) {
             override fun getConfigContent(configPath: String): Optional<String> {
                 val content = contentProvider.getFileContent(configPath)
                 if (content.isBlank()) {
@@ -287,11 +318,10 @@ class PermissionDialog(project: Project,
                 return Optional.of(content)
             }
         }
-        return tenantRoleService.getAllRoles().flatMap { toPermissions(tenantRoleService, it) }
     }
 
-    private fun toPermissions(tenantRoleService: TenantRoleService, roleDTO: RoleDTO): List<PermissionDTO> {
-        return tenantRoleService.getRole(roleDTO.roleKey).permissions?.toList() ?: ArrayList()
+    private fun TenantRoleService.toPermissions(roleDTO: RoleDTO): List<PermissionDTO> {
+        return getRole(roleDTO.roleKey).permissions?.toList() ?: ArrayList()
     }
 }
 

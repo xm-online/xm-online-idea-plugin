@@ -3,6 +3,8 @@ package com.icthh.xm.actions.settings
 import com.icthh.xm.actions.VaadinDialog
 import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.service.getExternalConfigService
+import com.icthh.xm.service.getLocalBranches
+import com.icthh.xm.service.getRepository
 import com.icthh.xm.service.getSettings
 import com.intellij.notification.NotificationType.ERROR
 import com.intellij.openapi.project.Project
@@ -13,19 +15,20 @@ import com.vaadin.server.Sizeable.Unit.PERCENTAGE
 import com.vaadin.shared.ui.ValueChangeMode
 import com.vaadin.ui.*
 import com.vaadin.ui.themes.ValoTheme
-import org.tukaani.xz.check.Check
 import java.awt.Dimension
 import kotlin.reflect.KMutableProperty1
 
 
 class SettingsDialog(project: Project): VaadinDialog(
-    project, "settings", Dimension(820, 580), "Settings"
+    project, "settings", Dimension(820, 600), "Settings"
 ) {
 
-    val data = ArrayList(project.getSettings().envs)
+    var data = ArrayList<EnvironmentSettings>()
     var env: EnvironmentSettings? = null
 
     override fun component(): Component {
+
+        data = ArrayList(project.getSettings().envs.map { it.copy() })
 
         val mainView = VerticalLayout()
         mainView.id = "mainView"
@@ -112,6 +115,9 @@ class SettingsDialog(project: Project): VaadinDialog(
         val updateMode = ComboBox<UpdateMode>("Update mode");
         updateMode.setItems(UpdateMode.values().asList())
         val startTrackChangesOnEdit = CheckBox("Start track changes on edit")
+        val branchName = ComboBox<String>("Target branch name")
+        branchName.setItems(project.getRepository().getLocalBranches())
+
         binder.bindField(name, EnvironmentSettings::name)
         binder.bindField(xmUrl, EnvironmentSettings::xmUrl)
         binder.bindField(login, EnvironmentSettings::xmSuperAdminLogin)
@@ -120,6 +126,8 @@ class SettingsDialog(project: Project): VaadinDialog(
         binder.bindField(clientPassword, EnvironmentSettings::clientPassword)
         binder.bindField(updateMode, EnvironmentSettings::updateMode)
         binder.bindField(startTrackChangesOnEdit, EnvironmentSettings::startTrackChangesOnEdit)
+        binder.bindField(branchName, EnvironmentSettings::branchName)
+
         name.setSizeFull()
         xmUrl.setSizeFull()
         login.setSizeFull()
@@ -128,6 +136,11 @@ class SettingsDialog(project: Project): VaadinDialog(
         clientPassword.setSizeFull()
         val clientToken = HorizontalLayout()
         clientToken.addComponents(clientId, clientPassword)
+
+        updateMode.addValueChangeListener {
+            startTrackChangesOnEdit.isVisible = !it.value.isGitMode
+            branchName.isVisible = UpdateMode.GIT_BRANCH_DIFFERENCE == it.value
+        }
 
         val checkConnection = HorizontalLayout()
         checkConnection.isSpacing = true
@@ -149,7 +162,7 @@ class SettingsDialog(project: Project): VaadinDialog(
         }
         checkConnection.addComponents(button, success, failed)
 
-        form.addComponents(name, xmUrl, login, password, clientToken, updateMode, startTrackChangesOnEdit, checkConnection)
+        form.addComponents(name, xmUrl, login, password, clientToken, updateMode, startTrackChangesOnEdit, branchName, checkConnection)
 
         name.valueChangeMode = ValueChangeMode.EAGER
         binder.addValueChangeListener {

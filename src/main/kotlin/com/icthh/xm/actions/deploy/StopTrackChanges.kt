@@ -3,6 +3,7 @@ package com.icthh.xm.actions.deploy
 import com.icthh.xm.actions.shared.ConfirmDialog
 import com.icthh.xm.service.getSettings
 import com.icthh.xm.service.updateSupported
+import com.icthh.xm.utils.isTrue
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 
@@ -31,6 +32,12 @@ class StopTrackChanges() : AnAction() {
 
         val project = anActionEvent.project
         val settings = project?.getSettings()?.selected()
+
+        if (settings?.updateMode?.isGitMode.isTrue()) {
+            anActionEvent.presentation.isVisible = false
+            return
+        }
+
         anActionEvent.presentation.isEnabled = project != null && settings != null
         anActionEvent.presentation.isVisible = settings?.trackChanges ?: false
     }

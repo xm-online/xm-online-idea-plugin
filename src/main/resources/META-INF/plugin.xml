@@ -42,7 +42,7 @@
             <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode" />
             <separator/>
             <action id="refreshCurrentFile" class="com.icthh.xm.actions.deploy.DeployCurrentFile" text="Update current file in memory"/>
-            <action id="comparePermissionBranch" class="com.icthh.xm.actions.permission.ComparePermissionBranch" text="Compare with branch"/>
+<!--            <action id="comparePermissionBranch" class="com.icthh.xm.actions.permission.ComparePermissionBranch" text="Compare with branch"/>-->
         </group>
 
         <group id="mainMenu" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup">

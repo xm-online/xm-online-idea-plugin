@@ -1,18 +1,18 @@
 package com.icthh.xm.domain.permission.mapper
 
-import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.icthh.xm.domain.permission.Privilege
 import com.icthh.xm.utils.log
-
 import java.util.*
 
 class PrivilegeMapper {
 
         private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule())
+            .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
 
         fun privilegesToYml(privileges: Collection<Privilege>): String? {
             try {
