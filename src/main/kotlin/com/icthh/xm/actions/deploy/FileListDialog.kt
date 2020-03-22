@@ -174,6 +174,10 @@ class FileListDialog(project: Project, val changes: ChangesFiles): VaadinDialog(
                     removeEditIcon(line)
                     addEditIcon(line)
                 }
+            } else {
+                ui.access {
+                    removeEditIcon(line)
+                }
             }
 
             if (!config.equals(content) && wasChanged(config, settings, fileName)) {
