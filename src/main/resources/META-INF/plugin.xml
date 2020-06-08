@@ -25,9 +25,16 @@
         <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />
         <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />
 
-        <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.XmEntitySpecCompletionContributor"
+        <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
                                 order="first" />
-        <json.catalog.exclusion implementation="com.icthh.xm.extensions.XmEntitySpecSchemaExclusion" />
+        <json.catalog.exclusion implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecSchemaExclusion" />
+        <multiHostInjector implementation="com.icthh.xm.extensions.entityspec.InputFromSpecJsonLanguageInjector" />
+        <localInspection language="yaml" bundle="messages.YAMLBundle"
+                         shortName="XmEntitySchemaValidation"
+                         key="inspections.schema.validation.name"
+                         groupKey="inspections.group.name"
+                         enabledByDefault="true"
+                         level="ERROR" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecLocalInspection" />
 
     </extensions>
 
