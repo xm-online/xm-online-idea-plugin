@@ -11,6 +11,8 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.vcs</depends>
     <depends>Git4Idea</depends>
+    <depends>org.intellij.groovy</depends>
+    <depends>org.jetbrains.plugins.yaml</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.icthh.xm.actions.settings.SettingService"/>
@@ -20,7 +22,12 @@
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />
 
-        <!--<vcs name="svn" vcsClass="org.jetbrains.idea."/>-->
+        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />
+        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />
+
+        <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.XmEntitySpecCompletionContributor"
+                                order="first" />
+        <json.catalog.exclusion implementation="com.icthh.xm.extensions.XmEntitySpecSchemaExclusion" />
 
     </extensions>
 
@@ -48,7 +55,7 @@
         <group id="mainMenu" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup">
             <add-to-group group-id="MainMenu" anchor="last"/>
             <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSettingAction" text="Setting"/>
-            <action id="refreshAll" class="com.icthh.xm.actions.deploy.RefreshAll" text="Update ALL files in memory"/>
+<!--            <action id="refreshAll" class="com.icthh.xm.actions.deploy.RefreshAll" text="Update ALL files in memory"/>-->
         </group>
 
         <action id="deployToEnvSelector" class="com.icthh.xm.actions.deploy.DeployEnvSelector"

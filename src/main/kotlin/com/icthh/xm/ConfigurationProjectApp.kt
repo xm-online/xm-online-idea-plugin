@@ -10,13 +10,17 @@ import com.icthh.xm.utils.isTrue
 import com.intellij.ide.DataManager
 import com.intellij.notification.NotificationListener
 import com.intellij.notification.NotificationType.INFORMATION
-import com.intellij.openapi.actionSystem.DataKeys
 import com.intellij.openapi.components.ProjectComponent
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.MessageType.INFO
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileContentsChangedAdapter
 import com.intellij.openapi.vfs.VirtualFileManager
 import javax.swing.event.HyperlinkEvent
+import com.intellij.openapi.actionSystem.DataConstants
+import com.intellij.openapi.actionSystem.DataContext
+
+
 
 
 class ConfigurationProjectApp: ProjectComponent {
@@ -36,7 +40,7 @@ class ConfigurationProjectApp: ProjectComponent {
 
             override fun onBeforeFileChange(fileOrDirectory: VirtualFile) {
                 val dataContext = DataManager.getInstance().dataContext
-                val project = DataKeys.PROJECT.getData(dataContext) ?: return
+                val project = dataContext.getData(DataConstants.PROJECT) as Project? ?: return
                 if (!fileOrDirectory.path.startsWith(project.getConfigRootDir())) {
                     return
                 }
