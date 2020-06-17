@@ -1,15 +1,11 @@
 package com.icthh.xm.extensions.entityspec
 
-import com.icthh.xm.utils.logger
 import com.intellij.lang.Language
 import com.intellij.lang.injection.MultiHostInjector
 import com.intellij.lang.injection.MultiHostRegistrar
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.InjectedLanguagePlaces
-import com.intellij.psi.LanguageInjector
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiLanguageInjectionHost
-import com.jetbrains.jsonSchema.impl.JsonSchemaBasedLanguageInjector
 import org.jetbrains.yaml.psi.YAMLScalar
 import org.jetbrains.yaml.psi.impl.YAMLKeyValueImpl
 import org.jetbrains.yaml.psi.impl.YAMLScalarImpl
@@ -18,11 +14,7 @@ import org.jetbrains.yaml.psi.impl.YAMLScalarImpl
 class InputFromSpecJsonLanguageInjector : MultiHostInjector {
     override fun getLanguagesToInject(registrar: MultiHostRegistrar, context: PsiElement) {
 
-        if (context !is YAMLScalarImpl) {
-            return
-        }
-
-        if (!context.isEntitySpecification()) {
+        if (context !is YAMLScalarImpl || !context.isEntitySpecification()) {
             return
         }
 

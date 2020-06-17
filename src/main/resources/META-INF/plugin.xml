@@ -22,8 +22,8 @@
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />
 
-        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />
-        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />
+<!--        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />-->
+<!--        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />-->
 
         <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
                                 order="first" />
@@ -35,7 +35,8 @@
                          groupKey="inspections.group.name"
                          enabledByDefault="true"
                          level="ERROR" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecLocalInspection" />
-
+        <colorProvider implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecElementColorProvider" />
+        <codeInsight.lineMarkerProvider language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntityIconLineMarkerProvider" />
     </extensions>
 
     <application-components>
