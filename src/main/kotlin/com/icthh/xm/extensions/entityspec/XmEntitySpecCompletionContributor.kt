@@ -64,16 +64,6 @@ class XmEntitySpecCompletionContributor : CompletionContributor() {
 
     }
 
-    private fun isNextStateKey(element: PsiElement): Boolean {
-        val states = element.goSuperParentSection()
-        val isStates = states is YAMLKeyValue && states.keyText.equals("states")
-        val stateKey = element.goSuperParent()
-        val isStateKey = stateKey is YAMLKeyValue && stateKey.keyText.equals("stateKey")
-        val next = element.goSuperParent().goSuperParent()?.goSuperParent()
-        val isNext = next is YAMLKeyValue && next.keyText.equals("next")
-        return isStates && isStateKey && isNext;
-    }
-
     private fun isLinkAttribute(parameters: CompletionParameters, attrName: String): Boolean {
         return isSectionAttribute(parameters, "links", attrName)
     }
@@ -154,12 +144,14 @@ fun PsiElement?.goParentSection() = goSuperParent().goSuperParent()?.parent
 
 fun PsiElement?.goSuperParentSection() = goParentSection().goParentSection()
 
-
-class XmEntitySpecSchemaExclusion: JsonSchemaCatalogExclusion {
-    override fun isExcluded(file: VirtualFile): Boolean {
-        val isFileExcluded = file.path.endsWith("/entity/xmentityspec.yml")
-        return isFileExcluded
-    }
+fun isNextStateKey(element: PsiElement): Boolean {
+    val states = element.goSuperParentSection()
+    val isStates = states is YAMLKeyValue && states.keyText.equals("states")
+    val stateKey = element.goSuperParent()
+    val isStateKey = stateKey is YAMLKeyValue && stateKey.keyText.equals("stateKey")
+    val next = element.goSuperParent().goSuperParent()?.goSuperParent()
+    val isNext = next is YAMLKeyValue && next.keyText.equals("next")
+    return isStates && isStateKey && isNext;
 }
 
 private val isInSpec = ConcurrentHashMap<PsiElement?, Boolean>()
@@ -168,5 +160,12 @@ fun PsiElement?.isEntitySpecification(): Boolean {
         val isEntityDir = this?.containingFile?.originalFile?.containingDirectory?.virtualFile?.path?.endsWith("/entity") ?: return@computeIfAbsent false
         val isEntitySpecFile = "xmentityspec.yml".equals(this.containingFile?.originalFile?.name)
         return@computeIfAbsent isEntityDir && isEntitySpecFile
+    }
+}
+
+class XmEntitySpecSchemaExclusion: JsonSchemaCatalogExclusion {
+    override fun isExcluded(file: VirtualFile): Boolean {
+        val isFileExcluded = file.path.endsWith("/entity/xmentityspec.yml")
+        return isFileExcluded
     }
 }

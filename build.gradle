@@ -48,6 +48,9 @@ dependencies {
 
     compile 'org.apache.commons:commons-lang3:3.10'
 
+    compile 'org.apache.commons:commons-text:1.8'
+
+
 
     compile("com.github.mvysny.karibudsl:karibu-dsl-v8:0.7.1")
 

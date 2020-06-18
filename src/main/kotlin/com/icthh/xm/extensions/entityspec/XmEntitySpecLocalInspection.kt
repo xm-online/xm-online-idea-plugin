@@ -1,7 +1,6 @@
 package com.icthh.xm.extensions.entityspec
 
 import com.icthh.xm.service.toPsiFile
-import com.icthh.xm.utils.logger
 import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
@@ -21,6 +20,8 @@ import com.jetbrains.jsonSchema.impl.JsonCachedValues
 import com.jetbrains.jsonSchema.impl.JsonComplianceCheckerOptions
 import com.jetbrains.jsonSchema.impl.JsonSchemaComplianceChecker
 import com.jetbrains.jsonSchema.impl.JsonSchemaObject
+import org.apache.commons.text.similarity.LevenshteinDistance
+import org.jetbrains.yaml.YAMLElementGenerator
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YamlPsiElementVisitor
@@ -99,6 +100,21 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
                     return
                 }
 
+                if (isSectionAttribute(element, "links", "typeKey")) {
+                    checkEntityKeyIsExists(element, holder)
+                    return
+                }
+
+                if (isNextStateKey(element)) {
+                    checkNextStateIsExists(element, holder)
+                    return
+                }
+
+                if (isSectionAttribute(element, "states", "key")) {
+                    checkStateKeys(element, holder)
+                    return
+                }
+
                 if (isSectionAttribute(element, "attachments", "key")) {
                     checkDuplicateKeys(element, holder, "attachments", "key", "link keys")
                     return
@@ -106,7 +122,6 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
                 if (isSectionAttribute(element, "calendars", "key")) {
                     checkDuplicateKeys(element, holder, "calendars", "key", "calendar keys")
-                    return
                 }
 
                 if (isCalendarEventsKey(element)) {
@@ -136,6 +151,72 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
             }
         }
+    }
+
+    private fun checkNextStateIsExists(element: LeafPsiElement, holder: ProblemsHolder) {
+        val parentSection = element.goSuperParent().goSuperParent() ?: return
+        val allStateKeys = getAllStates(parentSection)
+        val parent = element.goSuperParent() as? YAMLKeyValue ?: return
+        val typeKey = parent.valueText
+
+        val count = allStateKeys.groupingBy { it }.eachCount().get(typeKey) ?: 0
+        if (count < 1) {
+            val levenshtein = LevenshteinDistance()
+            val key = allStateKeys.minBy { levenshtein.apply(typeKey, it) }
+            holder.registerProblem(element, "Key $typeKey not found", ERROR, object : LocalQuickFix {
+                override fun getFamilyName() = "${key}"
+
+                override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+                    replaceText(element, key ?: "")
+                }
+            })
+        }
+    }
+
+    private fun checkEntityKeyIsExists(
+        element: LeafPsiElement,
+        holder: ProblemsHolder
+    ) {
+        val typeKey = element.text.trim()
+        val entityKeys = getAllEntityKeys(element)
+        val count = entityKeys.groupingBy { it }.eachCount().get(typeKey) ?: 0
+        if (count < 1) {
+            val levenshtein = LevenshteinDistance()
+            val key = entityKeys.minBy { levenshtein.apply(typeKey, it) }
+            holder.registerProblem(element, "Entity key ${typeKey} not found", ERROR, object : LocalQuickFix {
+                override fun getFamilyName() = "${key}"
+
+                override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+                    replaceText(element, key ?: "")
+                }
+            })
+        }
+    }
+
+    private fun replaceText(element: LeafPsiElement, text: String) {
+        val elementGenerator = YAMLElementGenerator.getInstance(element.project)
+        val colorKeyValue = elementGenerator.createYamlKeyValue("key", text)
+        val value = colorKeyValue.value ?: return
+        val parent = element.goSuperParent() as? YAMLKeyValue ?: return
+        parent.setValue(value)
+    }
+
+    private fun checkStateKeys(element: PsiElement, holder: ProblemsHolder) {
+        val allStateKeys = getAllStates(element)
+        val parent = element.goSuperParent() as? YAMLKeyValue ?: return
+        val count = allStateKeys.groupingBy { it }.eachCount().get(parent.valueText) ?: 0
+        if (count > 1) {
+            holder.registerProblem(element, "Duplicate states key ${parent.valueText}", ERROR)
+        }
+    }
+
+    private fun getAllStates(element: PsiElement): List<String> {
+        val parentSection = element.goParentSection() ?: return listOf()
+        val allStateKeys = parentSection.goSubChild().goChild()
+            .filterIsInstance<YAMLKeyValue>()
+            .filter { it.keyText.equals("key") }
+            .map { it.valueText }
+        return allStateKeys
     }
 
     private fun checkCalendarEventsKeyDuplication(element: PsiElement, holder: ProblemsHolder) {
@@ -203,8 +284,7 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         element: PsiElement
     ): List<String> {
         return element.containingFile.goSubChild().goSubChild().goSubChild().goChild()
-            .filter { it is YAMLKeyValue}
-            .map { it as YAMLKeyValue }
+            .filterIsInstance<YAMLKeyValue>()
             .filter{ it.keyText == "key" }
             .map { it.valueText.trim() }
     }
@@ -223,20 +303,17 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         fieldName: String
     ): List<YAMLKeyValue> {
         return element.containingFile.goSubChild().goSubChild().goSubChild().goChild()
-            .filter { it is YAMLKeyValue }
-            .map { it as YAMLKeyValue }
+            .filterIsInstance<YAMLKeyValue>()
             .filter { it.keyText == sectionName }
             .goSubChild().goSubChild()
-            .filter { it is YAMLKeyValue }
-            .map { it as YAMLKeyValue }
+            .filterIsInstance<YAMLKeyValue>()
             .filter { it.keyText == fieldName }
     }
 
     private fun getAllEventsKeys(element: PsiElement): List<String> {
         return getAllSubElements(element, "calendars", "events")
             .goSubChild().goSubChild()
-            .filter { it is YAMLKeyValue }
-            .map { it as YAMLKeyValue }
+            .filterIsInstance<YAMLKeyValue>()
             .map { it.valueText }
     }
 
