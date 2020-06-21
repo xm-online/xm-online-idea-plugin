@@ -10,6 +10,7 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiElementVisitor.EMPTY_VISITOR
@@ -36,7 +37,6 @@ import java.util.concurrent.ConcurrentHashMap
 
 class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
-    val TWO_DOLLARS = "${"$"}${"$"}"
     val schemas: MutableMap<String, JsonSchemaObject?> = ConcurrentHashMap()
 
     override fun buildVisitor(
@@ -161,15 +161,35 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
         val count = allStateKeys.groupingBy { it }.eachCount().get(typeKey) ?: 0
         if (count < 1) {
-            val levenshtein = LevenshteinDistance()
-            val key = allStateKeys.minBy { levenshtein.apply(typeKey, it) }
-            holder.registerProblem(element, "Key $typeKey not found", ERROR, object : LocalQuickFix {
-                override fun getFamilyName() = "${key}"
+            val minKeys = minKeys(allStateKeys, typeKey)
+            val fixes = minKeys.map { typeKeyQuickFix(it, element) }
+            holder.registerProblem(element, "Key $typeKey not found", ERROR, *fixes.toTypedArray())
+        }
+    }
 
-                override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
-                    replaceText(element, key ?: "")
-                }
-            })
+    private fun minKeys(allStateKeys: List<String>, typeKey: String): Set<String> {
+        val levenshtein = LevenshteinDistance()
+        val keysDistance = allStateKeys.map { it to levenshtein.apply(typeKey, it) }.toMap()
+        val fixKeys = keysDistance.filter { it.value <= 3 }.keys
+        val key = keysDistance.minBy { it.value }?.key
+        val keys = LinkedHashSet<String>()
+        if (key != null) {
+            keys.add(key)
+        }
+        keys.addAll(fixKeys)
+        return keys
+    }
+
+    private fun typeKeyQuickFix(
+        key: String?,
+        element: LeafPsiElement
+    ): LocalQuickFix {
+        return object : LocalQuickFix {
+            override fun getFamilyName() = "${key}"
+
+            override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+                replaceText(element, key ?: "")
+            }
         }
     }
 
@@ -181,15 +201,9 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         val entityKeys = getAllEntityKeys(element)
         val count = entityKeys.groupingBy { it }.eachCount().get(typeKey) ?: 0
         if (count < 1) {
-            val levenshtein = LevenshteinDistance()
-            val key = entityKeys.minBy { levenshtein.apply(typeKey, it) }
-            holder.registerProblem(element, "Entity key ${typeKey} not found", ERROR, object : LocalQuickFix {
-                override fun getFamilyName() = "${key}"
-
-                override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
-                    replaceText(element, key ?: "")
-                }
-            })
+            val minKeys = minKeys(entityKeys, typeKey)
+            val fixes = minKeys.map { typeKeyQuickFix(it, element) }
+            holder.registerProblem(element, "Entity key $typeKey not found", ERROR, *fixes.toTypedArray())
         }
     }
 
@@ -280,15 +294,6 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         }
     }
 
-    private fun getAllEntityKeys(
-        element: PsiElement
-    ): List<String> {
-        return element.containingFile.goSubChild().goSubChild().goSubChild().goChild()
-            .filterIsInstance<YAMLKeyValue>()
-            .filter{ it.keyText == "key" }
-            .map { it.valueText.trim() }
-    }
-
     private fun getAllKeys(
         element: PsiElement,
         sectionName: String,
@@ -318,9 +323,8 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
     }
 
     private fun functionKeyCheck(element: PsiElement, holder: ProblemsHolder) {
-        val entityFolder = element.containingFile.virtualFile.path.substringBeforeLast('/')
         val (pathToFunction, functionName) = toFunctionKey(element)
-        val functionDirectory = "${entityFolder}/lep/function/"
+        val functionDirectory = element.getFunctionDirectory()
         val path = Path.of(functionDirectory + functionName)
         val functionFile = VfsUtil.findFile(path, false)
 
@@ -339,23 +343,6 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         })
     }
 
-    private fun toFunctionKey(element: PsiElement): Pair<String, String> {
-        var functionKey = translateToLepConvention(element.text.trim().trimStart('/'))
-        var pathToFunction = functionKey.substringBeforeLast('/', "")
-        if (pathToFunction.isNotBlank()) {
-            pathToFunction += '/'
-        }
-        functionKey = functionKey.substringAfterLast('/')
-        val functionPrefix = if (withEntityId(element)) {
-            "FunctionWithXmEntity"
-        } else {
-            "Function"
-        }
-        val functionName = "${pathToFunction}${functionPrefix}${TWO_DOLLARS}${functionKey}${TWO_DOLLARS}tenant.groovy"
-        return Pair(pathToFunction, functionName)
-    }
-
-
     private fun createFunction(
         functionDirectory: String,
         pathToFunction: String,
@@ -371,33 +358,75 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         psiFile?.navigate(true)
     }
 
-    private fun withEntityId(element: PsiElement) =
-        element.goSuperParent()?.parent?.goChild()?.filter {
-            it is YAMLKeyValue
-        }?.filter {
-            it.firstChild.text == "withEntityId"
-        }?.filter {
-            it.lastChild.text?.toBoolean() ?: false
-        }?.isNotEmpty() ?: false
-
-    private fun isSectionAttribute(
-        position: PsiElement,
-        section: String,
-        attrName: String
-    ): Boolean {
-        //val timer = StopWatch.createStarted();
-        val result = (position.isChildConfigAttribute(attrName)
-                && isConfigSection(position, section)
-                && isUnderEntityConfig(position))
-        //logger.info("isFunctionAttribute ${timer.getTime(MILLISECONDS)}ms")
-        return result
-    }
-
     private fun isEntityKey(position: PsiElement): Boolean {
         val types = position.goParentSection()?.parent
         return position.isChildConfigAttribute("key") && types is YAMLKeyValueImpl && types.keyText.equals("types")
     }
 
+}
+
+fun getFunctionFile(element: PsiElement): VirtualFile? {
+    val (pathToFunction, functionName) = toFunctionKey(element)
+    val functionDirectory = element.getFunctionDirectory()
+    val path = Path.of(functionDirectory + functionName)
+    val functionFile = VfsUtil.findFile(path, false)
+    return functionFile
+}
+
+private fun PsiElement.getFunctionDirectory(): String {
+    val entityFolder = this.containingFile.virtualFile.path.substringBeforeLast('/')
+    return "${entityFolder}/lep/function/"
+}
+
+private fun withEntityId(element: PsiElement) =
+    element.goSuperParent()?.parent?.goChild()?.filter {
+        it is YAMLKeyValue
+    }?.filter {
+        it.firstChild.text == "withEntityId"
+    }?.filter {
+        it.lastChild.text?.toBoolean() ?: false
+    }?.isNotEmpty() ?: false
+
+fun toFunctionKey(element: PsiElement): Pair<String, String> {
+    val TWO_DOLLARS = "${"$"}${"$"}"
+    var functionKey = translateToLepConvention(element.text.trim().trimStart('/'))
+    var pathToFunction = functionKey.substringBeforeLast('/', "")
+    if (pathToFunction.isNotBlank()) {
+        pathToFunction += '/'
+    }
+    functionKey = functionKey.substringAfterLast('/')
+    val functionPrefix = if (withEntityId(element)) {
+        "FunctionWithXmEntity"
+    } else {
+        "Function"
+    }
+    val functionName = "${pathToFunction}${functionPrefix}${TWO_DOLLARS}${functionKey}${TWO_DOLLARS}tenant.groovy"
+    return Pair(pathToFunction, functionName)
+}
+
+fun getAllEntityKeys(
+    element: PsiElement
+): List<String> {
+    return getAllEntityPsiElements(element).map { it.valueText.trim() }
+}
+
+fun getAllEntityPsiElements(element: PsiElement): List<YAMLKeyValue> {
+    return element.containingFile.goSubChild().goSubChild().goSubChild().goChild()
+        .filterIsInstance<YAMLKeyValue>()
+        .filter { it.keyText == "key" }
+}
+
+fun isSectionAttribute(
+    position: PsiElement,
+    section: String,
+    attrName: String
+): Boolean {
+    //val timer = StopWatch.createStarted();
+    val result = (position.isChildConfigAttribute(attrName)
+            && isConfigSection(position, section)
+            && isUnderEntityConfig(position))
+    //logger.info("isFunctionAttribute ${timer.getTime(MILLISECONDS)}ms")
+    return result
 }
 
 fun translateToLepConvention(xmEntitySpecKey: String): String {

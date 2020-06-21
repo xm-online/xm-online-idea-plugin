@@ -37,6 +37,7 @@
                          level="ERROR" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecLocalInspection" />
         <colorProvider implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecElementColorProvider" />
         <codeInsight.lineMarkerProvider language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntityIconLineMarkerProvider" />
+        <psi.referenceContributor implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecReferenceContributor" />
     </extensions>
 
     <application-components>

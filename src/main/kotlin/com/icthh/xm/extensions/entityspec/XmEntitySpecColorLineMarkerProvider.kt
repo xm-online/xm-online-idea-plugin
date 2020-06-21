@@ -2,6 +2,7 @@ package com.icthh.xm.extensions.entityspec
 
 import com.intellij.openapi.editor.ElementColorProvider
 import com.intellij.psi.PsiElement
+import com.intellij.psi.impl.source.tree.CompositeElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.jetbrains.yaml.YAMLElementGenerator
 import org.jetbrains.yaml.psi.YAMLKeyValue
@@ -21,6 +22,7 @@ class XmEntitySpecElementColorProvider: ElementColorProvider {
             val value = colorKeyValue.value ?: return
             element.setValue(value)
             element.project.save()
+            (element.parent.node as CompositeElement).subtreeChanged()
         }
 
     }
