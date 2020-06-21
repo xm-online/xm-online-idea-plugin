@@ -1,11 +1,11 @@
 package com.icthh.xm.extensions.entityspec
 
+import com.icthh.xm.service.getRepository
 import com.icthh.xm.service.toPsiFile
 import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
-import com.intellij.codeInspection.ProblemHighlightType.ERROR
-import com.intellij.codeInspection.ProblemHighlightType.WARNING
+import com.intellij.codeInspection.ProblemHighlightType.*
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
@@ -15,17 +15,19 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiElementVisitor.EMPTY_VISITOR
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.util.PsiTreeUtil.*
+import com.intellij.vcsUtil.VcsUtil
 import com.jetbrains.jsonSchema.extension.JsonLikePsiWalker
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
 import com.jetbrains.jsonSchema.impl.JsonCachedValues
 import com.jetbrains.jsonSchema.impl.JsonComplianceCheckerOptions
 import com.jetbrains.jsonSchema.impl.JsonSchemaComplianceChecker
 import com.jetbrains.jsonSchema.impl.JsonSchemaObject
+import git4idea.GitUtil
+import git4idea.util.GitFileUtils
 import org.apache.commons.text.similarity.LevenshteinDistance
 import org.jetbrains.yaml.YAMLElementGenerator
-import org.jetbrains.yaml.psi.YAMLFile
-import org.jetbrains.yaml.psi.YAMLKeyValue
-import org.jetbrains.yaml.psi.YamlPsiElementVisitor
+import org.jetbrains.yaml.psi.*
 import org.jetbrains.yaml.psi.impl.YAMLKeyValueImpl
 import org.jetbrains.yaml.schema.YamlJsonPsiWalker
 import org.jetbrains.yaml.schema.YamlJsonSchemaHighlightingInspection
@@ -34,6 +36,7 @@ import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
+val TWO_DOLLARS = "${"$"}${"$"}"
 
 class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
@@ -82,9 +85,14 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
                 if (element !is LeafPsiElement) return
 
-                // TODO check key duplication on entity key, state key inside entity, events
-
                 if (isEntityKey(element)) {
+                    lepCreationTip(
+                        element,
+                        holder,
+                        {"Save${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy"},
+                        {"Create entity save lep ${it}"},
+                        "/lep/service/entity/"
+                    )
                     checkEntityKeyDuplication(element, holder)
                     return
                 }
@@ -106,11 +114,13 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
                 }
 
                 if (isNextStateKey(element)) {
+                    changeStateArcLep(element, holder)
                     checkNextStateIsExists(element, holder)
                     return
                 }
 
                 if (isSectionAttribute(element, "states", "key")) {
+                    changeStateLep(element, holder)
                     checkStateKeys(element, holder)
                     return
                 }
@@ -151,6 +161,73 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
             }
         }
+    }
+
+    private fun changeStateArcLep(
+        element: LeafPsiElement,
+        holder: ProblemsHolder
+    ) {
+        val block = element.findFirstParent { it is YAMLSequence }.findFirstParent { it is YAMLMapping }
+        val source = block.findChildOfType<YAMLKeyValue>()?.valueText ?: return
+        val entityKey = block.findFirstParent { it is YAMLSequence }
+            .findFirstParent { it is YAMLMapping }
+            .findChildOfType<YAMLKeyValue>()?.valueText ?: return
+
+        lepCreationTip(
+            element,
+            holder,
+            { "ChangeState${TWO_DOLLARS}${entityKey}${TWO_DOLLARS}${source}${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy" },
+            { "Create change state lep file ${it}" },
+            "/lep/lifecycle/chained/"
+        )
+    }
+
+    private fun changeStateLep(
+        element: LeafPsiElement,
+        holder: ProblemsHolder
+    ) {
+
+        val entityKey = element
+            .findFirstParent { it is YAMLSequence }
+            .findFirstParent { it is YAMLMapping }
+            .findChildOfType<YAMLKeyValue>()?.valueText ?: return
+
+        lepCreationTip(
+            element,
+            holder,
+            { "ChangeState${TWO_DOLLARS}${entityKey}${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy" },
+            { "Create change state lep file ${it}" },
+            "/lep/lifecycle/chained/"
+        )
+    }
+
+    private fun lepCreationTip(
+        element: LeafPsiElement,
+        holder: ProblemsHolder,
+        template: (String) -> String,
+        message: (String) -> String,
+        lepGroup: String
+    ): Boolean {
+        val (lepKey, _) = toLepKey(element.text)
+        val lepName = template.invoke(lepKey)
+        val lepDirectory = element.getRootFolder() + lepGroup
+        val path = Path.of(lepDirectory + lepName)
+        val lepFile = VfsUtil.findFile(path, false)
+
+        if (lepFile != null) {
+            return true
+        }
+        val description = "You can override logic by creating LEP"
+        holder.registerProblem(element, description, INFORMATION, object : LocalQuickFix {
+            override fun getFamilyName() = message.invoke(lepName)
+
+            override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+                ApplicationManager.getApplication().runWriteAction {
+                    createLepFile(lepDirectory, lepName, project)
+                }
+            }
+        })
+        return false
     }
 
     private fun checkNextStateIsExists(element: LeafPsiElement, holder: ProblemsHolder) {
@@ -337,25 +414,28 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
             override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
                 ApplicationManager.getApplication().runWriteAction {
-                    createFunction(functionDirectory, pathToFunction, functionName, project)
+                    createLepFile(functionDirectory, functionName, project, pathToFunction)
                 }
             }
         })
     }
 
-    private fun createFunction(
-        functionDirectory: String,
-        pathToFunction: String,
-        functionName: String,
-        project: Project
+    private fun createLepFile(
+        lepDirectory: String,
+        lepName: String,
+        project: Project,
+        pathToLep: String = ""
     ) {
-        File(functionDirectory + pathToFunction).mkdirs()
-        val file = File(functionDirectory + functionName)
+        File(lepDirectory + pathToLep).mkdirs()
+        val file = File(lepDirectory + lepName)
         file.createNewFile()
-        file.writeText("return [:]")
-        val functionVf = VfsUtil.findFileByIoFile(file, true)
-        val psiFile = functionVf?.toPsiFile(project)
+        file.writeText("return null")
+        val virtualFile = VfsUtil.findFileByIoFile(file, true) ?: return
+        val psiFile = virtualFile.toPsiFile(project)
         psiFile?.navigate(true)
+
+        val repository = project.getRepository()
+        GitFileUtils.addPaths(project, repository.root, listOf(VcsUtil.getFilePath(virtualFile)))
     }
 
     private fun isEntityKey(position: PsiElement): Boolean {
@@ -363,6 +443,12 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         return position.isChildConfigAttribute("key") && types is YAMLKeyValueImpl && types.keyText.equals("types")
     }
 
+}
+
+private inline fun <reified T: PsiElement> PsiElement?.findChildOfType() = findChildOfType(this, T::class.java)
+
+private fun PsiElement?.findFirstParent(condition: (PsiElement?) -> Boolean) = findFirstParent(this) {
+    condition.invoke(it)
 }
 
 fun getFunctionFile(element: PsiElement): VirtualFile? {
@@ -374,9 +460,10 @@ fun getFunctionFile(element: PsiElement): VirtualFile? {
 }
 
 private fun PsiElement.getFunctionDirectory(): String {
-    val entityFolder = this.containingFile.virtualFile.path.substringBeforeLast('/')
-    return "${entityFolder}/lep/function/"
+    return "${getRootFolder()}/lep/function/"
 }
+
+private fun PsiElement.getRootFolder() = this.containingFile.virtualFile.path.substringBeforeLast('/')
 
 private fun withEntityId(element: PsiElement) =
     element.goSuperParent()?.parent?.goChild()?.filter {
@@ -388,13 +475,7 @@ private fun withEntityId(element: PsiElement) =
     }?.isNotEmpty() ?: false
 
 fun toFunctionKey(element: PsiElement): Pair<String, String> {
-    val TWO_DOLLARS = "${"$"}${"$"}"
-    var functionKey = translateToLepConvention(element.text.trim().trimStart('/'))
-    var pathToFunction = functionKey.substringBeforeLast('/', "")
-    if (pathToFunction.isNotBlank()) {
-        pathToFunction += '/'
-    }
-    functionKey = functionKey.substringAfterLast('/')
+    var (functionKey, pathToFunction) = toLepKey(element.text)
     val functionPrefix = if (withEntityId(element)) {
         "FunctionWithXmEntity"
     } else {
@@ -402,6 +483,16 @@ fun toFunctionKey(element: PsiElement): Pair<String, String> {
     }
     val functionName = "${pathToFunction}${functionPrefix}${TWO_DOLLARS}${functionKey}${TWO_DOLLARS}tenant.groovy"
     return Pair(pathToFunction, functionName)
+}
+
+fun toLepKey(key: String): Pair<String, String> {
+    var lepKey = translateToLepConvention(key.trim().trimStart('/'))
+    var pathToLep = lepKey.substringBeforeLast('/', "")
+    if (pathToLep.isNotBlank()) {
+        pathToLep += '/'
+    }
+    lepKey = lepKey.substringAfterLast('/')
+    return Pair(lepKey, pathToLep)
 }
 
 fun getAllEntityKeys(

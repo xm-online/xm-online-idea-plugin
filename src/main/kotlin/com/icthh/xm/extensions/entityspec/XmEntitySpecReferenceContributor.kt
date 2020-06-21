@@ -1,13 +1,12 @@
 package com.icthh.xm.extensions.entityspec
 
 import com.icthh.xm.service.toPsiFile
-import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.*
+import com.intellij.psi.PsiReference.EMPTY_ARRAY
 import com.intellij.util.ProcessingContext
 import org.jetbrains.yaml.psi.YAMLScalar
 import org.jetbrains.yaml.psi.YAMLValue
-import java.nio.file.Path
 
 
 class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
@@ -34,8 +33,8 @@ class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
     }
 
     private fun functionFileReferences(element: PsiElement, scalar: YAMLScalar): Array<PsiReference> {
-        val functionFile = getFunctionFile(element) ?: return PsiReference.EMPTY_ARRAY
-        val psiFile = functionFile.toPsiFile(element.project) ?: return PsiReference.EMPTY_ARRAY
+        val functionFile = getFunctionFile(element) ?: return EMPTY_ARRAY
+        val psiFile = functionFile.toPsiFile(element.project) ?: return EMPTY_ARRAY
         return Array(1) {
             toPsiReference(scalar, psiFile)
         }
@@ -55,11 +54,11 @@ class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
     }
 
     private fun toPsiReference(from: YAMLValue, to: PsiElement): PsiReference {
-        return YamlReference(from, to)
+        return PsiReferenceImpl(from, to)
     }
 
 }
 
-class YamlReference(from: YAMLValue, val to: PsiElement): PsiReferenceBase<YAMLValue>(from, true) {
+class PsiReferenceImpl(from: YAMLValue, val to: PsiElement): PsiReferenceBase<YAMLValue>(from, true) {
     override fun resolve() = to
 }
