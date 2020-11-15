@@ -108,7 +108,8 @@ class ConfigIconProvider: IconProvider() {
             imagesCache.put(tenant, ImageIcon(icon))
             virtualFile.refresh(true, false)
         } catch (e: Exception) {
-            log.warn("Error load image from url", e)
+            log.warn("Error load image from url ${data}")
+            log.trace(e)
         }
     }
 

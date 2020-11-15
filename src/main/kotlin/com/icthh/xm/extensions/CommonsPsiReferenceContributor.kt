@@ -21,7 +21,6 @@ class CommonsPsiReferenceContributor: PsiReferenceContributor() {
 class CommonsReferenceProvider: PsiReferenceProvider() {
     override fun getReferencesByElement(element: PsiElement, context: ProcessingContext): Array<PsiReference> {
         element.project.isSupportProject() ?: return PsiReference.EMPTY_ARRAY
-        logger.info("${element.text}")
         return PsiReference.EMPTY_ARRAY
     }
 }

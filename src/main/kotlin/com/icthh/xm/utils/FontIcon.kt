@@ -7,12 +7,16 @@ import java.awt.image.BufferedImage
 import javax.swing.Icon
 
 class FontIcon(
-    val font: Font,
+    var font: Font,
     val iconCode: Char,
     var iconSize: Int = 16
 ) : Icon {
 
-    private var buffer = lazy {
+    var iconColor = Color.BLACK
+    private var buffer = renderIcon()
+
+
+    private fun renderIcon(): BufferedImage {
         val b = UIUtil.createImage(
             iconWidth, iconHeight,
             BufferedImage.TYPE_INT_ARGB
@@ -25,20 +29,17 @@ class FontIcon(
         )
 
         g2.font = font
-        g2.color = iconColor
+        g2.color = iconColor ?: Color.BLACK
 
         val sy = g2.fontMetrics.ascent
         g2.drawString(iconCode.toString(), 0, sy)
 
         g2.dispose()
-
-        return@lazy b
+        return b
     }
 
-    var iconColor = Color.BLACK
-
     override fun paintIcon(c: Component, g: Graphics, x: Int, y: Int) {
-        g.drawImage(buffer.value, x, y, null)
+        g.drawImage(buffer, x, y, null)
 
     }
 
@@ -48,6 +49,14 @@ class FontIcon(
 
     override fun getIconWidth(): Int {
         return iconSize
+    }
+
+    fun updateFontSize(fontSize: Int) {
+        if (font.size != fontSize) {
+            iconSize = fontSize + 2
+            font = font.deriveFont(fontSize.toFloat())
+            buffer = renderIcon()
+        }
     }
 
 }

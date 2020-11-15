@@ -138,7 +138,7 @@ class SettingsDialog(project: Project): VaadinDialog(
         clientToken.addComponents(clientId, clientPassword)
 
         updateMode.addValueChangeListener {
-            startTrackChangesOnEdit.isVisible = !it.value.isGitMode
+            startTrackChangesOnEdit.isVisible = !(it.value?.isGitMode ?: true)
             branchName.isVisible = UpdateMode.GIT_BRANCH_DIFFERENCE == it.value
         }
 

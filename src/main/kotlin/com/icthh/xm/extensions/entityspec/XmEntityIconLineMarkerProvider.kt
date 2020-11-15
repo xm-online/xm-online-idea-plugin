@@ -5,7 +5,13 @@ import com.icthh.xm.utils.FontIcon
 import com.icthh.xm.utils.readTextAndClose
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
+import com.intellij.ide.DataManager
+import com.intellij.openapi.actionSystem.DataConstants
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.markup.GutterIconRenderer.Alignment.CENTER
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.apache.commons.lang3.time.StopWatch
@@ -29,6 +35,7 @@ class XmEntityIconLineMarkerProvider: LineMarkerProviderDescriptor() {
         if (element is YAMLKeyValue && element.keyText.equals("icon")) {
             val iconName = element.valueText
             val icon = iconsSet[iconName] ?: return null
+
             val lineMarkerInfo = LineMarkerInfo(psiElement, psiElement.getTextRange(), icon, null, null, CENTER)
             return lineMarkerInfo
         }
@@ -46,7 +53,7 @@ object IconProvider {
         javaClass.classLoader.getResourceAsStream("/icons/mdi/MaterialIcons-Regular.ttf").use {
             var font = Font.createFont(Font.TRUETYPE_FONT, it)
             GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(font);
-            font = font.deriveFont(16f)
+            font = font.deriveFont(14f)
             font
         }
 

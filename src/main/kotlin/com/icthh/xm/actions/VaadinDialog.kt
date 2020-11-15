@@ -3,7 +3,6 @@ package com.icthh.xm.actions
 import com.icthh.xm.ViewRegistry.registry
 import com.icthh.xm.ViewRegistry.unregistry
 import com.icthh.xm.ViewServer
-import com.icthh.xm.ViewServer.serverPort
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.vaadin.navigator.View
@@ -13,7 +12,6 @@ import javafx.application.Platform.setImplicitExit
 import javafx.embed.swing.JFXPanel
 import javafx.scene.Scene
 import javafx.scene.layout.StackPane
-import javafx.scene.layout.VBox
 import javafx.scene.web.WebView
 import java.awt.Dimension
 import javax.swing.JComponent

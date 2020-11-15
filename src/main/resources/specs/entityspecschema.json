@@ -206,6 +206,9 @@
                       },
                       "color": {
                         "type": "string"
+                      },
+                      "dataTypeKey": {
+                        "type": "string"
                       }
                     }
                   }
@@ -215,6 +218,12 @@
                   "additionalProperties": {
                     "type": "string"
                   }
+                },
+                "timeZoneStrategy": {
+                  "type": "string"
+                },
+                "timeZoneDataRef": {
+                  "type": "string"
                 }
               }
             }
@@ -252,6 +261,9 @@
                 },
                 "max": {
                   "type": "integer"
+                },
+                "isUnique": {
+                  "type": "boolean"
                 }
               }
             }
@@ -417,3 +429,5 @@
     }
   }
 }
+
+

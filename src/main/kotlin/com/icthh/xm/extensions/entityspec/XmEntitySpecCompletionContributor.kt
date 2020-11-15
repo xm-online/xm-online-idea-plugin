@@ -6,6 +6,8 @@ import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
@@ -33,7 +35,6 @@ class XmEntitySpecCompletionContributor : CompletionContributor() {
             JsonSchemaCompletionContributor.doCompletion(parameters, result, file)
         }
 
-        logger.info(">> ${position.goSuperParent()?.text}")
         if (isLinkAttribute(parameters, "typeKey")) {
             getAllEntitiesKeys(parameters).forEach {
                 result.addElement(LookupElementBuilder.create(it))
@@ -57,7 +58,11 @@ class XmEntitySpecCompletionContributor : CompletionContributor() {
 
         val element = parameters.position.parent?.parent
         if (element is YAMLKeyValue && element.keyText.equals("icon")) {
+            val editor = FileEditorManager.getInstance(position.project).selectedEditor as? TextEditor ?: return
+            val fontSize = editor.editor.colorsScheme.editorFontSize
+
             iconsSet.forEach {
+                it.value.updateFontSize(fontSize)
                 result.addElement(LookupElementBuilder.create(it.key).withIcon(it.value))
             }
         }
