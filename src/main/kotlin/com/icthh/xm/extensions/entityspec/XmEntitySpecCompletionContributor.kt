@@ -1,110 +1,190 @@
 package com.icthh.xm.extensions.entityspec
 
 import com.icthh.xm.extensions.entityspec.IconProvider.iconsSet
-import com.icthh.xm.utils.logger
+import com.icthh.xm.utils.*
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionResultSet
+import com.intellij.codeInsight.completion.CompletionType.BASIC
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.ModificationTracker.EVER_CHANGED
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.patterns.PlatformPatterns.string
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker.MODIFICATION_COUNT
 import com.jetbrains.jsonSchema.impl.JsonCachedValues
 import com.jetbrains.jsonSchema.impl.JsonSchemaCompletionContributor
+import com.jetbrains.jsonSchema.impl.JsonSchemaObject
 import com.jetbrains.jsonSchema.remote.JsonSchemaCatalogExclusion
-import org.jetbrains.yaml.psi.YAMLDocument
-import org.jetbrains.yaml.psi.YAMLKeyValue
+import org.jetbrains.yaml.YAMLFileType
+import org.jetbrains.yaml.psi.*
 import org.jetbrains.yaml.psi.impl.YAMLKeyValueImpl
-import org.jetbrains.yaml.psi.impl.YAMLPlainTextImpl
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicReference
 
-class XmEntitySpecCompletionContributor : CompletionContributor() {
+class XmEntitySpecCompletionContributor() : CompletionContributor() {
+
+    val jsonSchema = AtomicReference<JsonSchemaObject>()
 
     override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
-
-        if (parameters.position !is LeafPsiElement || !parameters.position.isEntitySpecification()) {
-            return
-        }
-
-        val position = parameters.position
-        val file = JsonCachedValues.getSchemaObject(getSchemaFile(), position.project)
-        if (file != null) {
-            JsonSchemaCompletionContributor.doCompletion(parameters, result, file)
-        }
-
-        if (isLinkAttribute(parameters, "typeKey")) {
-            getAllEntitiesKeys(parameters).forEach {
-                result.addElement(LookupElementBuilder.create(it))
-            }
-            return
-        }
-
-        if (isLinkAttribute(parameters, "builderType")) {
-            result.addElement(LookupElementBuilder.create("NEW"))
-            result.addElement(LookupElementBuilder.create("SEARCH"))
-            return
-        }
-
-        if (isNextStateKey(parameters.position)) {
-            val states = parameters.position.goSuperParentSection()
-            getAllStateKeys(states).forEach {
-                result.addElement(LookupElementBuilder.create(it))
-            }
-            return
-        }
-
-        val element = parameters.position.parent?.parent
-        if (element is YAMLKeyValue && element.keyText.equals("icon")) {
-            val editor = FileEditorManager.getInstance(position.project).selectedEditor as? TextEditor ?: return
-            val fontSize = editor.editor.colorsScheme.editorFontSize
-
-            iconsSet.forEach {
-                it.value.updateFontSize(fontSize)
-                result.addElement(LookupElementBuilder.create(it.key).withIcon(it.value))
-            }
-        }
-
+        start("fillCompletionVariants")
+        doWork(parameters, result)
+        stop("fillCompletionVariants")
     }
 
-    private fun isLinkAttribute(parameters: CompletionParameters, attrName: String): Boolean {
-        return isSectionAttribute(parameters, "links", attrName)
-    }
-
-
-    private fun isSectionAttribute(
+    private fun doWork(
         parameters: CompletionParameters,
-        section: String,
-        attrName: String
-    ): Boolean {
-        return (parameters.position.isChildConfigAttribute(attrName)
-                && isConfigSection(parameters.position, section)
-                && isUnderEntityConfig(parameters.position))
+        result: CompletionResultSet
+    ) {
+        if (parameters.position !is LeafPsiElement || !parameters.originalFile.isEntitySpecification()) {
+            return
+        }
+        jsonSchemaCompletion(parameters, result)
+        super.fillCompletionVariants(parameters, result)
     }
 
-    private fun getAllEntitiesKeys(parameters: CompletionParameters) =
-        parameters.originalFile.children.filter { it is YAMLDocument }.flatMap {
-            it.goSubChild().goSubChild().goSubChild()
-                .filter { it is YAMLKeyValue && it.keyText.equals("key") }
-                .filter { it.children.size == 1 }
-                .filter { it.children[0] is YAMLPlainTextImpl }
-                .map { it.children[0] as YAMLPlainTextImpl }
-                .map { it.textValue }
+    init {
+
+        extendWithStop(BASIC, psiElement<PsiElement> {
+            withPsiParent<YAMLScalar> {
+                withPsiParent<YAMLKeyValue>("icon")
+            }
+            entitySpec()
+        }) { icons(it) }
+
+        entityFeatureAttribute("links", "typeKey") { it: CompletionParameters ->
+            getAllEntitiesKeys(it).map { LookupElementBuilder.create(it) }
         }
 
-    private fun getAllStateKeys(element: PsiElement?): List<String> {
-        element ?: return emptyList()
-        return element.goSubChild().goSubChild()
-            .filter { it is YAMLKeyValue && it.keyText.equals("key") }
-            .filter { it.children.size == 1 }
-            .filter { it.children[0] is YAMLPlainTextImpl }
-            .map { it.children[0] as YAMLPlainTextImpl }
-            .map { it.textValue }
+        entityFeatureAttribute("links", "builderType") { it: CompletionParameters ->
+            listOf("NEW", "SEARCH").map { LookupElementBuilder.create(it) }
+        }
+
+        nextStateKey()
     }
+
+    private fun jsonSchemaCompletion(
+        parameters: CompletionParameters,
+        result: CompletionResultSet
+    ) {
+
+        var jsonSchemaObject = jsonSchema.get()
+        if (jsonSchemaObject == null) {
+            val position = parameters.position
+            val file = JsonCachedValues.getSchemaObject(getSchemaFile(), position.project)
+            jsonSchema.set(file)
+            jsonSchemaObject = file
+        }
+
+        JsonSchemaCompletionContributor.doCompletion(parameters, result, jsonSchemaObject)
+    }
+
+    private fun entityFeatureAttribute(
+        featureKey: String,
+        attributeName: String,
+        elements: (parameters: CompletionParameters) -> List<LookupElementBuilder>
+    ) {
+        extendWithStop(BASIC, psiElement<PsiElement> {
+            withPsiParent<YAMLScalar> {
+                withPsiParent<YAMLKeyValue>(attributeName) {
+                    toKeyValue(featureKey) {
+                        toKeyValue("types")
+                    }
+                }
+            }
+            entitySpec()
+        }, elements)
+    }
+
+    private fun nextStateKey() {
+        extendWithStop(BASIC, psiElement<PsiElement> {
+            withPsiParent<YAMLScalar> {
+                withPsiParent<YAMLKeyValue>("stateKey") {
+                    toKeyValue("next") {
+                        toKeyValue("states") {
+                            toKeyValue("types")
+                        }
+                    }
+                }
+            }
+            entitySpec()
+        }) {
+            val states = it.position.findFirstParent {
+                it is YAMLKeyValue && it.keyTextMatches("states")
+            }
+            val values = states.getChildOfType<YAMLSequence>().getKeys()
+                .map { LookupElementBuilder.create(it.valueText) }
+            values
+        }
+    }
+
+    private fun icons(
+        parameters: CompletionParameters
+    ): List<LookupElementBuilder> {
+        val position = parameters.position
+        val editor = FileEditorManager.getInstance(position.project).selectedEditor as? TextEditor ?: return emptyList()
+        val fontSize = editor.editor.colorsScheme.editorFontSize
+        iconsSet.forEach {
+            it.value.updateFontSize(fontSize)
+        }
+        return iconsSet.map { LookupElementBuilder.create(it.key).withIcon(it.value) }.toList()
+    }
+
 }
 
+private fun getAllEntitiesKeys(parameters: CompletionParameters): List<String> {
+
+
+    val originalFile = parameters.originalFile
+    val project = parameters.position.project
+
+    val directory = originalFile.virtualFile.parent
+    var xmentityspec: VirtualFile? = null
+    if (directory.isDirectory && directory.name == "entity") {
+        xmentityspec = directory.findChild("xmentityspec")
+    } else if (directory.isDirectory && directory.name == "xmentityspec") {
+        xmentityspec = directory
+    }
+
+    if (xmentityspec != null) {
+        CachedValuesManager.getManager(project).getCachedValue(xmentityspec) {
+            val keys = ArrayList<String>()
+            val specs = VfsUtil.collectChildrenRecursively(xmentityspec)
+
+            CachedValueProvider.Result.create(keys, EVER_CHANGED)
+        }
+    }
+
+    val cachedValue = getEntitiesKeys(project, originalFile)
+    return cachedValue
+}
+
+private fun getEntitiesKeys(
+    project: Project,
+    originalFile: PsiFile
+): List<String> {
+    val cachedValue = CachedValuesManager.getManager(project).getCachedValue(originalFile) {
+        project.logger.info("\n\n\n UPDATE ${originalFile.name} cache \n\n\n")
+        val keys = originalFile
+            .getChildOfType<YAMLDocument>()
+            .getChildOfType<YAMLMapping>()
+            .getChildOfType<YAMLKeyValue>()
+            .getChildOfType<YAMLSequence>().getKeys().map { it.valueText }
+        // TODO write own tracker
+        CachedValueProvider.Result.create(keys, MODIFICATION_COUNT)
+    }
+    return cachedValue ?: emptyList()
+}
+
+@Deprecated("")
 fun PsiElement.isChildConfigAttribute(attributeName: String): Boolean {
     val attributeKeyValuePair = goSuperParent()
     return attributeKeyValuePair is YAMLKeyValueImpl && attributeKeyValuePair.keyText.equals(attributeName)
@@ -114,41 +194,44 @@ fun getSchemaFile(): VirtualFile {
     return VfsUtil.findFileByURL(XmEntitySpecCompletionContributor::class.java.classLoader.getResource("specs/entityspecschema.json"))!!
 }
 
+@Deprecated("")
 fun PsiElement?.goSuperParent() = this?.parent?.parent
 
+@Deprecated("")
 fun List<PsiElement>.goChild() = flatMap { it.children.toList() }
 
+@Deprecated("")
 fun List<PsiElement>.goSubChild() = this.goChild().goChild()
 
+@Deprecated("")
 fun PsiElement.goChild() = this.children.toList()
 
+@Deprecated("")
 fun PsiElement.goSubChild() = this.goChild().goChild()
 
-fun PsiElement.bySubChild(apply: (PsiElement) -> Unit) {
-    children.forEach {
-        it.children.forEach {
-            apply.invoke(it)
-        }
-    }
-}
-
+@Deprecated("")
 fun isUnderEntityConfig(position: PsiElement): Boolean {
     val types = getConfigDefinition(position).goSuperParent().goSuperParent()
     return types is YAMLKeyValueImpl && types.keyText.equals("types")
 }
 
+@Deprecated("")
 fun isConfigSection(position: PsiElement, sectionName: String): Boolean {
     val linksDefinition = getConfigDefinition(position)
     return linksDefinition is YAMLKeyValueImpl && linksDefinition.keyText.equals(sectionName)
 }
 
+@Deprecated("")
 fun getConfigDefinition(position: PsiElement) =
     position.goParentSection()?.parent
 
+@Deprecated("")
 fun PsiElement?.goParentSection() = goSuperParent().goSuperParent()?.parent
 
+@Deprecated("")
 fun PsiElement?.goSuperParentSection() = goParentSection().goParentSection()
 
+@Deprecated("")
 fun isNextStateKey(element: PsiElement): Boolean {
     val states = element.goSuperParentSection()
     val isStates = states is YAMLKeyValue && states.keyText.equals("states")
@@ -159,18 +242,44 @@ fun isNextStateKey(element: PsiElement): Boolean {
     return isStates && isStateKey && isNext;
 }
 
-private val isInSpec = ConcurrentHashMap<PsiElement?, Boolean>()
-fun PsiElement?.isEntitySpecification(): Boolean {
+fun PsiElement?.isEntitySpecification() = this?.containingFile?.originalFile?.isEntitySpecification() ?: false
+
+private val isInSpec = ConcurrentHashMap<PsiFile?, Boolean>()
+fun PsiFile?.isEntitySpecification(): Boolean {
+    this ?: return false
     return isInSpec.computeIfAbsent(this) {
-        val isEntityDir = this?.containingFile?.originalFile?.containingDirectory?.virtualFile?.path?.endsWith("/entity") ?: return@computeIfAbsent false
-        val isEntitySpecFile = "xmentityspec.yml".equals(this.containingFile?.originalFile?.name)
+
+        val isEntitySpecDir = containingDirectory?.name?.equals("xmentityspec") ?: false
+        val isYamlFile = name.endsWith(".yml")
+        if (isEntitySpecDir && isYamlFile) {
+            return@computeIfAbsent true
+        }
+        val isEntityDir = this.containingDirectory?.name?.equals("entity") ?: return@computeIfAbsent false
+        val isEntitySpecFile = "xmentityspec.yml".equals(name)
         return@computeIfAbsent isEntityDir && isEntitySpecFile
     }
 }
 
-class XmEntitySpecSchemaExclusion: JsonSchemaCatalogExclusion {
+fun PsiDsl<out PsiElement>.entitySpec() {
+    inFile {
+        or({
+            withFileType(YAMLFileType::class.java)
+            withOriginalFile {
+                withParentDirectoryName(string().equalTo("xmentityspec"))
+            }
+        }, {
+            withFileType(YAMLFileType::class.java)
+            withOriginalFile {
+                withParentDirectoryName(string().equalTo("entity"))
+            }
+        })
+    }
+}
+
+class XmEntitySpecSchemaExclusion : JsonSchemaCatalogExclusion {
     override fun isExcluded(file: VirtualFile): Boolean {
-        val isFileExcluded = file.path.endsWith("/entity/xmentityspec.yml")
+        val isFileExcluded =
+            file.path.endsWith("/entity/xmentityspec.yml") || file.path.contains("/entity/xmentityspec/")
         return isFileExcluded
     }
 }

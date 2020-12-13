@@ -82,7 +82,7 @@ class DeployEnvSelector() : AnAction(), CustomComponentAction {
     override fun update(anActionEvent: AnActionEvent) {
         anActionEvent.updateSupported() ?: return
 
-        logger.info("update: ${anActionEvent}")
+        //logger.info("update: ${anActionEvent}")
         val project = anActionEvent.project
         anActionEvent.presentation.isEnabled = project != null
         if (project != null) {

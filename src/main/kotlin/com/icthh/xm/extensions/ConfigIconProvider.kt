@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileSystemItem
+import com.intellij.util.PlatformIcons
 import net.sf.image4j.codec.ico.ICODecoder
 import org.apache.commons.imaging.Imaging
 import org.apache.http.client.fluent.Request.Get
@@ -84,6 +85,7 @@ class ConfigIconProvider: IconProvider() {
                 }
             }
         }
+        imagesCache.put(tenant, PlatformIcons.PACKAGE_ICON)
         return null
     }
 
@@ -110,6 +112,7 @@ class ConfigIconProvider: IconProvider() {
         } catch (e: Exception) {
             log.warn("Error load image from url ${data}")
             log.trace(e)
+            imagesCache.put(tenant, PlatformIcons.PACKAGE_ICON)
         }
     }
 

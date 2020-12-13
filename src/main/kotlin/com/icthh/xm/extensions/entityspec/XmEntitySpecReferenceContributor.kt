@@ -1,6 +1,8 @@
 package com.icthh.xm.extensions.entityspec
 
 import com.icthh.xm.service.toPsiFile
+import com.icthh.xm.utils.start
+import com.icthh.xm.utils.stop
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.*
 import com.intellij.psi.PsiReference.EMPTY_ARRAY
@@ -18,6 +20,13 @@ class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
                     scalar: PsiElement,
                     context: ProcessingContext
                 ): Array<PsiReference> {
+                    start("getReferencesByElement")
+                    val result = doWork(scalar)
+                    stop("getReferencesByElement")
+                    return result
+                }
+
+                private fun doWork(scalar: PsiElement): Array<PsiReference> {
                     if (scalar !is YAMLScalar) return PsiReference.EMPTY_ARRAY
 
                     val element = scalar.firstChild
@@ -44,7 +53,7 @@ class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
         element: PsiElement,
         scalar: YAMLScalar
     ): Array<PsiReference> {
-        val references = getAllEntityPsiElements(element)
+        val references = getAllEntityPsiElements(element.containingFile)
             .map { it.value }.filterNotNull()
             .filter { element.text.trim().equals(it.text.trim()) }
             .map { toPsiReference(scalar, it) }

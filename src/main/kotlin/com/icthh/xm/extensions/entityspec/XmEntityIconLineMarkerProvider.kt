@@ -3,6 +3,8 @@ package com.icthh.xm.extensions.entityspec
 import com.icthh.xm.extensions.entityspec.IconProvider.iconsSet
 import com.icthh.xm.utils.FontIcon
 import com.icthh.xm.utils.readTextAndClose
+import com.icthh.xm.utils.start
+import com.icthh.xm.utils.stop
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.ide.DataManager
@@ -25,14 +27,19 @@ class XmEntityIconLineMarkerProvider: LineMarkerProviderDescriptor() {
     override fun getName(): String = "Icon marker"
 
     override fun getLineMarkerInfo(psiElement: PsiElement): LineMarkerInfo<LeafPsiElement>? {
-        val timer = StopWatch.createStarted()
+        start("getLineMarkerInfo")
+        val result = doWork(psiElement)
+        stop("getLineMarkerInfo")
+        return result
+    }
 
-        if (psiElement !is LeafPsiElement || !psiElement.isEntitySpecification()) {
+    private fun doWork(psiElement: PsiElement): LineMarkerInfo<LeafPsiElement>? {
+        if (psiElement !is LeafPsiElement) {
             return null
         }
 
         val element = psiElement.parent?.parent ?: return null
-        if (element is YAMLKeyValue && element.keyText.equals("icon")) {
+        if (element is YAMLKeyValue && element.keyText.equals("icon") && psiElement.isEntitySpecification()) {
             val iconName = element.valueText
             val icon = iconsSet[iconName] ?: return null
 

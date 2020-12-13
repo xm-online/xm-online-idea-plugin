@@ -2,6 +2,9 @@ package com.icthh.xm.extensions.entityspec
 
 import com.icthh.xm.service.getRepository
 import com.icthh.xm.service.toPsiFile
+import com.icthh.xm.utils.findFirstParent
+import com.icthh.xm.utils.start
+import com.icthh.xm.utils.stop
 import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
@@ -14,8 +17,14 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiElementVisitor.EMPTY_VISITOR
+import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValueProvider.Result.create
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.CachedValuesManager.getCachedValue
 import com.intellij.psi.util.PsiTreeUtil.*
+import com.intellij.psi.util.getCachedValue
 import com.intellij.vcsUtil.VcsUtil
 import com.jetbrains.jsonSchema.extension.JsonLikePsiWalker
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
@@ -23,7 +32,6 @@ import com.jetbrains.jsonSchema.impl.JsonCachedValues
 import com.jetbrains.jsonSchema.impl.JsonComplianceCheckerOptions
 import com.jetbrains.jsonSchema.impl.JsonSchemaComplianceChecker
 import com.jetbrains.jsonSchema.impl.JsonSchemaObject
-import git4idea.GitUtil
 import git4idea.util.GitFileUtils
 import org.apache.commons.text.similarity.LevenshteinDistance
 import org.jetbrains.yaml.YAMLElementGenerator
@@ -41,6 +49,8 @@ val TWO_DOLLARS = "${"$"}${"$"}"
 class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
     val schemas: MutableMap<String, JsonSchemaObject?> = ConcurrentHashMap()
+
+    val entityKeys: MutableMap<String, List<String>> = ConcurrentHashMap()
 
     override fun buildVisitor(
         holder: ProblemsHolder,
@@ -70,6 +80,12 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         val options = JsonComplianceCheckerOptions(myCaseInsensitiveEnum)
         return object : YamlPsiElementVisitor() {
             override fun visitElement(element: PsiElement?) {
+                start("XmEntitySpecLocalInspection")
+                doWork(element)
+                stop("XmEntitySpecLocalInspection")
+            }
+
+            private fun doWork(element: PsiElement?) {
                 if (element == null) return
                 if (roots.contains(element)) {
                     val walker = JsonLikePsiWalker.getWalker(element, schema) ?: return
@@ -89,8 +105,8 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
                     lepCreationTip(
                         element,
                         holder,
-                        {"Save${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy"},
-                        {"Create entity save lep ${it}"},
+                        { "Save${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy" },
+                        { "Create entity save lep ${it}" },
                         "/lep/service/entity/"
                     )
                     checkEntityKeyDuplication(element, holder)
@@ -158,7 +174,6 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
                     checkDuplicateKeys(element, holder, "comments", "key", "comment keys")
                     return
                 }
-
             }
         }
     }
@@ -447,9 +462,7 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
 private inline fun <reified T: PsiElement> PsiElement?.findChildOfType() = findChildOfType(this, T::class.java)
 
-private fun PsiElement?.findFirstParent(condition: (PsiElement?) -> Boolean) = findFirstParent(this) {
-    condition.invoke(it)
-}
+private fun PsiElement?.findFirstParent(condition: (PsiElement?) -> Boolean) = this?.findFirstParent(true, condition)
 
 fun getFunctionFile(element: PsiElement): VirtualFile? {
     val (pathToFunction, functionName) = toFunctionKey(element)
@@ -463,7 +476,7 @@ private fun PsiElement.getFunctionDirectory(): String {
     return "${getRootFolder()}/lep/function/"
 }
 
-private fun PsiElement.getRootFolder() = this.containingFile.virtualFile.path.substringBeforeLast('/')
+private fun PsiElement.getRootFolder() = this.containingFile?.virtualFile?.path?.substringBeforeLast('/')
 
 private fun withEntityId(element: PsiElement) =
     element.goSuperParent()?.parent?.goChild()?.filter {
@@ -498,11 +511,11 @@ fun toLepKey(key: String): Pair<String, String> {
 fun getAllEntityKeys(
     element: PsiElement
 ): List<String> {
-    return getAllEntityPsiElements(element).map { it.valueText.trim() }
+    return getAllEntityPsiElements(element.containingFile).map { it.valueText.trim() }
 }
 
-fun getAllEntityPsiElements(element: PsiElement): List<YAMLKeyValue> {
-    return element.containingFile.goSubChild().goSubChild().goSubChild().goChild()
+fun getAllEntityPsiElements(psiFile: PsiFile): List<YAMLKeyValue> {
+    return psiFile.goSubChild().goSubChild().goSubChild().goChild()
         .filterIsInstance<YAMLKeyValue>()
         .filter { it.keyText == "key" }
 }

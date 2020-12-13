@@ -7,6 +7,7 @@ import com.icthh.xm.service.getConfigRootDir
 import com.icthh.xm.service.getSettings
 import com.icthh.xm.service.startTrackChanges
 import com.icthh.xm.utils.isTrue
+import com.icthh.xm.utils.startDiagnostic
 import com.intellij.ide.DataManager
 import com.intellij.notification.NotificationListener
 import com.intellij.notification.NotificationType.INFORMATION
@@ -26,7 +27,7 @@ import com.intellij.openapi.actionSystem.DataContext
 class ConfigurationProjectApp: ProjectComponent {
 
     override fun initComponent() {
-
+        this.startDiagnostic()
     }
 
     override fun disposeComponent() {

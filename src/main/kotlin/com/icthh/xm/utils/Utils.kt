@@ -1,16 +1,30 @@
 package com.icthh.xm.utils
 
+import com.intellij.codeInsight.completion.*
+import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.diff.DiffContentFactory
 import com.intellij.diff.DiffManager
 import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Pair
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.patterns.ElementPattern
+import com.intellij.psi.PsiElement
+import com.intellij.util.ProcessingContext
 import com.vaadin.server.VaadinServlet
+import org.apache.commons.lang3.time.StopWatch
+import org.jetbrains.yaml.psi.YAMLKeyValue
+import org.jetbrains.yaml.psi.YAMLMapping
+import org.jetbrains.yaml.psi.YAMLSequence
+import org.jetbrains.yaml.psi.YAMLSequenceItem
 import java.io.InputStream
+import java.lang.StringBuilder
 import java.nio.charset.Charset
 import java.util.HashSet
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import java.util.stream.Collectors
 
 val loggers = ConcurrentHashMap<Class<Any>, Logger>()
@@ -46,3 +60,59 @@ fun <T> difference(left: Set<T>, right: Set<T>): Set<T> {
     difference.addAll(second)
     return difference
 }
+
+fun CompletionContributor.extendWithStop(type: CompletionType, place: ElementPattern<out PsiElement>,
+                                 provider: (parameters: CompletionParameters) -> List<LookupElement>) {
+    this.extend(type, place, object: CompletionProvider<CompletionParameters>() {
+        override fun addCompletions(
+            parameters: CompletionParameters,
+            context: ProcessingContext,
+            result: CompletionResultSet
+        ) {
+            result.addAllElements(provider(parameters))
+            result.stopHere()
+        }
+    })
+}
+
+fun YAMLKeyValue?.keyTextMatches(key: String): Boolean {
+    return this?.key?.textMatches(key) ?: false
+}
+
+fun YAMLSequence?.getKeys(): List<YAMLKeyValue> {
+    val yamlSequence = this
+    return yamlSequence.getChildrenOfType<YAMLSequenceItem>()
+        .map { it.getChildOfType<YAMLMapping>() }
+        .map { it.getChildrenOfType<YAMLKeyValue>() }
+        .flatten()
+        .filter { it.keyTextMatches("key") }
+        .filterNotNull()
+}
+
+
+val times: MutableMap<String, AtomicLong> = ConcurrentHashMap()
+val timers: MutableMap<String, StopWatch> = ConcurrentHashMap()
+fun start(key: String) {
+    timers.put(key, StopWatch.createStarted())
+}
+
+fun stop(key: String) {
+    val nanoTime = timers.get(key)?.getNanoTime() ?: 0
+    times.computeIfAbsent(key) { AtomicLong() }
+    times.get(key)?.addAndGet(nanoTime)
+}
+
+fun Any.startDiagnostic() {
+    Thread {
+        while(!Thread.interrupted()) {
+            Thread.sleep(5000)
+            val line = StringBuilder()
+            times.forEach {
+                line.append(it.key, " ", it.value.get() / 1000_000, "\n")
+            }
+            logger.info(line.toString())
+        }
+    }.start()
+}
+
+

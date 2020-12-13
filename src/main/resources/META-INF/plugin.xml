@@ -14,6 +14,8 @@
     <depends>org.intellij.groovy</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
 
+    <depends>com.intellij.javafx</depends>
+
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.icthh.xm.actions.settings.SettingService"/>
         <projectService serviceImplementation="com.icthh.xm.service.ExternalConfigService"/>
@@ -26,7 +28,8 @@
 <!--        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />-->
 
         <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
-                                order="first" />
+                                order="first"
+        />
         <json.catalog.exclusion implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecSchemaExclusion" />
         <multiHostInjector implementation="com.icthh.xm.extensions.entityspec.InputFromSpecJsonLanguageInjector" />
         <localInspection language="yaml" bundle="messages.YAMLBundle"
