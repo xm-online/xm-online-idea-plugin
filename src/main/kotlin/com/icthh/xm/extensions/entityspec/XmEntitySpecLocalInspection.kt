@@ -19,12 +19,7 @@ import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiElementVisitor.EMPTY_VISITOR
 import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.util.CachedValueProvider
-import com.intellij.psi.util.CachedValueProvider.Result.create
-import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.CachedValuesManager.getCachedValue
-import com.intellij.psi.util.PsiTreeUtil.*
-import com.intellij.psi.util.getCachedValue
+import com.intellij.psi.util.PsiTreeUtil.findChildOfType
 import com.intellij.vcsUtil.VcsUtil
 import com.jetbrains.jsonSchema.extension.JsonLikePsiWalker
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
@@ -79,7 +74,7 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
 
         val options = JsonComplianceCheckerOptions(myCaseInsensitiveEnum)
         return object : YamlPsiElementVisitor() {
-            override fun visitElement(element: PsiElement?) {
+            override fun visitElement(element: PsiElement) {
                 start("XmEntitySpecLocalInspection")
                 doWork(element)
                 stop("XmEntitySpecLocalInspection")

@@ -17,8 +17,7 @@ repositories {
 task fatJar(type: Jar) {
     manifest {
         attributes 'Implementation-Title': 'Gradle Jar File Example',
-                'Implementation-Version': version,
-                'Main-Class': 'com.mkyong.DateUtils'
+                'Implementation-Version': version
     }
     baseName = project.name + '-all'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
@@ -27,7 +26,7 @@ task fatJar(type: Jar) {
 
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
 
     compile 'com.vaadin:vaadin-server:8.8.6'
     compile 'com.vaadin:vaadin-push:8.8.6'
@@ -47,8 +46,6 @@ dependencies {
 
     compile 'org.apache.commons:commons-text:1.8'
 
-
-
     compile("com.github.mvysny.karibudsl:karibu-dsl-v8:0.7.1")
 
     compile 'org.jclarion:image4j:0.7'
@@ -57,15 +54,19 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-reflect:1.4.21"
 }
 
+sourceCompatibility = 11
+targetCompatibility = 11
+
 compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "11"
 }
+
 intellij {
-    version = '2020.1'
-    plugins = ['git4idea', 'Groovy', 'yaml']
+    version = '2020.2'
+    plugins = ['git4idea', 'Groovy', 'yaml', 'com.intellij.javafx:1.0.2']
     updateSinceUntilBuild = false
 }
 
