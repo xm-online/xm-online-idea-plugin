@@ -21,7 +21,7 @@ public class ViewServer {
             contextHandler.addServlet(new ServletHolder(AppServlet.class), "/*");
             contextHandler.setClassLoader(AppUI.class.getClassLoader());
 
-            // TODO serverPort = SocketUtils.Companion.findAvailableTcpPort();
+            serverPort = SocketUtils.Companion.findAvailableTcpPort();
 
             Server embeddedServer = new Server(serverPort);
             embeddedServer.setHandler(contextHandler);

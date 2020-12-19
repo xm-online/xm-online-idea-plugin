@@ -61,13 +61,11 @@
             <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode" />
             <separator/>
             <action id="refreshCurrentFile" class="com.icthh.xm.actions.deploy.DeployCurrentFile" text="Update current file in memory"/>
-<!--            <action id="comparePermissionBranch" class="com.icthh.xm.actions.permission.ComparePermissionBranch" text="Compare with branch"/>-->
         </group>
 
-        <group id="mainMenu" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup">
-            <add-to-group group-id="MainMenu" anchor="last"/>
+        <group id="mainGroup" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup" popup="false" compact="false">
+            <add-to-group group-id="MainMenu" anchor="after" relative-to-action="HelpMenu" />
             <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSettingAction" text="Setting"/>
-<!--            <action id="refreshAll" class="com.icthh.xm.actions.deploy.RefreshAll" text="Update ALL files in memory"/>-->
         </group>
 
         <action id="deployToEnvSelector" class="com.icthh.xm.actions.deploy.DeployEnvSelector"

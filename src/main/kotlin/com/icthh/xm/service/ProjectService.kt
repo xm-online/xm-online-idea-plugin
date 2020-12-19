@@ -8,6 +8,7 @@ import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.service.filechanges.ChangesFiles
 import com.icthh.xm.service.filechanges.GitFileChange
 import com.icthh.xm.service.filechanges.MemoryFileChange
+import com.icthh.xm.utils.logger
 import com.icthh.xm.utils.readTextAndClose
 import com.intellij.history.LocalHistory
 import com.intellij.notification.NotificationType

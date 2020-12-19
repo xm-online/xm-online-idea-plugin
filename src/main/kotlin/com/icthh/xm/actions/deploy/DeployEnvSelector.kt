@@ -11,12 +11,16 @@ import com.intellij.openapi.actionSystem.Presentation
 import com.intellij.openapi.actionSystem.ex.CustomComponentAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.ui.PopupMenuListenerAdapter
+import org.jetbrains.annotations.Nullable
 import java.awt.Component
 import java.awt.Dimension
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JList
 import javax.swing.ListCellRenderer
+import javax.swing.event.PopupMenuEvent
+import javax.swing.event.PopupMenuListener
 
 
 class DeployEnvSelector() : AnAction(), CustomComponentAction {
@@ -43,6 +47,17 @@ class DeployEnvSelector() : AnAction(), CustomComponentAction {
         if (project != null) {
             comboBoxes.put(project.locationHash, comboBox)
         }
+        comboBox.addPopupMenuListener(object: PopupMenuListenerAdapter() {
+            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent?) {
+                super.popupMenuWillBecomeVisible(e)
+                logger.info("opened env selector ${project?.getSettings()?.envs} ${comboBox.itemCount}")
+                comboBox.updateUI()
+                if (project != null) {
+                    refreshItems(project)
+                }
+            }
+        })
+
         return comboBox
     }
 
@@ -91,15 +106,19 @@ class DeployEnvSelector() : AnAction(), CustomComponentAction {
             return
         }
 
+        refreshItems(project)
+    }
+
+    private fun refreshItems(project: Project) {
         val comboBox = comboBoxes.get(project.locationHash) ?: return
 
         val envs = project.getSettings().envs
-        if (this.envs.equals(envs)) {
+        if (this.envs.equals(envs) && comboBox.itemCount == envs.size) {
             comboBox.updateUI()
             return
         }
 
-        logger.info("${project} >>> envs not the same ${envs} <<<>>> ${this.envs}")
+        logger.info("${project} >>> envs not the same ${envs} <<<>>> ${this.envs} | ${comboBox.itemCount} != ${envs.size}")
 
         this.envs.clear()
         this.envs.addAll(envs)

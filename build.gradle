@@ -65,7 +65,7 @@ compileTestKotlin {
 }
 
 intellij {
-    version = '2020.2'
+    version = '2020.3'
     plugins = ['git4idea', 'Groovy', 'yaml', 'com.intellij.javafx:1.0.2']
     updateSinceUntilBuild = false
 }

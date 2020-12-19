@@ -84,7 +84,7 @@ class XmEntitySpecCompletionContributor() : CompletionContributor() {
             jsonSchemaObject = file
         }
 
-        JsonSchemaCompletionContributor.doCompletion(parameters, result, jsonSchemaObject)
+        JsonSchemaCompletionContributor.doCompletion(parameters, result, jsonSchemaObject, true)
     }
 
     private fun entityFeatureAttribute(
