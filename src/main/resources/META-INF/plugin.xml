@@ -19,28 +19,43 @@
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="com.icthh.xm.actions.settings.SettingService"/>
         <projectService serviceImplementation="com.icthh.xm.service.ExternalConfigService"/>
+
         <iconProvider implementation="com.icthh.xm.extensions.ConfigIconProvider" order="first" />
         <treeStructureProvider implementation="com.icthh.xm.extensions.TreeProvider" />
+
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />
 
 <!--        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />-->
 <!--        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />-->
 
+        <!-- start xmentityspec.yml -->
         <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
                                 order="first"
         />
         <json.catalog.exclusion implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecSchemaExclusion" />
-        <multiHostInjector implementation="com.icthh.xm.extensions.entityspec.InputFromSpecJsonLanguageInjector" />
+
+        <multiHostInjector implementation="com.icthh.xm.extensions.entityspec.InputFromSpecJsonMultiHostInjector" />
+<!--        <languageInjector implementation="com.icthh.xm.extensions.entityspec.InputFromSpecJsonLanguageInjector" />-->
+
+        <localInspection language="yaml" bundle="messages.YAMLBundle"
+                         shortName="XmEntityValidation"
+                         key="inspections.schema.validation.name"
+                         groupKey="inspections.group.name"
+                         enabledByDefault="true"
+                         level="ERROR" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecLocalInspection" />
         <localInspection language="yaml" bundle="messages.YAMLBundle"
                          shortName="XmEntitySchemaValidation"
                          key="inspections.schema.validation.name"
                          groupKey="inspections.group.name"
                          enabledByDefault="true"
-                         level="ERROR" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecLocalInspection" />
+                         level="ERROR" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecSchemaInspection" />
+        XmEntitySpecSchemaInspection
+
         <colorProvider implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecElementColorProvider" />
         <codeInsight.lineMarkerProvider language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntityIconLineMarkerProvider" />
         <psi.referenceContributor implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecReferenceContributor" />
+        <!-- end xmentityspec.yml -->
     </extensions>
 
     <application-components>

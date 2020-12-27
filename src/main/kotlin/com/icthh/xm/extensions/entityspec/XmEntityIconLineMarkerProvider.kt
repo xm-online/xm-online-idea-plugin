@@ -1,10 +1,7 @@
 package com.icthh.xm.extensions.entityspec
 
 import com.icthh.xm.extensions.entityspec.IconProvider.iconsSet
-import com.icthh.xm.utils.FontIcon
-import com.icthh.xm.utils.readTextAndClose
-import com.icthh.xm.utils.start
-import com.icthh.xm.utils.stop
+import com.icthh.xm.utils.*
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.ide.DataManager
@@ -20,6 +17,7 @@ import org.apache.commons.lang3.time.StopWatch
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import java.awt.Font
 import java.awt.GraphicsEnvironment
+import java.util.*
 
 
 class XmEntityIconLineMarkerProvider: LineMarkerProviderDescriptor() {
@@ -34,17 +32,17 @@ class XmEntityIconLineMarkerProvider: LineMarkerProviderDescriptor() {
     }
 
     private fun doWork(psiElement: PsiElement): LineMarkerInfo<LeafPsiElement>? {
-        if (psiElement !is LeafPsiElement) {
+        if (psiElement !is LeafPsiElement || !psiElement.isEntitySpecification()) {
             return null
         }
 
         val element = psiElement.parent?.parent ?: return null
-        if (element is YAMLKeyValue && element.keyText.equals("icon") && psiElement.isEntitySpecification()) {
+        if (element is YAMLKeyValue && element.keyTextMatches("icon")) {
             val iconName = element.valueText
             val icon = iconsSet[iconName] ?: return null
-
-            val lineMarkerInfo = LineMarkerInfo(psiElement, psiElement.getTextRange(), icon, null, null, CENTER)
-            return lineMarkerInfo
+            return LineMarkerInfo(psiElement, psiElement.getTextRange(), icon, null, null, CENTER) {
+                iconName
+            }
         }
 
         return null;

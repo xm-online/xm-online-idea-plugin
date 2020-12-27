@@ -1,73 +1,86 @@
 package com.icthh.xm.extensions.entityspec
 
 import com.icthh.xm.service.toPsiFile
-import com.icthh.xm.utils.start
-import com.icthh.xm.utils.stop
-import com.intellij.patterns.PlatformPatterns
+import com.icthh.xm.utils.*
 import com.intellij.psi.*
 import com.intellij.psi.PsiReference.EMPTY_ARRAY
-import com.intellij.util.ProcessingContext
+import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLScalar
-import org.jetbrains.yaml.psi.YAMLValue
+import org.jetbrains.yaml.psi.YAMLSequence
 
 
 class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
 
     override fun registerReferenceProviders(registrar: PsiReferenceRegistrar) {
-        registrar.registerReferenceProvider(PlatformPatterns.psiElement(YAMLScalar::class.java),
-            object : PsiReferenceProvider() {
-                override fun getReferencesByElement(
-                    scalar: PsiElement,
-                    context: ProcessingContext
-                ): Array<PsiReference> {
-                    start("getReferencesByElement")
-                    val result = doWork(scalar)
-                    stop("getReferencesByElement")
-                    return result
-                }
-
-                private fun doWork(scalar: PsiElement): Array<PsiReference> {
-                    if (scalar !is YAMLScalar) return PsiReference.EMPTY_ARRAY
-
-                    val element = scalar.firstChild
-                    if (isSectionAttribute(element, "links", "typeKey")) {
-                        return linkTypeKeyReferences(element, scalar)
-                    }
-                    if (isSectionAttribute(element, "functions", "key")) {
-                        return functionFileReferences(element, scalar)
-                    }
-                    return PsiReference.EMPTY_ARRAY
-                }
-            })
-    }
-
-    private fun functionFileReferences(element: PsiElement, scalar: YAMLScalar): Array<PsiReference> {
-        val functionFile = getFunctionFile(element) ?: return EMPTY_ARRAY
-        val psiFile = functionFile.toPsiFile(element.project) ?: return EMPTY_ARRAY
-        return Array(1) {
-            toPsiReference(scalar, psiFile)
+        registrar.registerProvider(entityScalarSectionPlace("links", "typeKey" )) {element, _ ->
+            element.withCache {
+                entityTypeKeyReferences(element)
+            }
+        }
+        registrar.registerProvider(entityScalarSectionPlace("functions", "key")) {element, _ ->
+            element.withCache {
+                functionFileReferences(element)
+            }
+        }
+        registrar.registerProvider(nextStatePsiPattern()) {element, _ ->
+            element.withCache {
+                statesReferences(element)
+            }
+        }
+        registrar.registerProvider(calendarEventScalarFieldPlace("dataTypeKey")) {element, _ ->
+            element.withCache {
+                entityTypeKeyReferences(element)
+            }
         }
     }
 
-    private fun linkTypeKeyReferences(
-        element: PsiElement,
-        scalar: YAMLScalar
-    ): Array<PsiReference> {
-        val references = getAllEntityPsiElements(element.containingFile)
-            .map { it.value }.filterNotNull()
-            .filter { element.text.trim().equals(it.text.trim()) }
-            .map { toPsiReference(scalar, it) }
+    private fun statesReferences(element: PsiElement): Array<PsiReference> {
+        val states = element.findFirstParent {
+            it is YAMLKeyValue && it.keyTextMatches("states")
+        }
+        return states.getChildOfType<YAMLSequence>().getKeys().filter { element.text.trim() == it.valueText.trim() }
+            .map { toPsiReference(element, it) }
             .toTypedArray()
-
-        return references
     }
 
-    private fun toPsiReference(from: YAMLValue, to: PsiElement): PsiReference {
+    private fun nextStatePsiPattern() =
+        psiElement<YAMLScalar> {
+            withPsiParent<YAMLKeyValue>("stateKey") {
+                toKeyValue("next") {
+                    toKeyValue("states") {
+                        toKeyValue("types")
+                    }
+                }
+            }
+        }
+
+
+    private fun functionFileReferences(element: PsiElement): Array<PsiReference> {
+        val value = element.firstChild
+        val functionFile = getFunctionFile(value) ?: return EMPTY_ARRAY
+        val psiFile = functionFile.toPsiFile(value.project) ?: return EMPTY_ARRAY
+        return Array(1) {
+            toPsiReference(element, psiFile)
+        }
+    }
+
+    private fun entityTypeKeyReferences(
+        scalar: PsiElement
+    ): Array<PsiReference> {
+        val element = scalar.firstChild
+        return getEntitiesKeys(scalar.project, scalar.originalFile)
+            .mapNotNull { it.value }
+            .filter { element.text.trim() == it.text.trim() }
+            .map { toPsiReference(scalar, it) }
+            .toTypedArray()
+    }
+
+    private fun toPsiReference(from: PsiElement, to: PsiElement): PsiReference {
         return PsiReferenceImpl(from, to)
     }
 
 }
 
-class PsiReferenceImpl(from: YAMLValue, val to: PsiElement): PsiReferenceBase<YAMLValue>(from, true) {
+class PsiReferenceImpl(from: PsiElement, val to: PsiElement): PsiReferenceBase<PsiElement>(from, true) {
     override fun resolve() = to
 }

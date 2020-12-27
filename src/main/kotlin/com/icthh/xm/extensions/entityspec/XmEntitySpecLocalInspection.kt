@@ -2,24 +2,18 @@ package com.icthh.xm.extensions.entityspec
 
 import com.icthh.xm.service.getRepository
 import com.icthh.xm.service.toPsiFile
-import com.icthh.xm.utils.findFirstParent
-import com.icthh.xm.utils.start
-import com.icthh.xm.utils.stop
-import com.intellij.codeInspection.LocalInspectionToolSession
-import com.intellij.codeInspection.LocalQuickFix
-import com.intellij.codeInspection.ProblemDescriptor
+import com.icthh.xm.utils.*
+import com.intellij.codeInspection.*
 import com.intellij.codeInspection.ProblemHighlightType.*
-import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.patterns.ElementPattern
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiElementVisitor.EMPTY_VISITOR
-import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.util.PsiTreeUtil.findChildOfType
 import com.intellij.vcsUtil.VcsUtil
 import com.jetbrains.jsonSchema.extension.JsonLikePsiWalker
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
@@ -31,145 +25,57 @@ import git4idea.util.GitFileUtils
 import org.apache.commons.text.similarity.LevenshteinDistance
 import org.jetbrains.yaml.YAMLElementGenerator
 import org.jetbrains.yaml.psi.*
-import org.jetbrains.yaml.psi.impl.YAMLKeyValueImpl
 import org.jetbrains.yaml.schema.YamlJsonPsiWalker
 import org.jetbrains.yaml.schema.YamlJsonSchemaHighlightingInspection
 import java.io.File
 import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.ArrayList
 
-val TWO_DOLLARS = "${"$"}${"$"}"
+const val TWO_DOLLARS = "${"$"}${"$"}"
 
-class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
+class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
 
-    val schemas: MutableMap<String, JsonSchemaObject?> = ConcurrentHashMap()
-
-    val entityKeys: MutableMap<String, List<String>> = ConcurrentHashMap()
-
-    override fun buildVisitor(
-        holder: ProblemsHolder,
-        isOnTheFly: Boolean,
-        session: LocalInspectionToolSession
-    ): PsiElementVisitor {
-        if (!holder.file.isEntitySpecification()) {
-            return EMPTY_VISITOR
+    init {
+        addLocalInspection(entitySpecField("key")) { element, holder ->
+            lepCreationTip(
+                element,
+                holder,
+                { "Save${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy" },
+                { "Create entity save lep $it" },
+                "/lep/service/entity/"
+            )
+            checkEntityKeyDuplication(element, holder)
         }
-
-        val file = holder.file as? YAMLFile ?: return EMPTY_VISITOR
-        val roots = YamlJsonPsiWalker.INSTANCE.getRoots(file)
-        if (roots.isEmpty()) {
-            return EMPTY_VISITOR
+        addLocalInspection(entitySectionPlace("functions", "key")) { element, holder ->
+            functionKeyCheck(element, holder)
+            functionCheckDuplicateKeys(element, holder)
         }
-        val service = JsonSchemaService.Impl.get(file.project)
-        val virtualFile = file.viewProvider.virtualFile
-        if (!service.isApplicableToFile(virtualFile)) {
-            return EMPTY_VISITOR
+        addLocalInspection(entitySectionPlace("links", "key")) { element, holder ->
+            checkDuplicateKeys(element, holder, "links", "key", "link keys")
         }
-
-        val schema = schemas.computeIfAbsent(holder.project.locationHash) {
-            JsonCachedValues.getSchemaObject(getSchemaFile(), holder.project)
+        addLocalInspection(entitySectionPlace("links", "typeKey")) { element, holder ->
+            checkEntityKeyIsExists(element, holder)
         }
-        schema ?: return EMPTY_VISITOR
-
-        val options = JsonComplianceCheckerOptions(myCaseInsensitiveEnum)
-        return object : YamlPsiElementVisitor() {
-            override fun visitElement(element: PsiElement) {
-                start("XmEntitySpecLocalInspection")
-                doWork(element)
-                stop("XmEntitySpecLocalInspection")
+        addLocalInspection(nextStatePlace()) { element, holder ->
+            changeStateArcLep(element, holder)
+            checkNextStateIsExists(element, holder)
+        }
+        addLocalInspection(entitySectionPlace("states", "key")) { element, holder ->
+            changeStateLep(element, holder)
+            checkStateKeys(element, holder)
+        }
+        listOf("attachments", "calendars", "locations", "tags", "comments", "ratings") .forEach {
+            addLocalInspection(entitySectionPlace(it, "key")) { element, holder ->
+                checkDuplicateKeys(element, holder, it, "key", "$it keys")
             }
-
-            private fun doWork(element: PsiElement?) {
-                if (element == null) return
-                if (roots.contains(element)) {
-                    val walker = JsonLikePsiWalker.getWalker(element, schema) ?: return
-                    JsonSchemaComplianceChecker(
-                        schema,
-                        holder,
-                        walker,
-                        session,
-                        options,
-                        "XmEntity specification validation: "
-                    ).annotate(element)
-                }
-
-                if (element !is LeafPsiElement) return
-
-                if (isEntityKey(element)) {
-                    lepCreationTip(
-                        element,
-                        holder,
-                        { "Save${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy" },
-                        { "Create entity save lep ${it}" },
-                        "/lep/service/entity/"
-                    )
-                    checkEntityKeyDuplication(element, holder)
-                    return
-                }
-
-                if (isSectionAttribute(element, "functions", "key")) {
-                    functionKeyCheck(element, holder)
-                    functionCheckDuplicateKeys(element, holder)
-                    return
-                }
-
-                if (isSectionAttribute(element, "links", "key")) {
-                    checkDuplicateKeys(element, holder, "links", "key", "link keys")
-                    return
-                }
-
-                if (isSectionAttribute(element, "links", "typeKey")) {
-                    checkEntityKeyIsExists(element, holder)
-                    return
-                }
-
-                if (isNextStateKey(element)) {
-                    changeStateArcLep(element, holder)
-                    checkNextStateIsExists(element, holder)
-                    return
-                }
-
-                if (isSectionAttribute(element, "states", "key")) {
-                    changeStateLep(element, holder)
-                    checkStateKeys(element, holder)
-                    return
-                }
-
-                if (isSectionAttribute(element, "attachments", "key")) {
-                    checkDuplicateKeys(element, holder, "attachments", "key", "link keys")
-                    return
-                }
-
-                if (isSectionAttribute(element, "calendars", "key")) {
-                    checkDuplicateKeys(element, holder, "calendars", "key", "calendar keys")
-                }
-
-                if (isCalendarEventsKey(element)) {
-                    checkCalendarEventsKeyDuplication(element, holder)
-                    return
-                }
-
-                if (isSectionAttribute(element, "locations", "key")) {
-                    checkDuplicateKeys(element, holder, "locations", "key", "location keys")
-                    return
-                }
-
-                if (isSectionAttribute(element, "tags", "key")) {
-                    checkDuplicateKeys(element, holder, "tags", "key", "tag keys")
-                    return
-                }
-
-                if (isSectionAttribute(element, "comments", "key")) {
-                    checkDuplicateKeys(element, holder, "comments", "key", "comment keys")
-                    return
-                }
-
-                if (isSectionAttribute(element, "ratings", "key")) {
-                    checkDuplicateKeys(element, holder, "comments", "key", "comment keys")
-                    return
-                }
-            }
+        }
+        addLocalInspection(calendarEventFieldPlace("key")) { element, holder ->
+            checkCalendarEventsKeyDuplication(element, holder)
+        }
+        addLocalInspection(calendarEventFieldPlace("dataTypeKey")) { element, holder ->
+            checkEntityKeyIsExists(element, holder)
         }
     }
 
@@ -183,11 +89,13 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
             .findFirstParent { it is YAMLMapping }
             .findChildOfType<YAMLKeyValue>()?.valueText ?: return
 
+        val translatedEntityKey = translateToLepConvention(entityKey)
+        val translatedSource = translateToLepConvention(source)
         lepCreationTip(
             element,
             holder,
-            { "ChangeState${TWO_DOLLARS}${entityKey}${TWO_DOLLARS}${source}${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy" },
-            { "Create change state lep file ${it}" },
+            { "ChangeState${TWO_DOLLARS}${translatedEntityKey}${TWO_DOLLARS}${translatedSource}${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy" },
+            { "Create change state lep file $it" },
             "/lep/lifecycle/chained/"
         )
     }
@@ -202,11 +110,12 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
             .findFirstParent { it is YAMLMapping }
             .findChildOfType<YAMLKeyValue>()?.valueText ?: return
 
+        val translatedEntityKey = translateToLepConvention(entityKey)
         lepCreationTip(
             element,
             holder,
-            { "ChangeState${TWO_DOLLARS}${entityKey}${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy" },
-            { "Create change state lep file ${it}" },
+            { "ChangeState${TWO_DOLLARS}$translatedEntityKey${TWO_DOLLARS}${it}${TWO_DOLLARS}around.groovy" },
+            { "Create change state lep file $it" },
             "/lep/lifecycle/chained/"
         )
     }
@@ -241,9 +150,9 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
     }
 
     private fun checkNextStateIsExists(element: LeafPsiElement, holder: ProblemsHolder) {
-        val parentSection = element.goSuperParent().goSuperParent() ?: return
-        val allStateKeys = getAllStates(parentSection)
-        val parent = element.goSuperParent() as? YAMLKeyValue ?: return
+        val stateSequence = element.getParentOfType<YAMLSequence>() ?: return
+        val allStateKeys = getAllStates(stateSequence)
+        val parent = element.getParentOfType<YAMLKeyValue>() ?: return
         val typeKey = parent.valueText
 
         val count = allStateKeys.groupingBy { it }.eachCount().get(typeKey) ?: 0
@@ -258,7 +167,7 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         val levenshtein = LevenshteinDistance()
         val keysDistance = allStateKeys.map { it to levenshtein.apply(typeKey, it) }.toMap()
         val fixKeys = keysDistance.filter { it.value <= 3 }.keys
-        val key = keysDistance.minBy { it.value }?.key
+        val key = keysDistance.minByOrNull { it.value }?.key
         val keys = LinkedHashSet<String>()
         if (key != null) {
             keys.add(key)
@@ -272,7 +181,7 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         element: LeafPsiElement
     ): LocalQuickFix {
         return object : LocalQuickFix {
-            override fun getFamilyName() = "${key}"
+            override fun getFamilyName() = "$key"
 
             override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
                 replaceText(element, key ?: "")
@@ -298,13 +207,13 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         val elementGenerator = YAMLElementGenerator.getInstance(element.project)
         val colorKeyValue = elementGenerator.createYamlKeyValue("key", text)
         val value = colorKeyValue.value ?: return
-        val parent = element.goSuperParent() as? YAMLKeyValue ?: return
+        val parent = element.getParentOfType<YAMLKeyValue>() ?: return
         parent.setValue(value)
     }
 
     private fun checkStateKeys(element: PsiElement, holder: ProblemsHolder) {
         val allStateKeys = getAllStates(element)
-        val parent = element.goSuperParent() as? YAMLKeyValue ?: return
+        val parent = element.getParentOfType<YAMLKeyValue>() ?: return
         val count = allStateKeys.groupingBy { it }.eachCount().get(parent.valueText) ?: 0
         if (count > 1) {
             holder.registerProblem(element, "Duplicate states key ${parent.valueText}", ERROR)
@@ -312,29 +221,16 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
     }
 
     private fun getAllStates(element: PsiElement): List<String> {
-        val parentSection = element.goParentSection() ?: return listOf()
-        val allStateKeys = parentSection.goSubChild().goChild()
-            .filterIsInstance<YAMLKeyValue>()
-            .filter { it.keyText.equals("key") }
-            .map { it.valueText }
-        return allStateKeys
-    }
-
-    private fun checkCalendarEventsKeyDuplication(element: PsiElement, holder: ProblemsHolder) {
-        val parent = element.goSuperParent() as? YAMLKeyValue ?: return
-        val count = getAllEventsKeys(element).groupingBy { it }.eachCount().get(parent.valueText) ?: 0
-        if (count > 1) {
-            holder.registerProblem(element, "Duplicate events key ${parent.valueText}", ERROR)
+        return element.withCache {
+            element.getParentOfType<YAMLSequence>().mapToFields("key").map { it.valueText }
         }
     }
 
-    private fun isCalendarEventsKey(element: PsiElement): Boolean {
-        if(element.isChildConfigAttribute("key")) {
-            val events = element.goSuperParent() ?: return false
-            val event = events.goSuperParent() ?: return false
-            return isSectionAttribute(event, "calendars", "events")
-        } else {
-            return false
+    private fun checkCalendarEventsKeyDuplication(element: PsiElement, holder: ProblemsHolder) {
+        val parent = element.getParentOfType<YAMLKeyValue>() ?: return
+        val count = getAllEventsKeys(element).groupingBy { it }.eachCount().get(parent.valueText) ?: 0
+        if (count > 1) {
+            holder.registerProblem(element, "Duplicate events key ${parent.valueText}", ERROR)
         }
     }
 
@@ -357,7 +253,7 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         attribute: String,
         message: String
     ) {
-        val parent = element.goSuperParent() as? YAMLKeyValue ?: return
+        val parent = element.getParentOfType<YAMLKeyValue>() ?: return
 
         val count = getAllKeys(parent, section, attribute).groupingBy { it }.eachCount().get(parent.valueText) ?: 0
         if (count > 1) {
@@ -369,7 +265,7 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         element: PsiElement,
         holder: ProblemsHolder
     ) {
-        val parent = element.goSuperParent() as? YAMLKeyValue ?: return
+        val parent = element.getParentOfType<YAMLKeyValue>() ?: return
 
         val functionName = translateToLepConvention(parent.valueText)
         val count = getAllKeys(parent, "functions", "key")
@@ -389,24 +285,10 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         return getAllSubElements(element, sectionName, fieldName).map { it.valueText.trim() }
     }
 
-    private fun getAllSubElements(
-        element: PsiElement,
-        sectionName: String,
-        fieldName: String
-    ): List<YAMLKeyValue> {
-        return element.containingFile.goSubChild().goSubChild().goSubChild().goChild()
-            .filterIsInstance<YAMLKeyValue>()
-            .filter { it.keyText == sectionName }
-            .goSubChild().goSubChild()
-            .filterIsInstance<YAMLKeyValue>()
-            .filter { it.keyText == fieldName }
-    }
-
     private fun getAllEventsKeys(element: PsiElement): List<String> {
         return getAllSubElements(element, "calendars", "events")
-            .goSubChild().goSubChild()
-            .filterIsInstance<YAMLKeyValue>()
-            .map { it.valueText }
+            .map { it.findChildOfType<YAMLSequence>() }
+            .map{ it.mapToFields("key") }.flatten().map{ it.valueText }
     }
 
     private fun functionKeyCheck(element: PsiElement, holder: ProblemsHolder) {
@@ -448,19 +330,105 @@ class XmEntitySpecLocalInspection: YamlJsonSchemaHighlightingInspection() {
         GitFileUtils.addPaths(project, repository.root, listOf(VcsUtil.getFilePath(virtualFile)))
     }
 
-    private fun isEntityKey(position: PsiElement): Boolean {
-        val types = position.goParentSection()?.parent
-        return position.isChildConfigAttribute("key") && types is YAMLKeyValueImpl && types.keyText.equals("types")
+}
+
+class XmEntitySpecSchemaInspection : YamlJsonSchemaHighlightingInspection() {
+
+    val schemas: MutableMap<String, JsonSchemaObject?> = ConcurrentHashMap()
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+        session: LocalInspectionToolSession
+    ): PsiElementVisitor {
+        val file = holder.file as? YAMLFile ?: return EMPTY_VISITOR
+        val roots = YamlJsonPsiWalker.INSTANCE.getRoots(file)
+        if (roots.isEmpty()) {
+            return EMPTY_VISITOR
+        }
+        val service = JsonSchemaService.Impl.get(file.project)
+        val virtualFile = file.viewProvider.virtualFile
+        if (!service.isApplicableToFile(virtualFile)) {
+            return EMPTY_VISITOR
+        }
+
+        val schema = schemas.computeIfAbsent(holder.project.locationHash) {
+            JsonCachedValues.getSchemaObject(getSchemaFile(), holder.project)
+        }
+        schema ?: return EMPTY_VISITOR
+
+        val options = JsonComplianceCheckerOptions(myCaseInsensitiveEnum)
+        return object : YamlPsiElementVisitor() {
+            override fun visitElement(element: PsiElement) {
+                if (roots.contains(element)) {
+                    val walker = JsonLikePsiWalker.getWalker(element, schema) ?: return
+                    JsonSchemaComplianceChecker(
+                        schema,
+                        holder,
+                        walker,
+                        session,
+                        options,
+                        "XmEntity specification validation: "
+                    ).annotate(element)
+                }
+            }
+        }
+
+    }
+}
+
+abstract class AbstractXmEntitySpecLocalInspection(
+    val localInspections: MutableList<LocalInspection> = ArrayList()
+): LocalInspectionTool() {
+    override fun buildVisitor(
+        holder: ProblemsHolder,
+        isOnTheFly: Boolean,
+        session: LocalInspectionToolSession
+    ): PsiElementVisitor {
+        if (!holder.file.isEntitySpecification()) {
+            return EMPTY_VISITOR
+        }
+
+        return object : YamlPsiElementVisitor() {
+            override fun visitElement(element: PsiElement) {
+                start("localInspection")
+                doWork(element)
+                stop("localInspection")
+            }
+
+            private fun doWork(element: PsiElement?) {
+                if (element == null) return
+                if (element !is LeafPsiElement) return
+                localInspections.forEachIndexed { index, localInspection ->
+                    if (localInspection.process(element, holder)) {
+                        return
+                    }
+                }
+            }
+        }
+    }
+
+    fun addLocalInspection(pattern: ElementPattern<out PsiElement>,
+                           inspection: (element: LeafPsiElement, holder: ProblemsHolder) -> Unit) {
+        localInspections.add(LocalInspection(pattern, inspection))
     }
 
 }
 
-private inline fun <reified T: PsiElement> PsiElement?.findChildOfType() = findChildOfType(this, T::class.java)
+data class LocalInspection(val pattern: ElementPattern<out PsiElement>,
+                           val inspection: (element: LeafPsiElement, holder: ProblemsHolder) -> Unit) {
+    fun process(element: LeafPsiElement, holder: ProblemsHolder): Boolean {
+        if (pattern.accepts(element)) {
+            inspection.invoke(element, holder)
+            return true
+        }
+        return false
+    }
+}
 
 private fun PsiElement?.findFirstParent(condition: (PsiElement?) -> Boolean) = this?.findFirstParent(true, condition)
 
 fun getFunctionFile(element: PsiElement): VirtualFile? {
-    val (pathToFunction, functionName) = toFunctionKey(element)
+    val (_, functionName) = toFunctionKey(element)
     val functionDirectory = element.getFunctionDirectory()
     val path = Path.of(functionDirectory + functionName)
     val functionFile = VfsUtil.findFile(path, false)
@@ -471,64 +439,4 @@ private fun PsiElement.getFunctionDirectory(): String {
     return "${getRootFolder()}/lep/function/"
 }
 
-private fun PsiElement.getRootFolder() = this.containingFile?.virtualFile?.path?.substringBeforeLast('/')
-
-private fun withEntityId(element: PsiElement) =
-    element.goSuperParent()?.parent?.goChild()?.filter {
-        it is YAMLKeyValue
-    }?.filter {
-        it.firstChild.text == "withEntityId"
-    }?.filter {
-        it.lastChild.text?.toBoolean() ?: false
-    }?.isNotEmpty() ?: false
-
-fun toFunctionKey(element: PsiElement): Pair<String, String> {
-    var (functionKey, pathToFunction) = toLepKey(element.text)
-    val functionPrefix = if (withEntityId(element)) {
-        "FunctionWithXmEntity"
-    } else {
-        "Function"
-    }
-    val functionName = "${pathToFunction}${functionPrefix}${TWO_DOLLARS}${functionKey}${TWO_DOLLARS}tenant.groovy"
-    return Pair(pathToFunction, functionName)
-}
-
-fun toLepKey(key: String): Pair<String, String> {
-    var lepKey = translateToLepConvention(key.trim().trimStart('/'))
-    var pathToLep = lepKey.substringBeforeLast('/', "")
-    if (pathToLep.isNotBlank()) {
-        pathToLep += '/'
-    }
-    lepKey = lepKey.substringAfterLast('/')
-    return Pair(lepKey, pathToLep)
-}
-
-fun getAllEntityKeys(
-    element: PsiElement
-): List<String> {
-    return getAllEntityPsiElements(element.containingFile).map { it.valueText.trim() }
-}
-
-fun getAllEntityPsiElements(psiFile: PsiFile): List<YAMLKeyValue> {
-    return psiFile.goSubChild().goSubChild().goSubChild().goChild()
-        .filterIsInstance<YAMLKeyValue>()
-        .filter { it.keyText == "key" }
-}
-
-fun isSectionAttribute(
-    position: PsiElement,
-    section: String,
-    attrName: String
-): Boolean {
-    //val timer = StopWatch.createStarted();
-    val result = (position.isChildConfigAttribute(attrName)
-            && isConfigSection(position, section)
-            && isUnderEntityConfig(position))
-    //logger.info("isFunctionAttribute ${timer.getTime(MILLISECONDS)}ms")
-    return result
-}
-
-fun translateToLepConvention(xmEntitySpecKey: String): String {
-    Objects.requireNonNull(xmEntitySpecKey, "xmEntitySpecKey can't be null")
-    return xmEntitySpecKey.replace("-".toRegex(), "_").replace("\\.".toRegex(), "\\$")
-}
+private fun PsiElement.getRootFolder() = this.originalFile.virtualFile.path.substringBeforeLast('/')

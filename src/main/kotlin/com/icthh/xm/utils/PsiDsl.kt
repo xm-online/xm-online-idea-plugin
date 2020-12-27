@@ -1,17 +1,21 @@
 package com.icthh.xm.utils
 
+import com.icthh.xm.extensions.entityspec.getEntityDeclarations
+import com.icthh.xm.extensions.entityspec.originalFile
+import com.intellij.codeInsight.completion.*
+import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.openapi.fileTypes.FileType
+import com.intellij.patterns.ElementPattern
 import com.intellij.patterns.PlatformPatterns.psiElement
 import com.intellij.patterns.PlatformPatterns.psiFile
 import com.intellij.patterns.PsiElementPattern.Capture
 import com.intellij.patterns.PsiFilePattern
 import com.intellij.patterns.StandardPatterns
 import com.intellij.patterns.StringPattern
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.psi.util.PsiTreeUtil.getChildOfType
-import com.intellij.psi.util.PsiTreeUtil.getChildrenOfTypeAsList
+import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil.*
+import com.intellij.psi.util.parentsWithSelf
+import com.intellij.util.ProcessingContext
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
 import org.jetbrains.yaml.psi.YAMLSequence
@@ -72,11 +76,15 @@ fun PsiDsl<YAMLKeyValue>.toKeyValue(name: String? = null, innerPattern: PsiDsl<Y
 }
 
 fun PsiElement.findFirstParent(strict: Boolean = true, condition: (PsiElement?) -> Boolean): PsiElement? {
-    return PsiTreeUtil.findFirstContext(this, strict, condition)
+    return findFirstContext(this, strict, condition)
 }
 
+inline fun <reified T : PsiElement> PsiElement?.findChildOfType() = findChildOfType(this, T::class.java)
+inline fun <reified T : PsiElement> PsiElement?.findChildrenOfType() = findChildrenOfType(this, T::class.java)
+
+inline fun <reified T: PsiElement> PsiElement?.getParentOfType() = getParentOfType(this, T::class.java)
 inline fun <reified T: PsiElement> PsiElement?.getChildOfType() = getChildOfType(this, T::class.java)
-inline fun <reified T: PsiElement> PsiElement?.getChildrenOfType() = getChildrenOfTypeAsList(this, T::class.java)
+inline fun <reified T: PsiElement> PsiElement?.getChildrenOfType(): MutableList<T> = getChildrenOfTypeAsList(this, T::class.java)
 
 class FileDsl(var state: PsiFilePattern.Capture<PsiFile>) {
 
@@ -103,5 +111,65 @@ class FileDsl(var state: PsiFilePattern.Capture<PsiFile>) {
     }
 
     fun toResult() = state
+}
+
+fun PsiReferenceRegistrar.registerProvider(pattern: ElementPattern<out PsiElement?>,
+                                           work: (scalar: PsiElement, context: ProcessingContext) -> Array<PsiReference>) {
+    registerReferenceProvider(pattern, object : PsiReferenceProvider() {
+        override fun getReferencesByElement(element: PsiElement, context: ProcessingContext) = work.invoke(element, context)
+    })
+}
+
+fun PsiElement.getChildrenByPath(vararg types: Class<out PsiElement>): List<PsiElement> {
+    var result: List<PsiElement> = listOf(this)
+    types.forEach { type ->
+        result = result.flatMap { getChildrenOfTypeAsList(it, type) }
+    }
+    return result
+}
+
+fun PsiElement.printDebugInfo() {
+    val builder = StringBuilder()
+    val path = ArrayList<PsiElement>()
+    path.addAll(this.parentsWithSelf)
+    path.reverse()
+    path.forEachIndexed { index, psiElement ->
+        builder.append(" ".repeat(index)).append("└")
+            .append("${psiElement.javaClass.simpleName}${if(psiElement is YAMLKeyValue)":[${psiElement.keyText}]" else ""}")
+            .append("\n")
+    }
+
+    logger.info(builder.toString())
+}
+
+fun CompletionContributor.extendWithStop(type: CompletionType, place: ElementPattern<out PsiElement>,
+                                         provider: (parameters: CompletionParameters) -> List<LookupElement>) {
+    this.extend(type, place, object: CompletionProvider<CompletionParameters>() {
+        override fun addCompletions(
+            parameters: CompletionParameters,
+            context: ProcessingContext,
+            result: CompletionResultSet
+        ) {
+            result.addAllElements(provider(parameters))
+            result.stopHere()
+        }
+    })
+}
+
+fun YAMLKeyValue?.keyTextMatches(key: String): Boolean {
+    return this?.key?.textMatches(key) ?: false
+}
+
+fun YAMLSequence?.getKeys(): List<YAMLKeyValue> {
+    return mapToFields("key")
+}
+
+fun YAMLSequence?.mapToFields(fieldName: String): List<YAMLKeyValue> {
+    val yamlSequence = this
+    return yamlSequence.getChildrenOfType<YAMLSequenceItem>()
+        .map { it.getChildOfType<YAMLMapping>() }
+        .map { it.getChildrenOfType<YAMLKeyValue>() }
+        .flatten()
+        .filter { it.keyTextMatches(fieldName) }
 }
 

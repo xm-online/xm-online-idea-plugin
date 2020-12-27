@@ -61,35 +61,6 @@ fun <T> difference(left: Set<T>, right: Set<T>): Set<T> {
     return difference
 }
 
-fun CompletionContributor.extendWithStop(type: CompletionType, place: ElementPattern<out PsiElement>,
-                                 provider: (parameters: CompletionParameters) -> List<LookupElement>) {
-    this.extend(type, place, object: CompletionProvider<CompletionParameters>() {
-        override fun addCompletions(
-            parameters: CompletionParameters,
-            context: ProcessingContext,
-            result: CompletionResultSet
-        ) {
-            result.addAllElements(provider(parameters))
-            result.stopHere()
-        }
-    })
-}
-
-fun YAMLKeyValue?.keyTextMatches(key: String): Boolean {
-    return this?.key?.textMatches(key) ?: false
-}
-
-fun YAMLSequence?.getKeys(): List<YAMLKeyValue> {
-    val yamlSequence = this
-    return yamlSequence.getChildrenOfType<YAMLSequenceItem>()
-        .map { it.getChildOfType<YAMLMapping>() }
-        .map { it.getChildrenOfType<YAMLKeyValue>() }
-        .flatten()
-        .filter { it.keyTextMatches("key") }
-        .filterNotNull()
-}
-
-
 val times: MutableMap<String, AtomicLong> = ConcurrentHashMap()
 val timers: MutableMap<String, StopWatch> = ConcurrentHashMap()
 fun start(key: String) {
