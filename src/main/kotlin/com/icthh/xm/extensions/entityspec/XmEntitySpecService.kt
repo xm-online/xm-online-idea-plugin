@@ -1,5 +1,7 @@
 package com.icthh.xm.extensions.entityspec
 
+import com.icthh.xm.service.getTenantName
+import com.icthh.xm.service.toPsiFile
 import com.icthh.xm.utils.*
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
@@ -14,6 +16,7 @@ import com.intellij.psi.util.PsiModificationTracker.MODIFICATION_COUNT
 import com.jetbrains.jsonSchema.remote.JsonSchemaCatalogExclusion
 import org.jetbrains.yaml.YAMLFileType
 import org.jetbrains.yaml.psi.*
+import java.io.File
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -202,12 +205,30 @@ fun getEntitiesKeys(
     project: Project,
     originalFile: PsiFile
 ): List<YAMLKeyValue> {
-    val cachedValue = CachedValuesManager.getManager(project).getCachedValue(originalFile) {
-        project.logger.info("\n\n\n UPDATE ${originalFile.name} cache \n\n\n")
-        val keys = getEntityDeclarations(originalFile).getKeys()
-        CachedValueProvider.Result.create(keys, MODIFICATION_COUNT)
+    val entityKeys = ArrayList<YAMLKeyValue>()
+    start("getEntitiesKeys")
+    val tenantName = originalFile.virtualFile.getTenantName(project)
+    val path = "/config/tenants/${tenantName}/entity/xmentityspec"
+    val specYml = VfsUtil.findFile(File("${project.basePath}/$path.yml").toPath(), true)
+    val psiFile = specYml?.toPsiFile(project) ?: return emptyList()
+    entityKeys.addAll(getEntityKeys(project, psiFile))
+
+    val specDirectory = VfsUtil.findFile(File("${project.basePath}/$path").toPath(), true)
+    specDirectory?.children?.toList()?.mapNotNull { it.toPsiFile(project) }?.forEach {
+        entityKeys.addAll(getEntityKeys(project, it))
     }
-    return cachedValue ?: emptyList()
+    stop("getEntitiesKeys")
+    return entityKeys
+}
+
+private fun getEntityKeys(
+    project: Project,
+    psiFile: PsiFile
+) = CachedValuesManager.getManager(project).getCachedValue(psiFile) {
+    val file = psiFile.originalFile
+    project.logger.info("\n\n\n UPDATE ${file.name} cache \n\n\n")
+    val keys = getEntityDeclarations(file).getKeys()
+    CachedValueProvider.Result.create(keys, MODIFICATION_COUNT)
 }
 
 fun getEntityDeclarations(originalFile: PsiFile): YAMLSequence? = originalFile
