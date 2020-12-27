@@ -127,6 +127,21 @@ fun calendarEventFieldPlace(
     }
 }
 
+
+fun allowedStateKeyPlace(
+    innerPattern: PsiDsl<YAMLKeyValue>.() -> Unit = {}
+) = psiElement<PsiElement> {
+    withPsiParent<YAMLScalar> {
+        toSequenceKeyValue("allowedStateKeys", innerPattern)
+    }
+}
+
+fun allowedStateKeyScalarPlace(
+    innerPattern: PsiDsl<YAMLKeyValue>.() -> Unit = {}
+) = psiElement<YAMLScalar> {
+    toSequenceKeyValue("allowedStateKeys", innerPattern)
+}
+
 fun calendarEventScalarFieldPlace(
     fieldName: String,
 ) = psiElement<YAMLScalar> {
@@ -212,6 +227,20 @@ fun getAllSubElements(
 ): List<YAMLKeyValue> {
     return getEntityDeclarations(element.originalFile).mapToFields(sectionName)
         .map{ it.getChildOfType<YAMLSequence>().mapToFields(fieldName) }.flatten()
+}
+
+fun YAMLSequenceItem.getStateKeys(): List<String> {
+    val stateKeys = stateKeysPsi().map { it.valueText }
+    val result = ArrayList<String>()
+    result.addAll(stateKeys)
+    result.add("NEVER")
+    return result
+}
+
+fun YAMLSequenceItem.stateKeysPsi(): List<YAMLKeyValue> {
+    val states = this.keysValues.asSequence()
+        .filter { it.keyTextMatches("states") }.map { it.value }.filterIsInstance<YAMLSequence>().toList()
+    return states.map { it.getKeys() }.flatten()
 }
 
 fun nextStatePlace() = psiElement<PsiElement> {

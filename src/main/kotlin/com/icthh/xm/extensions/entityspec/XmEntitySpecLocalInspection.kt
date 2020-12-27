@@ -25,6 +25,7 @@ import git4idea.util.GitFileUtils
 import org.apache.commons.text.similarity.LevenshteinDistance
 import org.jetbrains.yaml.YAMLElementGenerator
 import org.jetbrains.yaml.psi.*
+import org.jetbrains.yaml.psi.impl.YAMLScalarImpl
 import org.jetbrains.yaml.schema.YamlJsonPsiWalker
 import org.jetbrains.yaml.schema.YamlJsonSchemaHighlightingInspection
 import java.io.File
@@ -76,6 +77,26 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
         }
         addLocalInspection(calendarEventFieldPlace("dataTypeKey")) { element, holder ->
             checkEntityKeyIsExists(element, holder)
+        }
+        addLocalInspection(allowedStateKeyPlace()) { element, holder ->
+            checkStateKeyIsExists(element, holder)
+        }
+    }
+
+    private fun checkStateKeyIsExists(
+        element: LeafPsiElement,
+        holder: ProblemsHolder
+    ) {
+        val entityDefinition = element.getParentOfType<YAMLKeyValue>().getParentOfType<YAMLSequence>()
+            .getParentOfType<YAMLSequenceItem>()
+        val allStateKeys = entityDefinition?.getStateKeys() ?: return
+        val typeKey = element.text
+
+        val count = allStateKeys.groupingBy { it }.eachCount().get(typeKey) ?: 0
+        if (count < 1) {
+            val minKeys = minKeys(allStateKeys, typeKey)
+            val fixes = minKeys.map { typeKeyItemQuickFix(it, element) }
+            holder.registerProblem(element, "Key $typeKey not found", ERROR, *fixes.toTypedArray())
         }
     }
 
@@ -185,6 +206,20 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
 
             override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
                 replaceText(element, key ?: "")
+            }
+        }
+    }
+
+    private fun typeKeyItemQuickFix(
+        key: String?,
+        element: LeafPsiElement
+    ): LocalQuickFix {
+        return object : LocalQuickFix {
+            override fun getFamilyName() = "$key"
+
+            override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+                val parent = element.getParentOfType<YAMLScalarImpl>() ?: return
+                parent.updateText(key ?: "")
             }
         }
     }

@@ -9,49 +9,17 @@ import com.intellij.codeInsight.completion.CompletionType.BASIC
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Key
-import com.intellij.openapi.util.ModificationTracker.EVER_CHANGED
-import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.patterns.PlatformPatterns.string
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.psi.util.CachedValueProvider
-import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker.MODIFICATION_COUNT
 import com.jetbrains.jsonSchema.impl.JsonCachedValues
 import com.jetbrains.jsonSchema.impl.JsonSchemaCompletionContributor
 import com.jetbrains.jsonSchema.impl.JsonSchemaObject
-import com.jetbrains.jsonSchema.remote.JsonSchemaCatalogExclusion
-import org.jetbrains.yaml.YAMLFileType
 import org.jetbrains.yaml.psi.*
-import org.jetbrains.yaml.psi.impl.YAMLKeyValueImpl
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 
 class XmEntitySpecCompletionContributor() : CompletionContributor() {
 
     val jsonSchema = AtomicReference<JsonSchemaObject>()
-
-    override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
-        start("fillCompletionVariants")
-        doWork(parameters, result)
-        stop("fillCompletionVariants")
-    }
-
-    private fun doWork(
-        parameters: CompletionParameters,
-        result: CompletionResultSet
-    ) {
-        if (parameters.position !is LeafPsiElement || !parameters.originalFile.isEntitySpecification()) {
-            return
-        }
-        jsonSchemaCompletion(parameters, result)
-        super.fillCompletionVariants(parameters, result)
-    }
-
     init {
 
         extendWithStop(BASIC, psiElement<PsiElement> {
@@ -69,11 +37,35 @@ class XmEntitySpecCompletionContributor() : CompletionContributor() {
             getAllEntitiesKeys(it.position.project, it.originalFile).map { LookupElementBuilder.create(it) }
         }
 
-        entityFeatureAttribute("links", "builderType") { it: CompletionParameters ->
+        extendWithStop(BASIC, allowedStateKeyPlace()) {
+            val entityDefinition = it.position.getParentOfType<YAMLKeyValue>().getParentOfType<YAMLSequence>().getParentOfType<YAMLSequenceItem>()
+            entityDefinition ?: return@extendWithStop emptyList()
+            val result = entityDefinition.getStateKeys()
+            result.map { LookupElementBuilder.create(it) }
+        }
+
+        entityFeatureAttribute("links", "builderType") {
             listOf("NEW", "SEARCH").map { LookupElementBuilder.create(it) }
         }
 
         nextStateKey()
+    }
+
+    override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
+        start("fillCompletionVariants")
+        doWork(parameters, result)
+        stop("fillCompletionVariants")
+    }
+
+    private fun doWork(
+        parameters: CompletionParameters,
+        result: CompletionResultSet
+    ) {
+        if (parameters.position !is LeafPsiElement || !parameters.originalFile.isEntitySpecification()) {
+            return
+        }
+        jsonSchemaCompletion(parameters, result)
+        super.fillCompletionVariants(parameters, result)
     }
 
     private fun jsonSchemaCompletion(

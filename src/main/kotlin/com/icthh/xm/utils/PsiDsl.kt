@@ -1,7 +1,5 @@
 package com.icthh.xm.utils
 
-import com.icthh.xm.extensions.entityspec.getEntityDeclarations
-import com.icthh.xm.extensions.entityspec.originalFile
 import com.intellij.codeInsight.completion.*
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.openapi.fileTypes.FileType
@@ -16,10 +14,7 @@ import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil.*
 import com.intellij.psi.util.parentsWithSelf
 import com.intellij.util.ProcessingContext
-import org.jetbrains.yaml.psi.YAMLKeyValue
-import org.jetbrains.yaml.psi.YAMLMapping
-import org.jetbrains.yaml.psi.YAMLSequence
-import org.jetbrains.yaml.psi.YAMLSequenceItem
+import org.jetbrains.yaml.psi.*
 
 inline fun <reified T: PsiElement> psiElement(
     innerPattern: PsiDsl<T>.() -> Unit = { PsiDsl(psiElement(T::class.java)) }
@@ -62,14 +57,21 @@ class PsiDsl<T: PsiElement>(var state: Capture<T>) {
 
 fun PsiDsl<YAMLKeyValue>.toKeyValue(name: String? = null, innerPattern: PsiDsl<YAMLKeyValue>.() -> Unit = {}) {
     withPsiParent<YAMLMapping> {
-        withPsiParent<YAMLSequenceItem> {
-            withPsiParent<YAMLSequence> {
-                withPsiParent<YAMLKeyValue> {
-                    if (name != null) {
-                        withName(name)
-                    }
-                    innerPattern.invoke(this)
+        toSequenceKeyValue(name, innerPattern)
+    }
+}
+
+fun PsiDsl<out YAMLPsiElement>.toSequenceKeyValue(
+    name: String?,
+    innerPattern: PsiDsl<YAMLKeyValue>.() -> Unit = {}
+) {
+    withPsiParent<YAMLSequenceItem> {
+        withPsiParent<YAMLSequence> {
+            withPsiParent<YAMLKeyValue> {
+                if (name != null) {
+                    withName(name)
                 }
+                innerPattern.invoke(this)
             }
         }
     }

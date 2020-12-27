@@ -7,6 +7,7 @@ import com.intellij.psi.PsiReference.EMPTY_ARRAY
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLScalar
 import org.jetbrains.yaml.psi.YAMLSequence
+import org.jetbrains.yaml.psi.YAMLSequenceItem
 
 
 class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
@@ -27,11 +28,24 @@ class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
                 statesReferences(element)
             }
         }
+        registrar.registerProvider(allowedStateKeyScalarPlace()) {element, _ ->
+            element.withCache {
+                referenceToState(element)
+            }
+        }
         registrar.registerProvider(calendarEventScalarFieldPlace("dataTypeKey")) {element, _ ->
             element.withCache {
                 entityTypeKeyReferences(element)
             }
         }
+    }
+
+    private fun referenceToState(element: PsiElement): Array<PsiReference> {
+        val entityDefinition = element.getParentOfType<YAMLKeyValue>().getParentOfType<YAMLSequence>()
+            .getParentOfType<YAMLSequenceItem>()!!
+        return entityDefinition.stateKeysPsi().filter { element.text.trim() == it.valueText.trim() }
+            .map { toPsiReference(element, it) }
+            .toTypedArray()
     }
 
     private fun statesReferences(element: PsiElement): Array<PsiReference> {
