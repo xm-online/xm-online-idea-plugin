@@ -2,131 +2,79 @@ package com.icthh.xm.actions.deploy
 
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.service.getSettings
-import com.icthh.xm.utils.log
-import com.icthh.xm.service.updateSupported
 import com.icthh.xm.utils.logger
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.Presentation
-import com.intellij.openapi.actionSystem.ex.CustomComponentAction
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.ComboBox
-import com.intellij.ui.PopupMenuListenerAdapter
-import org.jetbrains.annotations.Nullable
-import java.awt.Component
+import com.intellij.ide.impl.ProjectUtil
+import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.actionSystem.ex.ComboBoxAction
+import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.ProjectCoreUtil
+import com.intellij.openapi.project.ProjectManager
+import org.jetbrains.annotations.NotNull
 import java.awt.Dimension
 import javax.swing.JComponent
-import javax.swing.JLabel
-import javax.swing.JList
-import javax.swing.ListCellRenderer
-import javax.swing.event.PopupMenuEvent
-import javax.swing.event.PopupMenuListener
 
 
-class DeployEnvSelector() : AnAction(), CustomComponentAction {
+class DeployEnvSelector : ComboBoxAction(), DumbAware {
+    private val envs: MutableList<EnvironmentSettings> = ArrayList()
+    private var selectedItem: EnvironmentSettings? = null
+    private var component: ComboBoxButton? = null
 
-    var project: Project? = null
-    val comboBoxes = HashMap<String, ComboBox<EnvironmentSettings>>()
-    var envs: MutableList<EnvironmentSettings> = ArrayList()
+    override fun update(e: AnActionEvent) {
+        super.update(e)
+        val presentation = e.presentation
+        envs.clear()
+        val elements = e.project?.getSettings()?.envs ?: emptyList()
+        envs.addAll(elements)
+        component?.updateUI()
+        selectedItem = e.project?.getSettings()?.selected() ?: return
+        presentation.setText(selectedItem?.name)
+    }
 
+    override fun actionPerformed(e: AnActionEvent) {
+        super.actionPerformed(e)
+        logger.info("actionPerformed=>> ${e.project?.name}")
+    }
 
-    override fun createCustomComponent(presentation: Presentation): JComponent {
-        val comboBox = ComboBox<EnvironmentSettings>()
-        val project = this.project
-        comboBox.addItemListener {
-            this.project?.getSettings()?.select(comboBox.selectedItem as EnvironmentSettings?)
-        }
+    override fun createComboBoxButton(presentation: Presentation?): ComboBoxButton {
+        val component = super.createComboBoxButton(presentation)
+        this.component = component;
+        return component
+    }
+
+    override fun createPopupActionGroup(button: JComponent?): DefaultActionGroup {
+        TODO("Not yet implemented")
+    }
+
+    override fun createCustomComponent(presentation: Presentation, place: String): JComponent {
+        val createCustomComponent = super.createCustomComponent(presentation, place)
         val placeholder = "Select deploy environment"
-        setPlaceholder(comboBox, placeholder)
-        comboBox.toolTipText = placeholder
+        createCustomComponent.toolTipText = placeholder
         val dimension = Dimension(150, 30)
-        //comboBox.maximumSize = dimension
-        comboBox.preferredSize = dimension
-        //comboBox.size = dimension
-        //comboBox.minimumSize = dimension
-        if (project != null) {
-            comboBoxes.put(project.locationHash, comboBox)
-        }
-        comboBox.addPopupMenuListener(object: PopupMenuListenerAdapter() {
-            override fun popupMenuWillBecomeVisible(e: PopupMenuEvent?) {
-                super.popupMenuWillBecomeVisible(e)
-                logger.info("opened env selector ${project?.getSettings()?.envs} ${comboBox.itemCount}")
-                comboBox.updateUI()
-                if (project != null) {
-                    refreshItems(project)
-                }
-            }
-        })
-
-        return comboBox
+        createCustomComponent.preferredSize = dimension
+        return createCustomComponent
     }
 
-    private fun setPlaceholder(comboBox: ComboBox<EnvironmentSettings>, placeholder: String) {
-        val renderer = comboBox.renderer
-        comboBox.renderer = object : ListCellRenderer<EnvironmentSettings> {
-            override fun getListCellRendererComponent(
-                list: JList<out EnvironmentSettings>?,
-                value: EnvironmentSettings?,
-                index: Int,
-                isSelected: Boolean,
-                cellHasFocus: Boolean
-            ): Component {
-                val label = JLabel()
-                if (index == -1 && value == null) {
-                    label.setText(placeholder)
-                    return label
-                }
-
-                val jComponent = renderer.getListCellRendererComponent(
-                    list,
-                    value,
-                    index,
-                    isSelected,
-                    cellHasFocus
-                ) as JComponent
-                jComponent.toolTipText = value.toString()
-                return jComponent
-            }
+    override fun createPopupActionGroup(button: JComponent, dataContext: DataContext): DefaultActionGroup {
+        val group = DefaultActionGroup()
+        val project = CommonDataKeys.PROJECT.getData(dataContext) ?: return group
+        for (env in project.getSettings().envs) {
+            group.add(EnvironmentSettingsAction(env))
         }
+        return group
     }
 
-    override fun actionPerformed(event: AnActionEvent) {
+    private inner class EnvironmentSettingsAction constructor(val environmentSettings: EnvironmentSettings) : DumbAwareAction() {
 
-    }
-
-    override fun update(anActionEvent: AnActionEvent) {
-        anActionEvent.updateSupported() ?: return
-
-        //logger.info("update: ${anActionEvent}")
-        val project = anActionEvent.project
-        anActionEvent.presentation.isEnabled = project != null
-        if (project != null) {
-            this.project = project
-        } else {
-            return
+        override fun actionPerformed(e: AnActionEvent) {
+            selectedItem = environmentSettings
+            e.project?.getSettings()?.select(environmentSettings)
         }
 
-        refreshItems(project)
-    }
-
-    private fun refreshItems(project: Project) {
-        val comboBox = comboBoxes.get(project.locationHash) ?: return
-
-        val envs = project.getSettings().envs
-        if (this.envs.equals(envs) && comboBox.itemCount == envs.size) {
-            comboBox.updateUI()
-            return
+        init {
+            templatePresentation.setText(environmentSettings.name)
         }
-
-        logger.info("${project} >>> envs not the same ${envs} <<<>>> ${this.envs} | ${comboBox.itemCount} != ${envs.size}")
-
-        this.envs.clear()
-        this.envs.addAll(envs)
-        val selected = project.getSettings().selected()
-        comboBox.removeAllItems()
-        envs.forEach { comboBox.addItem(it) }
-        comboBox.selectedItem = selected
-        comboBox.updateUI()
     }
 
 }
+

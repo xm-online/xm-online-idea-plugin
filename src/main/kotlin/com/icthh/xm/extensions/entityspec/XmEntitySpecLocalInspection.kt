@@ -375,6 +375,10 @@ class XmEntitySpecSchemaInspection : YamlJsonSchemaHighlightingInspection() {
         isOnTheFly: Boolean,
         session: LocalInspectionToolSession
     ): PsiElementVisitor {
+        if (!holder.file.isEntitySpecification()) {
+            return EMPTY_VISITOR
+        }
+
         val file = holder.file as? YAMLFile ?: return EMPTY_VISITOR
         val roots = YamlJsonPsiWalker.INSTANCE.getRoots(file)
         if (roots.isEmpty()) {
