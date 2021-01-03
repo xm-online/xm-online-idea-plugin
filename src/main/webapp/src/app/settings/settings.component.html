@@ -1,0 +1,77 @@
+<div class="main">
+    <div class="leftPanel">
+        <div class="toolbar">
+            <mat-card class="toolbarCard">
+                <mat-card-content>
+                    <button mat-raised-button class="toolbarButton" (click)="addEnv()">
+                        +
+                    </button>
+                    <button mat-raised-button class="toolbarButton" (click)="removeEnv()" [disabled]="!environment">
+                        -
+                    </button>
+                </mat-card-content>
+            </mat-card>
+        </div>
+        <div class="envList">
+            <mat-selection-list [multiple]="false" (selectionChange)="onSelect($event)">
+                <mat-list-option *ngFor="let env of envs" [value]="env" [selected]="environment?.id === env.id">
+                    {{env.name}}
+                </mat-list-option>
+            </mat-selection-list>
+        </div>
+    </div>
+    <div class="settingsPanel">
+        <mat-card class="settingsPanelBody">
+            <mat-card-content>
+                <div *ngIf="environment" class="settingsBody">
+                    <mat-form-field class="full-width">
+                        <mat-label>Name</mat-label>
+                        <input type="text" matInput [(ngModel)]="environment.name" (ngModelChange)="onUpdate()">
+                    </mat-form-field>
+                    <mat-form-field class="full-width">
+                        <mat-label>Xm base url (example: http://xm-online.com)</mat-label>
+                        <input type="text" matInput [(ngModel)]="environment.xmUrl" (ngModelChange)="onUpdate()">
+                    </mat-form-field>
+                    <mat-form-field class="full-width">
+                        <mat-label>Super admin login</mat-label>
+                        <input type="text" matInput [(ngModel)]="environment.xmSuperAdminLogin" (ngModelChange)="onUpdate()">
+                    </mat-form-field>
+                    <mat-form-field class="full-width">
+                        <mat-label>Super admin password</mat-label>
+                        <input type="text" matInput [(ngModel)]="environment.xmSuperAdminPassword" (ngModelChange)="onUpdate()">
+                    </mat-form-field>
+
+                    <div class="horizontalLayout">
+                        <mat-form-field class="full-width">
+                            <mat-label>Client id</mat-label>
+                            <input type="text" matInput [(ngModel)]="environment.clientId" (ngModelChange)="onUpdate()">
+                        </mat-form-field>
+                        <span class="space"></span>
+                        <mat-form-field class="full-width">
+                            <mat-label>Client password</mat-label>
+                            <input type="text" matInput [(ngModel)]="environment.clientPassword" (ngModelChange)="onUpdate()">
+                        </mat-form-field>
+                    </div>
+
+                    <mat-form-field class="full-width">
+                        <mat-label>Update mode</mat-label>
+                        <mat-select [(ngModel)]="environment.updateMode" (ngModelChange)="onUpdate()">
+                            <mat-option *ngFor="let mode of updateModes" [value]="mode">{{mode}}</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <mat-checkbox [(ngModel)]="environment.startTrackChangesOnEdit" *ngIf="!updateModesMap[environment.updateMode]" (ngModelChange)="onUpdate()">
+                        Start track changes on edit
+                    </mat-checkbox>
+
+                    <mat-form-field class="full-width"  *ngIf="environment.updateMode === 'GIT_BRANCH_DIFFERENCE'">
+                        <mat-label>Target branch name</mat-label>
+                        <mat-select [(ngModel)]="environment.branchName" (ngModelChange)="onUpdate()">
+                            <mat-option *ngFor="let branch of branches" [value]="branch">{{branch}}</mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+            </mat-card-content>
+        </mat-card>
+    </div>
+</div>
