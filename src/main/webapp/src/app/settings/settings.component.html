@@ -70,6 +70,18 @@
                             <mat-option *ngFor="let branch of branches" [value]="branch">{{branch}}</mat-option>
                         </mat-select>
                     </mat-form-field>
+
+                    <div class="horizontalLayout">
+                        <button mat-raised-button class="toolbarButton" (click)="testConnection()">
+                            Test connection
+                        </button>
+                        <span class="result" *ngIf="connectionResult === true">
+                            Success
+                        </span>
+                        <span class="result" *ngIf="connectionResult === false">
+                            Failed
+                        </span>
+                    </div>
                 </div>
             </mat-card-content>
         </mat-card>

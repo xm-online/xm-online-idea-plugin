@@ -6,10 +6,13 @@ import com.fasterxml.jackson.module.kotlin.readValues
 import com.icthh.xm.actions.BrowserCallback
 import com.icthh.xm.actions.BrowserPipe
 import com.icthh.xm.actions.WebDialog
+import com.icthh.xm.actions.shared.showNotification
+import com.icthh.xm.service.getExternalConfigService
 import com.icthh.xm.service.getLocalBranches
 import com.icthh.xm.service.getRepository
 import com.icthh.xm.service.getSettings
 import com.icthh.xm.utils.logger
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.project.Project
 import com.intellij.ui.jcef.JBCefBrowser
 import java.awt.Dimension
@@ -39,6 +42,22 @@ class SettingsDialog(project: Project): WebDialog(
                 logger.info("envsUpdated ${body}")
                 val envs = mapper.readValue<List<EnvironmentSettings>>(body)
                 this.data = ArrayList(envs);
+            },
+            BrowserCallback("testConnection") {body, pipe ->
+                try {
+                    val env = mapper.readValue<EnvironmentSettings>(body)
+                    project.getExternalConfigService().fetchToken(env)
+                    pipe.post("connectionResult", mapper.writeValueAsString(mapOf(
+                        "success" to true,
+                    )))
+                } catch (e: Exception) {
+                    pipe.post("connectionResult", mapper.writeValueAsString(mapOf(
+                        "success" to false,
+                    )))
+                    project.showNotification("TestAuth", "Error test authentication", NotificationType.ERROR) {
+                        e.message ?: ""
+                    }
+                }
             }
         )
     }

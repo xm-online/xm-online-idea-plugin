@@ -19,6 +19,8 @@ export class SettingsComponent {
   updateModes = [];
   branches = [];
 
+  connectionResult = null;
+
   constructor(private zone: NgZone) {
     let w: any = window;
     w.messagePipe.subscribe('initData', (res) => {
@@ -28,6 +30,13 @@ export class SettingsComponent {
       });
     });
     w.messagePipe.post('componentReady', 'SettingsComponent ready')
+
+    w.messagePipe.subscribe('connectionResult', (res) => {
+      console.info('connectionResult', res);
+      zone.run(() => {
+        this.connectionResult = res.success;
+      });
+    });
   }
 
   private updateData(res) {
@@ -72,7 +81,7 @@ export class SettingsComponent {
   }
 
   onSelect($event: MatSelectionListChange) {
-    console.log($event.options.map(it => it.value));
+    this.connectionResult = null;
     if ($event.options.length == 1) {
       let shift = $event.options[0];
       this.environment = shift.value;
@@ -80,8 +89,14 @@ export class SettingsComponent {
   }
 
   onUpdate() {
+    this.connectionResult = null;
     let w: any = window;
     w.messagePipe.post('envsUpdated', JSON.stringify(this.envs));
+  }
+
+  testConnection() {
+    let w: any = window;
+    w.messagePipe.post('testConnection', JSON.stringify(this.environment));
   }
 }
 

@@ -52,6 +52,10 @@
 .toolbarButton {
     margin-right: 5px;
     margin-left: 5px;
+    font-size: large;
+}
+
+.result {
     font-size: x-large;
 }
 
