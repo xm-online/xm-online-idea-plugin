@@ -38,7 +38,7 @@ abstract class VaadinDialog(val project: Project,
             val root = StackPane()
             val scene = Scene(root)
             val webView = WebView()
-            webView.engine.load("http://localhost:${ViewServer.serverPort}/#!$viewName")
+            webView.engine.load("${ViewServer.getServerUrl()}/#!$viewName")
             //root.setMinSize(dimension.getWidth(), dimension.getHeight())
             root.getChildren().add(webView)
             fxPanel.scene = scene

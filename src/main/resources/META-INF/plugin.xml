@@ -50,7 +50,7 @@
                          groupKey="inspections.group.name"
                          enabledByDefault="true"
                          level="ERROR" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecSchemaInspection" />
-        XmEntitySpecSchemaInspection
+
 
         <colorProvider implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecElementColorProvider" />
         <codeInsight.lineMarkerProvider language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntityIconLineMarkerProvider" />

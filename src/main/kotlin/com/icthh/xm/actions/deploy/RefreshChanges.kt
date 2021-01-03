@@ -1,5 +1,6 @@
 package com.icthh.xm.actions.deploy
 
+import com.icthh.xm.actions.settings.SettingsDialog
 import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.service.getExternalConfigService
@@ -17,7 +18,6 @@ class RefreshChanges() : AnAction() {
         val project = anActionEvent.project ?: return
         val selected = project.getSettings().selected() ?: return
         val externalConfigService = project.getExternalConfigService()
-
 
         getApplication().executeOnPooledThread{
             try {

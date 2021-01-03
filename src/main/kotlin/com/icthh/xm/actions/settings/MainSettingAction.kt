@@ -26,8 +26,8 @@ class MainSettingAction : AnAction() {
 
     override fun update(e: AnActionEvent) {
         logger.info("Update main settings")
+        e.presentation.isEnabled = true
         e.updateSupported() ?: return
-        e.presentation.isEnabled = e.project != null
         logger.info("Main settings is ${e.presentation.isEnabled}")
     }
 }

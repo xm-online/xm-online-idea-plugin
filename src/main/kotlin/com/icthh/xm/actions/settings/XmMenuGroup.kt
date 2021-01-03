@@ -7,9 +7,12 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import org.jetbrains.annotations.NotNull
 
 class XmMenuGroup: DefaultActionGroup() {
-    override fun actionPerformed(e: AnActionEvent) {}
+    override fun actionPerformed(e: AnActionEvent) {
+        e.presentation.isEnabled = true
+    }
     override fun update(e: AnActionEvent) {
-        logger.info("Update main group ${e.updateSupported()}")
+        e.presentation.isEnabled = true
         e.updateSupported() ?: return
+        logger.info("Update main group ${e.updateSupported()}")
     }
 }
