@@ -78,7 +78,7 @@
             <action id="refreshCurrentFile" class="com.icthh.xm.actions.deploy.DeployCurrentFile" text="Update current file in memory"/>
         </group>
 
-        <group id="mainGroup" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup" popup="false" compact="false">
+        <group id="mainSettingsGroup" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup" popup="true" compact="false">
             <add-to-group group-id="MainMenu" anchor="after" relative-to-action="HelpMenu" />
             <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSettingAction" text="Setting"/>
         </group>
@@ -105,6 +105,10 @@
             <add-to-group group-id="MainToolBar" anchor="last"/>
         </action>
 
+        <action id="settings" class="com.icthh.xm.actions.settings.MainSettingAction"
+                text="Settings" icon="PluginIcons.SETTINGS">
+            <add-to-group group-id="MainToolBar" anchor="last"/>
+        </action>
 
 
 

@@ -15,6 +15,7 @@ class MainSettingAction : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
+        // e.presentation.isEnabled = true
         val dialog = SettingsDialog(project)
         dialog.show()
         if (dialog.isOK) {
@@ -26,8 +27,7 @@ class MainSettingAction : AnAction() {
 
     override fun update(e: AnActionEvent) {
         logger.info("Update main settings")
-        e.presentation.isEnabled = true
+        // e.presentation.isEnabled = true
         e.updateSupported() ?: return
-        logger.info("Main settings is ${e.presentation.isEnabled}")
     }
 }

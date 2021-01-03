@@ -20,7 +20,7 @@ public class ViewServer {
     public static Server embeddedServer;
     private static Integer serverPort = 54321;
     private static AtomicBoolean isInited = new AtomicBoolean(false);
-    public static boolean isDev = true;
+    public static boolean isDev = false;
 
     public static String getServerUrl() {
         if (isDev) {

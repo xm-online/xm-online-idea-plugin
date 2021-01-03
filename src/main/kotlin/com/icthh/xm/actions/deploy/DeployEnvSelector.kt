@@ -2,6 +2,7 @@ package com.icthh.xm.actions.deploy
 
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.service.getSettings
+import com.icthh.xm.service.updateSupported
 import com.icthh.xm.utils.logger
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.actionSystem.*
@@ -22,6 +23,8 @@ class DeployEnvSelector : ComboBoxAction(), DumbAware {
 
     override fun update(e: AnActionEvent) {
         super.update(e)
+        e.updateSupported() ?: return
+
         val presentation = e.presentation
         envs.clear()
         val elements = e.project?.getSettings()?.envs ?: emptyList()

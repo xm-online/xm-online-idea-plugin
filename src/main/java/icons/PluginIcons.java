@@ -11,5 +11,6 @@ public interface PluginIcons {
   Icon STOP_TRACK_CHANGES = IconLoader.getIcon("/icons/stop-track-changes.svg");
   Icon WARNING = IconLoader.getIcon("/icons/warning.svg");
   Icon REFRESH = IconLoader.getIcon("/icons/refresh.svg");
+  Icon SETTINGS = IconLoader.getIcon("/icons/settings.svg");
 
 }

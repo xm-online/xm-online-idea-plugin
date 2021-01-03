@@ -39,6 +39,7 @@ abstract class WebDialog(val project: Project,
         this.init()
         title = dialogTitle
     }
+
     override fun createCenterPanel(): JComponent? {
         val browser = JBCefBrowser("${ViewServer.getServerUrl()}/#/$viewName")
         val callbacks = callbacks()

@@ -27,11 +27,13 @@ class SettingsDialog(project: Project): WebDialog(
     val updateModes = UpdateMode.values().toList().map { UpdateModeDto(it.isGitMode, it.name) }
 
     override fun callbacks(): List<BrowserCallback> {
-        val data = ArrayList(project.getSettings().envs.map { it.copy() })
-        this.data = data;
         return listOf(
             BrowserCallback("componentReady") {body, pipe ->
                 logger.info("Update ${body}")
+
+                val data = ArrayList(project.getSettings().envs.map { it.copy() })
+                this.data.clear()
+                this.data.addAll(data)
                 pipe.post("initData", mapper.writeValueAsString(mapOf(
                     "updateModes" to updateModes,
                     "branches" to project.getRepository().getLocalBranches(),
@@ -41,7 +43,8 @@ class SettingsDialog(project: Project): WebDialog(
             BrowserCallback("envsUpdated") {body, pipe ->
                 logger.info("envsUpdated ${body}")
                 val envs = mapper.readValue<List<EnvironmentSettings>>(body)
-                this.data = ArrayList(envs);
+                this.data.clear()
+                this.data.addAll(envs)
             },
             BrowserCallback("testConnection") {body, pipe ->
                 try {
