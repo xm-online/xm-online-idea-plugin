@@ -15,6 +15,7 @@ import { MatInputModule } from "@angular/material/input";
 import { FormsModule } from "@angular/forms";
 import { MatSelectModule } from "@angular/material/select";
 import { MatCheckboxModule } from "@angular/material/checkbox";
+import { FileListDialogComponent } from './file-list-dialog/file-list-dialog.component';
 
 const routes: Routes = [
   { path: 'settings', component: SettingsComponent }
@@ -23,7 +24,8 @@ const routes: Routes = [
 @NgModule({
   declarations: [
     AppComponent,
-    SettingsComponent
+    SettingsComponent,
+    FileListDialogComponent
   ],
   imports: [
     BrowserModule,
