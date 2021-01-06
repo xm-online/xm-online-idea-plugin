@@ -13,6 +13,7 @@ import com.icthh.xm.utils.readTextAndClose
 import com.intellij.history.LocalHistory
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project

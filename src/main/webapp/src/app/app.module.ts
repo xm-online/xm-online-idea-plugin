@@ -18,7 +18,8 @@ import { MatCheckboxModule } from "@angular/material/checkbox";
 import { FileListDialogComponent } from './file-list-dialog/file-list-dialog.component';
 
 const routes: Routes = [
-  { path: 'settings', component: SettingsComponent }
+  { path: 'settings', component: SettingsComponent },
+  { path: 'file-list-dialog', component: FileListDialogComponent },
 ];
 
 @NgModule({

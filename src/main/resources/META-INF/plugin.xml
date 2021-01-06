@@ -17,6 +17,9 @@
 
 
     <extensions defaultExtensionNs="com.intellij">
+
+        <jcef.appRequiredArgumentsProvider implementation="com.icthh.xm.actions.GpuDisabler"/>
+
         <projectService serviceImplementation="com.icthh.xm.actions.settings.SettingService"/>
         <projectService serviceImplementation="com.icthh.xm.service.ExternalConfigService"/>
 

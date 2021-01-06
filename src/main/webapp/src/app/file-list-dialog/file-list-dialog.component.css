@@ -1,0 +1,12 @@
+.strikeFileName {
+    text-decoration: line-through;
+}
+.space {
+    margin-left: 10px;
+}
+.file-icon {
+    vertical-align: middle;
+}
+.ignore-link{
+    text-decoration: none;
+}

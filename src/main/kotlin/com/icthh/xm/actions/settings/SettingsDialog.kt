@@ -26,7 +26,7 @@ class SettingsDialog(project: Project): WebDialog(
     var data = ArrayList<EnvironmentSettings>()
     val updateModes = UpdateMode.values().toList().map { UpdateModeDto(it.isGitMode, it.name) }
 
-    override fun callbacks(): List<BrowserCallback> {
+    override fun callbacks(browser: JBCefBrowser): List<BrowserCallback> {
         return listOf(
             BrowserCallback("componentReady") {body, pipe ->
                 logger.info("Update ${body}")

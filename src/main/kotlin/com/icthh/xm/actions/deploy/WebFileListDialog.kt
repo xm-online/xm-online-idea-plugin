@@ -1,16 +1,17 @@
 package com.icthh.xm.actions.deploy
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.mvysny.karibudsl.v8.*
 import com.icthh.xm.actions.BrowserCallback
-import com.icthh.xm.actions.VaadinDialog
 import com.icthh.xm.actions.WebDialog
 import com.icthh.xm.actions.permission.GitContentProvider
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.UpdateMode
 import com.icthh.xm.service.*
 import com.icthh.xm.service.filechanges.ChangesFiles
-import com.icthh.xm.utils.Icons
+import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.logger
 import com.icthh.xm.utils.readTextAndClose
 import com.icthh.xm.utils.showDiffDialog
@@ -18,14 +19,11 @@ import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.jcef.JBCefBrowser
 import com.vaadin.icons.VaadinIcons.*
-import com.vaadin.shared.ui.ContentMode.HTML
 import com.vaadin.ui.*
 import git4idea.GitRevisionNumber
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
-import org.jetbrains.annotations.NonNls
-import org.jetbrains.annotations.NotNull
 import java.awt.Dimension
 import java.io.File
 
@@ -38,17 +36,56 @@ class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
     val mapper = jacksonObjectMapper()
     val conflictedFilesContent = HashMap<String, String>()
 
-    override fun callbacks(): List<BrowserCallback> {
+    override fun callbacks(browser: JBCefBrowser): List<BrowserCallback> {
+        val modalState = ModalityState.current()
+        val ignoredFiles: MutableSet<String> = project.getSettings().selected()?.ignoredFiles ?: HashSet()
+        val calculateFileChanges = calculateFileChanges()
         return listOf(
             BrowserCallback("componentReady") {body, pipe ->
                 logger.info("component ready")
-                val calculateFileChanges = calculateFileChanges()
                 pipe.post("initData", mapper.writeValueAsString(mapOf(
                     "isForceUpdate" to changes.isForceUpdate,
-                    "files" to calculateFileChanges
+                    "changes" to calculateFileChanges
                 )))
                 calculateFileChanges.forEach {
-                    markFileAsChanged(it)
+                    checkFileAsChanged(it) {
+                        pipe.post("updateFile", mapper.writeValueAsString(it))
+                    }
+                }
+            },
+            BrowserCallback("updateFile") { body, pipe ->
+                logger.info("updateFiled")
+                val fileChange = mapper.readValue<FileChange>(body)
+                if (fileChange.ignoredFile.isTrue()) {
+                    ignoredFiles.add(fileChange.fileName)
+                } else {
+                    ignoredFiles.remove(fileChange.fileName)
+                }
+                invokeOnUiThread {
+                    project.save()
+                }
+
+                logger.info("file updated")
+            },
+            BrowserCallback("navigate") { body, pipe ->
+                logger.info("navigate")
+                val fileChange = mapper.readValue<FileChange>(body)
+                val path = fileChange.path
+                val fileName = fileChange.fileName
+                if (fileChange.isConflict.isTrue()) {
+                    invokeOnUiThread {
+                        val virtualFile = VfsUtil.findFile(File(path).toPath(), false) ?: return@invokeOnUiThread
+                        showDiffDialog(
+                            "File difference", conflictedFilesContent.get(path) ?: "",
+                            path, fileName, project, virtualFile
+                        )
+                    }
+                } else {
+                    invokeOnUiThread {
+                        val virtualFile = VfsUtil.findFile(File(path).toPath(), false)
+                        val psiFile = virtualFile?.toPsiFile(project)
+                        psiFile?.navigate(false)
+                    }
                 }
             }
         )
@@ -62,20 +99,12 @@ class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
             file.editedInThisIteration = it in changes.editedInThisIteration
             file.ignoredFile = it in ignoredFiles
             file.toDelete = it in changes.toDelete
+            fileChanges.add(file)
         }
         return fileChanges
     }
 
-    private fun openFile(fileName: String) {
-        val path = project.configPathToRealPath(fileName)
-        val virtualFile = VfsUtil.findFile(File(path).toPath(), false)
-        getApplication().invokeLater({
-            val psiFile = virtualFile?.toPsiFile(project)
-            psiFile?.navigate(true)
-        }, ModalityState.stateForComponent(rootPane))
-    }
-
-    private fun markFileAsChanged(file: FileChange) {
+    private fun checkFileAsChanged(file: FileChange, onChange: (FileChange) -> Unit) {
         val virtualFile = VfsUtil.findFile(File(file.path).toPath(), false)
         virtualFile ?: return
 
@@ -95,21 +124,11 @@ class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
                 if (!config.equals(content) && wasChanged(config, settings, fileName)) {
                     file.editedInThisIteration = false
                     file.isConflict = true
-                    conflictedFilesContent.put(fileName, content)
+                    conflictedFilesContent.put(fileName, config)
                 }
             }
+            onChange.invoke(file)
         }
-    }
-
-    private fun openDiffDialog(
-        config: String,
-        file: FileChange,
-        virtualFilePath: String,
-        virtualFile: VirtualFile
-    ) {
-        getApplication().invokeLater({
-            showDiffDialog("File difference", config, file.fileName, virtualFilePath, project, virtualFile)
-        }, ModalityState.stateForComponent(rootPane))
     }
 
     private fun wasChanged(config: String?, settings: EnvironmentSettings, fileName: String ): Boolean {
@@ -137,6 +156,7 @@ class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
 
 }
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class FileChange(
     val fileName: String,
     val path: String,

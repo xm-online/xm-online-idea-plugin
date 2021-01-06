@@ -30,7 +30,7 @@ class ConfigIconProvider: IconProvider() {
     val faviconCache = ConcurrentHashMap<String, Icon>()
 
     override fun getIcon(element: PsiElement, flags: Int): Icon? {
-        if (element is PsiFileSystemItem) {
+        if (element is PsiFileSystemItem && element.virtualFile != null) {
             return getIcon(element.virtualFile, element.project)
         }
         return null

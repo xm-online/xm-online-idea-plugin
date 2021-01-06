@@ -142,7 +142,8 @@ Desktop.ini
 # ESLint
 ######################
 .eslintcache
-
+src/main/webapp/dist
+src/main/webapp/node_modules
 src/main/lep-sandbox
 src/test/groovy/com/icthh/xm/lep/tenant
 src/test/resources/lep/custom

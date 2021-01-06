@@ -2,8 +2,10 @@ package com.icthh.xm.service.filechanges
 
 import com.icthh.xm.actions.settings.UpdateMode
 import com.icthh.xm.service.*
+import com.icthh.xm.utils.logger
 import com.intellij.dvcs.repo.Repository
 import com.intellij.dvcs.repo.Repository.State.NORMAL
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
@@ -16,6 +18,8 @@ import git4idea.repo.GitRepository
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
+import java.util.concurrent.Callable
+import java.util.concurrent.Future
 
 class GitFileChange(
     val project: Project
@@ -59,6 +63,7 @@ class GitFileChange(
         if (repository.state != NORMAL || root == null) {
             throw UncorrectStateOfRepository(repository.state)
         }
+
         val localChanges = getChanges()
         val changes = localChanges.map { it.getPath() to it.type }.toMap()
 
@@ -110,18 +115,25 @@ class GitFileChange(
     }
 
     private fun Project.getChanges(): MutableCollection<Change> {
-        val repository = this.getRepository()
-        val settings = project.getSettings()?.selected() ?: return mutableListOf()
-        val changes = HashSet<Change>()
-        if (settings.updateMode == UpdateMode.GIT_LOCAL_CHANGES) {
-            val branchName = repository.currentBranch?.name ?: HEAD.rev
-            changes.addAll(getDiffWithWorkingTree(repository, branchName, false) ?: mutableListOf())
-        } else if (settings.updateMode == UpdateMode.GIT_BRANCH_DIFFERENCE) {
-            val currentBranch = repository.currentBranch?.name ?: HEAD.rev
-            changes.addAll(getDiffWithWorkingTree(repository, currentBranch, false) ?: mutableListOf())
-            changes.addAll(getDiff(repository, settings.branchName, currentBranch, false) ?: mutableListOf())
+        try {
+            return ApplicationManager.getApplication().executeOnPooledThread(Callable {
+                val repository = this.getRepository()
+                val settings = project.getSettings()?.selected() ?: return@Callable mutableListOf()
+                val changes = HashSet<Change>()
+                if (settings.updateMode == UpdateMode.GIT_LOCAL_CHANGES) {
+                    val branchName = repository.currentBranch?.name ?: HEAD.rev
+                    changes.addAll(getDiffWithWorkingTree(repository, branchName, false) ?: mutableListOf())
+                } else if (settings.updateMode == UpdateMode.GIT_BRANCH_DIFFERENCE) {
+                    val currentBranch = repository.currentBranch?.name ?: HEAD.rev
+                    changes.addAll(getDiffWithWorkingTree(repository, currentBranch, false) ?: mutableListOf())
+                    changes.addAll(getDiff(repository, settings.branchName, currentBranch, false) ?: mutableListOf())
+                }
+                changes
+            }).get()
+        } catch (e: Throwable) {
+            logger.info("Error ${e}")
+            throw e;
         }
-        return changes
     }
 
 }

@@ -6,6 +6,7 @@ import com.icthh.xm.service.filechanges.UncorrectStateOfRepository
 import com.icthh.xm.utils.isTrue
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
 
 
@@ -21,15 +22,13 @@ class DeployToEnv() : AnAction() {
 
         try {
             val changesFiles = project.getChangedFiles()
-
-            val fileListDialog = FileListDialog(project, changesFiles)
+            val fileListDialog = WebFileListDialog(project, changesFiles)
             fileListDialog.show()
             if (fileListDialog.isOK) {
                 FileDocumentManager.getInstance().saveAllDocuments()
                 changesFiles.refresh(project)
                 project.updateFilesInMemory(changesFiles, selected)
             }
-
         } catch (e: UncorrectStateOfRepository) {
             val content = """
             Uncorrect state of repository ${project.getRepository().state.name}

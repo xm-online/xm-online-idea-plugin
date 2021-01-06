@@ -3,12 +3,18 @@ package com.icthh.xm.actions
 import com.icthh.xm.ViewServer
 import com.icthh.xm.ViewServer.isDev
 import com.icthh.xm.actions.BrowserPipe.Companion.WINDOW_READY_EVENT
+import com.icthh.xm.utils.logger
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.jcef.JBCefApp
+import com.intellij.ui.jcef.JBCefAppRequiredArgumentsProvider
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefJSQuery
+import com.jetbrains.cef.JCefAppConfig
 import org.cef.CefApp
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
@@ -25,7 +31,10 @@ import java.awt.Dimension
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.nio.charset.Charset
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.JComponent
+import javax.swing.JLabel
 import javax.swing.JPanel
 
 
@@ -34,41 +43,77 @@ abstract class WebDialog(val project: Project,
                          val dimension: Dimension = Dimension(500, 500),
                          dialogTitle: String = "Dialog"): DialogWrapper(project) {
 
+    /**
+     *  WARNING, by strange issue JBCefBrowser locked when I try to call
+     *  ApplicationManager.getApplication().invokeLater({ }, ModalityState.stateForComponent(browser.component))
+     *  or
+     *  ApplicationManager.getApplication().invokeLater({ }, ModalityState.stateForComponent(rootPane))
+     *
+     *  This label for avoid this issue
+     */
+    val pointToThreading = JLabel(".");
+
     init {
         ViewServer.startServer()
-        this.init()
         title = dialogTitle
     }
 
+    override fun show() {
+        this.init()
+        super.show()
+    }
+
     override fun createCenterPanel(): JComponent? {
-        val browser = JBCefBrowser("${ViewServer.getServerUrl()}/#/$viewName")
-        val callbacks = callbacks()
+        val browser = JBCefBrowser()
+        val url = "${ViewServer.getServerUrl()}/#/$viewName"
+        browser.cefBrowser.createImmediately()
+        logger.info("URL load ${url}")
+        browser.loadURL(url)
+        val callbacks = callbacks(browser)
         val browserPipe = BrowserPipe(browser, callbacks, BrowserCallback(WINDOW_READY_EVENT) { _, pipe -> onReady(pipe) })
 
         val panel = JPanel(BorderLayout())
         panel.preferredSize = dimension
         panel.add(browser.component, BorderLayout.CENTER);
+        panel.add(pointToThreading, BorderLayout.SOUTH)
         Disposer.register(this.disposable, browser)
         Disposer.register(this.disposable, browserPipe)
-        pack();
+
+        logger.info("inited dialog")
 
         if (isDev) {
+            logger.info("try to open dev tools")
             browser.openDevtools()
+            logger.info("try to open dev tools opened")
         }
         return panel
     }
 
     open fun setupView(browser: JBCefBrowser, pipe: BrowserPipe) {}
 
-    abstract fun callbacks(): List<BrowserCallback>
+    abstract fun callbacks(browser: JBCefBrowser): List<BrowserCallback>
 
     open fun onReady(pipe: BrowserPipe) {}
 
     override fun shouldCloseOnCross() = true
 
+    fun invokeOnUiThread(operation: () -> Unit) {
+        ApplicationManager.getApplication().invokeLater({
+            operation.invoke();
+        }, ModalityState.stateForComponent(pointToThreading))
+    }
+
 }
 
-
+/**
+ * On linux for avoid crash gpu disabled.
+ * issue: https://youtrack.jetbrains.com/issue/IDEA-248140
+ * Note: this class used in plugin.xml
+ */
+class GpuDisabler: JBCefAppRequiredArgumentsProvider {
+    override val options: List<String>
+        get() = listOf("--disable-gpu", "--disable-gpu-compositing")
+}
 
 class BrowserPipe(private val browser: JBCefBrowser, callbacks: List<BrowserCallback>, onReady: BrowserCallback) : Disposable {
     private val events = HashMap<String, JBCefJSQuery>()

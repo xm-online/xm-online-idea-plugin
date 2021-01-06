@@ -1,9 +1,7 @@
-import { AfterViewInit, ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { UUID } from "angular2-uuid";
 import { MatSelectionListChange } from "@angular/material/list";
-import { BehaviorSubject } from "rxjs";
-
-
+import { MessagePipeService } from "../message-pipe.service";
 
 @Component({
   selector: 'app-settings',
@@ -21,21 +19,15 @@ export class SettingsComponent {
 
   connectionResult = null;
 
-  constructor(private zone: NgZone) {
-    let w: any = window;
-    w.messagePipe.subscribe('initData', (res) => {
+  constructor(private messagePipe: MessagePipeService) {
+    messagePipe.subscribe('initData', (res) => {
       console.info('initData', res);
-      zone.run(() => {
-        this.updateData(res);
-      });
+      this.updateData(res);
     });
-    w.messagePipe.post('componentReady', 'SettingsComponent ready')
-
-    w.messagePipe.subscribe('connectionResult', (res) => {
+    messagePipe.post('componentReady', 'SettingsComponent ready')
+    messagePipe.subscribe('connectionResult', (res) => {
       console.info('connectionResult', res);
-      zone.run(() => {
-        this.connectionResult = res.success;
-      });
+      this.connectionResult = res.success;
     });
   }
 
@@ -90,13 +82,11 @@ export class SettingsComponent {
 
   onUpdate() {
     this.connectionResult = null;
-    let w: any = window;
-    w.messagePipe.post('envsUpdated', JSON.stringify(this.envs));
+    this.messagePipe.post('envsUpdated', this.envs);
   }
 
   testConnection() {
-    let w: any = window;
-    w.messagePipe.post('testConnection', JSON.stringify(this.environment));
+    this.messagePipe.post('testConnection', this.environment);
   }
 }
 
