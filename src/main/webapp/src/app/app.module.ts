@@ -16,17 +16,23 @@ import { FormsModule } from "@angular/forms";
 import { MatSelectModule } from "@angular/material/select";
 import { MatCheckboxModule } from "@angular/material/checkbox";
 import { FileListDialogComponent } from './file-list-dialog/file-list-dialog.component';
+import { RoleManagementComponent } from './role-management/role-management.component';
+import { RoleMatrixComponent } from './role-matrix/role-matrix.component';
 
 const routes: Routes = [
   { path: 'settings', component: SettingsComponent },
   { path: 'file-list-dialog', component: FileListDialogComponent },
+  { path: 'role-management', component: RoleManagementComponent },
+  { path: 'role-matrix', component: RoleMatrixComponent },
 ];
 
 @NgModule({
   declarations: [
     AppComponent,
     SettingsComponent,
-    FileListDialogComponent
+    FileListDialogComponent,
+    RoleManagementComponent,
+    RoleMatrixComponent
   ],
   imports: [
     BrowserModule,

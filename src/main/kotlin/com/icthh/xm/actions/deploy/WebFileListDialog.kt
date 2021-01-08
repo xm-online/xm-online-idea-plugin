@@ -72,20 +72,12 @@ class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
                 val fileChange = mapper.readValue<FileChange>(body)
                 val path = fileChange.path
                 val fileName = fileChange.fileName
-                if (fileChange.isConflict.isTrue()) {
-                    invokeOnUiThread {
-                        val virtualFile = VfsUtil.findFile(File(path).toPath(), false) ?: return@invokeOnUiThread
-                        showDiffDialog(
-                            "File difference", conflictedFilesContent.get(path) ?: "",
-                            path, fileName, project, virtualFile
-                        )
-                    }
-                } else {
-                    invokeOnUiThread {
-                        val virtualFile = VfsUtil.findFile(File(path).toPath(), false)
-                        val psiFile = virtualFile?.toPsiFile(project)
-                        psiFile?.navigate(false)
-                    }
+                invokeOnUiThread {
+                    val virtualFile = VfsUtil.findFile(File(path).toPath(), false) ?: return@invokeOnUiThread
+                    showDiffDialog(
+                        "File difference", conflictedFilesContent.get(path) ?: "",
+                        path, fileName, project, virtualFile
+                    )
                 }
             }
         )

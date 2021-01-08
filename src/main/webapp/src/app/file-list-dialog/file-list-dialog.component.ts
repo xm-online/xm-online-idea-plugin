@@ -25,10 +25,10 @@ export class FileListDialogComponent implements OnInit {
               })
             });
     });
-    messagePipe.post('componentReady', 'FileListDialogComponent ready')
   }
 
   ngOnInit(): void {
+    this.messagePipe.post('componentReady', 'FileListDialogComponent ready')
   }
 
   private initData(res: ChangesFiles) {

@@ -16,7 +16,7 @@ class RoleManagementProvider: FileEditorProvider {
         file.path.endsWith("/permissions.yml")
 
 
-    override fun createEditor(project: Project, file: VirtualFile): FileEditor = RoleManagementEditor(project, file)
+    override fun createEditor(project: Project, file: VirtualFile): FileEditor = WebRoleManagementEditor(project, file)
 
     override fun getPolicy() = PLACE_AFTER_DEFAULT_EDITOR
 

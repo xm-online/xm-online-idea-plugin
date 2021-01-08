@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import { UUID } from "angular2-uuid";
 import { MatSelectionListChange } from "@angular/material/list";
 import { MessagePipeService } from "../message-pipe.service";
@@ -8,7 +8,7 @@ import { MessagePipeService } from "../message-pipe.service";
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.css']
 })
-export class SettingsComponent {
+export class SettingsComponent implements OnInit {
 
   envs: EnvironmentSettings[] = [];
   environment: EnvironmentSettings;
@@ -24,11 +24,14 @@ export class SettingsComponent {
       console.info('initData', res);
       this.updateData(res);
     });
-    messagePipe.post('componentReady', 'SettingsComponent ready')
     messagePipe.subscribe('connectionResult', (res) => {
       console.info('connectionResult', res);
       this.connectionResult = res.success;
     });
+  }
+
+  ngOnInit(): void {
+     this.messagePipe.post('componentReady', 'SettingsComponent ready')
   }
 
   private updateData(res) {

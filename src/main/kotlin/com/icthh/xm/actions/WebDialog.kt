@@ -1,8 +1,6 @@
 package com.icthh.xm.actions
 
 import com.icthh.xm.ViewServer
-import com.icthh.xm.ViewServer.isDev
-import com.icthh.xm.actions.BrowserPipe.Companion.WINDOW_READY_EVENT
 import com.icthh.xm.utils.logger
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -10,16 +8,15 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefAppRequiredArgumentsProvider
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefJSQuery
-import com.jetbrains.cef.JCefAppConfig
 import org.cef.CefApp
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
 import org.cef.callback.CefCallback
 import org.cef.callback.CefSchemeHandlerFactory
+import org.cef.handler.CefFocusHandlerAdapter
 import org.cef.handler.CefResourceHandler
 import org.cef.handler.CefResourceHandlerAdapter
 import org.cef.misc.IntRef
@@ -30,18 +27,56 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import java.io.ByteArrayInputStream
 import java.io.InputStream
+import java.net.URL
 import java.nio.charset.Charset
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.*
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
+import kotlin.collections.HashMap
 
 
 abstract class WebDialog(val project: Project,
                          val viewName: String,
                          val dimension: Dimension = Dimension(500, 500),
                          dialogTitle: String = "Dialog"): DialogWrapper(project) {
+
+    val jCefWebPanelWrapper = JCefWebPanelWrapper(viewName, dimension)
+    val centerPanel = lazy {
+        jCefWebPanelWrapper.createCenterPanel({callbacks(it)}, {onReady(it)})
+    }
+
+    init {
+        title = dialogTitle
+    }
+
+    override fun show() {
+        this.init()
+        super.show()
+    }
+
+    override fun createCenterPanel() = centerPanel.value
+
+    abstract fun callbacks(browser: JBCefBrowser): List<BrowserCallback>
+
+    open fun onReady(pipe: BrowserPipe) {}
+
+    override fun shouldCloseOnCross() = true
+
+    fun invokeOnUiThread(operation: () -> Unit) {
+        jCefWebPanelWrapper.invokeOnUiThread { operation() }
+    }
+
+    override fun dispose() {
+        Disposer.dispose(jCefWebPanelWrapper)
+    }
+
+}
+
+class JCefWebPanelWrapper(
+    val viewName: String,
+    val dimension: Dimension = Dimension(500, 500)
+): Disposable {
 
     /**
      *  WARNING, by strange issue JBCefBrowser locked when I try to call
@@ -51,59 +86,47 @@ abstract class WebDialog(val project: Project,
      *
      *  This label for avoid this issue
      */
-    val pointToThreading = JLabel(".");
+    val uiThreadAnchor = JLabel(".");
+    val pipeId: String = UUID.randomUUID().toString()
 
     init {
         ViewServer.startServer()
-        title = dialogTitle
     }
 
-    override fun show() {
-        this.init()
-        super.show()
-    }
+    fun createCenterPanel(callbacks: (browser: JBCefBrowser) -> List<BrowserCallback>, onReady: (BrowserPipe) -> Unit = {}): JComponent {
+        val url = "${ViewServer.getServerUrl()}/#/$viewName?pipeId=${pipeId}"
+        val uiThreadAnchor = this.uiThreadAnchor
 
-    override fun createCenterPanel(): JComponent? {
-        val browser = JBCefBrowser()
-        val url = "${ViewServer.getServerUrl()}/#/$viewName"
-        browser.cefBrowser.createImmediately()
+        val browser = JBCefBrowser(url)
         logger.info("URL load ${url}")
-        browser.loadURL(url)
-        val callbacks = callbacks(browser)
-        val browserPipe = BrowserPipe(browser, callbacks, BrowserCallback(WINDOW_READY_EVENT) { _, pipe -> onReady(pipe) })
+        val browserPipe = BrowserPipe(browser, pipeId, callbacks(browser), onReady)
+
+        // next line it's one more workaround for avoid internal cef npe
+        //browser.cefBrowser.client.addFocusHandler(FocusHandlerStub())
 
         val panel = JPanel(BorderLayout())
         panel.preferredSize = dimension
         panel.add(browser.component, BorderLayout.CENTER);
-        panel.add(pointToThreading, BorderLayout.SOUTH)
-        Disposer.register(this.disposable, browser)
-        Disposer.register(this.disposable, browserPipe)
+        panel.add(uiThreadAnchor, BorderLayout.SOUTH)
+        Disposer.register(this, browser)
+        Disposer.register(this, browserPipe)
 
         logger.info("inited dialog")
-
-        if (isDev) {
-            logger.info("try to open dev tools")
-            browser.openDevtools()
-            logger.info("try to open dev tools opened")
-        }
         return panel
     }
-
-    open fun setupView(browser: JBCefBrowser, pipe: BrowserPipe) {}
-
-    abstract fun callbacks(browser: JBCefBrowser): List<BrowserCallback>
-
-    open fun onReady(pipe: BrowserPipe) {}
-
-    override fun shouldCloseOnCross() = true
 
     fun invokeOnUiThread(operation: () -> Unit) {
         ApplicationManager.getApplication().invokeLater({
             operation.invoke();
-        }, ModalityState.stateForComponent(pointToThreading))
+        }, ModalityState.stateForComponent(uiThreadAnchor))
     }
 
+    override fun dispose() {
+        Disposer.dispose(this)
+    }
 }
+
+class FocusHandlerStub: CefFocusHandlerAdapter()
 
 /**
  * On linux for avoid crash gpu disabled.
@@ -115,15 +138,16 @@ class GpuDisabler: JBCefAppRequiredArgumentsProvider {
         get() = listOf("--disable-gpu", "--disable-gpu-compositing")
 }
 
-class BrowserPipe(private val browser: JBCefBrowser, callbacks: List<BrowserCallback>, onReady: BrowserCallback) : Disposable {
+class BrowserPipe(private val browser: JBCefBrowser, pipeId: String, callbacks: List<BrowserCallback>, onReady: (BrowserPipe) -> Unit = {}) : Disposable {
     private val events = HashMap<String, JBCefJSQuery>()
 
     init {
         addBrowserEvents(WINDOW_READY_EVENT)
         callbacks.forEach { addBrowserEvents(it.name) }
-        CefApp.getInstance().registerSchemeHandlerFactory("http", "registercallback", InjectJsHandlerFactory(inject()))
+        CefApp.getInstance().registerSchemeHandlerFactory("http", "localhost", ContentHandlerFactory(pipeId))
+        CefApp.getInstance().registerSchemeHandlerFactory("http", "registercallback-${pipeId}", InjectJsHandlerFactory(inject()))
         callbacks.forEach { subscribe(it) }
-        subscribe(onReady)
+        subscribe(BrowserCallback(WINDOW_READY_EVENT){_, pipe -> onReady(pipe)})
     }
 
     /**
@@ -139,7 +163,7 @@ class BrowserPipe(private val browser: JBCefBrowser, callbacks: List<BrowserCall
         });
         """.trimIndent()
             )
-        }.append("window.addEventListener(\"load\", () => messagePipe.post(\"$WINDOW_READY_EVENT\"));").toString()
+        }.append("window.addEventListener(\"load\", () => {console.log(\"Init callbacks\");messagePipe.post(\"$WINDOW_READY_EVENT\");});").toString()
     }
 
     /**
@@ -148,6 +172,8 @@ class BrowserPipe(private val browser: JBCefBrowser, callbacks: List<BrowserCall
      */
     private fun addBrowserEvents(vararg names: String) {
         names.forEach {
+            // TODO change when stable api will be provided
+            @Suppress("UnstableApiUsage")
             events[it] = JBCefJSQuery.create(browser)
         }
     }
@@ -197,18 +223,38 @@ class BrowserPipe(private val browser: JBCefBrowser, callbacks: List<BrowserCall
 
 data class BrowserCallback(val name: String, val callback: (String, BrowserPipe) -> Unit)
 
+class ContentHandlerFactory(val pipeId: String) : CefSchemeHandlerFactory {
+    override fun create(
+        cefBrowser: CefBrowser,
+        cefFrame: CefFrame,
+        s: String,
+        cefRequest: CefRequest
+    ): CefResourceHandler = ContentResourceHandler("text/html",
+        this::class.java.classLoader.getResource("/static/index.html")?.readText()?.replace("\${pipeId}", pipeId) ?: "", {
+        URL(cefRequest.url).path == "/"
+    })
+}
+
 class InjectJsHandlerFactory(val js: String): CefSchemeHandlerFactory {
     override fun create(
         cefBrowser: CefBrowser,
         cefFrame: CefFrame,
         s: String,
         cefRequest: CefRequest
-    ): CefResourceHandler = ContentResourceHandler(js, "application/javascript")
+    ): CefResourceHandler = ContentResourceHandler("application/javascript", js)
 }
 
-internal class ContentResourceHandler(content: String, val mimeType: String) : CefResourceHandlerAdapter() {
+open class ContentResourceHandler(
+    val mimeType: String,
+    content: String,
+    val handlerFilter: () -> Boolean = {true}
+) : CefResourceHandlerAdapter() {
+
     private val myInputStream: InputStream
     override fun processRequest(request: CefRequest, callback: CefCallback): Boolean {
+        if (!handlerFilter()) {
+            return false
+        }
         callback.Continue()
         return true
     }
