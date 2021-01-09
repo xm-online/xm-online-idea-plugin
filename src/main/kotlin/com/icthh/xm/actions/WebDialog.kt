@@ -94,7 +94,7 @@ class JCefWebPanelWrapper(
     }
 
     fun createCenterPanel(callbacks: (browser: JBCefBrowser) -> List<BrowserCallback>, onReady: (BrowserPipe) -> Unit = {}): JComponent {
-        val url = "${ViewServer.getServerUrl()}/#/$viewName?pipeId=${pipeId}"
+        val url = "${ViewServer.getServerUrl()}/app?${pipeId}#/$viewName"
         val uiThreadAnchor = this.uiThreadAnchor
 
         val browser = JBCefBrowser(url)
@@ -144,7 +144,6 @@ class BrowserPipe(private val browser: JBCefBrowser, pipeId: String, callbacks: 
     init {
         addBrowserEvents(WINDOW_READY_EVENT)
         callbacks.forEach { addBrowserEvents(it.name) }
-        CefApp.getInstance().registerSchemeHandlerFactory("http", "localhost", ContentHandlerFactory(pipeId))
         CefApp.getInstance().registerSchemeHandlerFactory("http", "registercallback-${pipeId}", InjectJsHandlerFactory(inject()))
         callbacks.forEach { subscribe(it) }
         subscribe(BrowserCallback(WINDOW_READY_EVENT){_, pipe -> onReady(pipe)})
@@ -223,18 +222,6 @@ class BrowserPipe(private val browser: JBCefBrowser, pipeId: String, callbacks: 
 
 data class BrowserCallback(val name: String, val callback: (String, BrowserPipe) -> Unit)
 
-class ContentHandlerFactory(val pipeId: String) : CefSchemeHandlerFactory {
-    override fun create(
-        cefBrowser: CefBrowser,
-        cefFrame: CefFrame,
-        s: String,
-        cefRequest: CefRequest
-    ): CefResourceHandler = ContentResourceHandler("text/html",
-        this::class.java.classLoader.getResource("/static/index.html")?.readText()?.replace("\${pipeId}", pipeId) ?: "", {
-        URL(cefRequest.url).path == "/"
-    })
-}
-
 class InjectJsHandlerFactory(val js: String): CefSchemeHandlerFactory {
     override fun create(
         cefBrowser: CefBrowser,
@@ -246,15 +233,11 @@ class InjectJsHandlerFactory(val js: String): CefSchemeHandlerFactory {
 
 open class ContentResourceHandler(
     val mimeType: String,
-    content: String,
-    val handlerFilter: () -> Boolean = {true}
+    content: String
 ) : CefResourceHandlerAdapter() {
 
     private val myInputStream: InputStream
     override fun processRequest(request: CefRequest, callback: CefCallback): Boolean {
-        if (!handlerFilter()) {
-            return false
-        }
         callback.Continue()
         return true
     }

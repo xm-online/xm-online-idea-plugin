@@ -1,16 +1,24 @@
 package com.icthh.xm;
 
 import com.icthh.xm.utils.SocketUtils;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
 
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class ViewServer {
 
@@ -19,7 +27,7 @@ public class ViewServer {
     public static Server embeddedServer;
     private static Integer serverPort = 54321;
     private static AtomicBoolean isInited = new AtomicBoolean(false);
-    public static boolean isDev = false; // Boolean.parseBoolean(System.getenv("IS_DEV_PLUGIN_RUN"));
+    public static boolean isDev = false;// Boolean.parseBoolean(System.getenv("IS_DEV_PLUGIN_RUN"));
 
     public static String getServerUrl() {
         if (isDev) {
@@ -42,6 +50,7 @@ public class ViewServer {
             ServletHolder holderPwd = new ServletHolder("default", DefaultServlet.class);
             holderPwd.setInitParameter("dirAllowed", "true");
             context.addServlet(holderPwd, "/*");
+            context.addServlet(AppServlet.class, "/app");
 
             serverPort = SocketUtils.Companion.findAvailableTcpPort();
 
@@ -54,4 +63,28 @@ public class ViewServer {
             LOGGER.info("\n\n\nServer url:" + getServerUrl() + "\n\n\n");
         }
     }
+
+    public static class AppServlet extends HttpServlet {
+        private static final long serialVersionUID = 1L;
+        private static final String index = readIndexHtml();
+
+        public AppServlet() {
+        }
+
+        private static String readIndexHtml() {
+            try {
+                return IOUtils.toString(AppServlet.class.getClassLoader().getResourceAsStream("/static/index.html"), UTF_8);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+            response.setContentType("text/html;charset=UTF-8");
+            var out = response.getOutputStream();
+            out.print(index.replace("${pipeId}", request.getQueryString()));
+        }
+    }
+
 }
+
