@@ -82,7 +82,7 @@ class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
         scalar: PsiElement
     ): Array<PsiReference> {
         val element = scalar.firstChild
-        return getEntitiesKeys(scalar.project, scalar.originalFile)
+        return scalar.project.xmEntitySpecService.getEntitiesKeys(scalar.originalFile)
             .mapNotNull { it.value }
             .filter { element.text.trim() == it.text.trim() }
             .map { toPsiReference(scalar, it) }

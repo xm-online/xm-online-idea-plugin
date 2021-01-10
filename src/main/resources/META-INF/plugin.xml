@@ -11,12 +11,14 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.vcs</depends>
     <depends>com.intellij.javafx</depends>
+    <depends>org.intellij.intelliLang</depends>
     <depends>Git4Idea</depends>
     <depends>org.intellij.groovy</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
 
-
     <extensions defaultExtensionNs="com.intellij">
+
+        <postStartupActivity implementation="com.icthh.xm.ProjectStartupActivity" />
 
         <jcef.appRequiredArgumentsProvider implementation="com.icthh.xm.actions.GpuDisabler"/>
 
@@ -26,11 +28,11 @@
         <iconProvider implementation="com.icthh.xm.extensions.ConfigIconProvider" order="first" />
         <treeStructureProvider implementation="com.icthh.xm.extensions.TreeProvider" />
 
-<!--        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />-->
-<!--        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />-->
+        <!--        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />-->
+        <!--        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />-->
 
-<!--        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />-->
-<!--        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />-->
+        <!--        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />-->
+        <!--        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />-->
 
         <!-- start xmentityspec.yml -->
         <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
@@ -38,8 +40,7 @@
         />
         <json.catalog.exclusion implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecSchemaExclusion" />
 
-        <multiHostInjector implementation="com.icthh.xm.extensions.entityspec.InputFromSpecJsonMultiHostInjector" />
-<!--        <languageInjector implementation="com.icthh.xm.extensions.entityspec.InputFromSpecJsonLanguageInjector" />-->
+        <multiHostInjector implementation="com.icthh.xm.extensions.entityspec.InputFromSpecJsonLanguageInjector" />
 
         <localInspection language="yaml" bundle="messages.YAMLBundle"
                          shortName="XmEntityValidation"

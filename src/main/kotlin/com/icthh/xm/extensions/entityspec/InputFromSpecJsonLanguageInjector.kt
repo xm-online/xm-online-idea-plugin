@@ -20,7 +20,7 @@ import org.jetbrains.yaml.psi.impl.YAMLScalarImpl
 import java.util.*
 
 
-class InputFromSpecJsonMultiHostInjector : MultiHostInjector {
+class InputFromSpecJsonLanguageInjector : MultiHostInjector {
 
     val language: Language? = Language.findLanguageByID("JSON")
 

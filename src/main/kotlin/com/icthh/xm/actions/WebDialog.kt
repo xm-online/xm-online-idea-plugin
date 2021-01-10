@@ -23,11 +23,11 @@ import org.cef.misc.IntRef
 import org.cef.misc.StringRef
 import org.cef.network.CefRequest
 import org.cef.network.CefResponse
+import org.jetbrains.annotations.NotNull
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.io.ByteArrayInputStream
 import java.io.InputStream
-import java.net.URL
 import java.nio.charset.Charset
 import java.util.*
 import javax.swing.JComponent
@@ -41,7 +41,7 @@ abstract class WebDialog(val project: Project,
                          val dimension: Dimension = Dimension(500, 500),
                          dialogTitle: String = "Dialog"): DialogWrapper(project) {
 
-    val jCefWebPanelWrapper = JCefWebPanelWrapper(viewName, dimension)
+    val jCefWebPanelWrapper = JCefWebPanelWrapper(viewName, dimension, this.disposable)
     val centerPanel = lazy {
         jCefWebPanelWrapper.createCenterPanel({callbacks(it)}, {onReady(it)})
     }
@@ -67,16 +67,13 @@ abstract class WebDialog(val project: Project,
         jCefWebPanelWrapper.invokeOnUiThread { operation() }
     }
 
-    override fun dispose() {
-        Disposer.dispose(jCefWebPanelWrapper)
-    }
-
 }
 
 class JCefWebPanelWrapper(
     val viewName: String,
-    val dimension: Dimension = Dimension(500, 500)
-): Disposable {
+    val dimension: Dimension = Dimension(500, 500),
+    val disposable: Disposable
+) {
 
     /**
      *  WARNING, by strange issue JBCefBrowser locked when I try to call
@@ -101,15 +98,12 @@ class JCefWebPanelWrapper(
         logger.info("URL load ${url}")
         val browserPipe = BrowserPipe(browser, pipeId, callbacks(browser), onReady)
 
-        // next line it's one more workaround for avoid internal cef npe
-        //browser.cefBrowser.client.addFocusHandler(FocusHandlerStub())
-
         val panel = JPanel(BorderLayout())
         panel.preferredSize = dimension
         panel.add(browser.component, BorderLayout.CENTER);
         panel.add(uiThreadAnchor, BorderLayout.SOUTH)
-        Disposer.register(this, browser)
-        Disposer.register(this, browserPipe)
+        Disposer.register(this.disposable, browser)
+        Disposer.register(this.disposable, browserPipe)
 
         logger.info("inited dialog")
         return panel
@@ -119,10 +113,6 @@ class JCefWebPanelWrapper(
         ApplicationManager.getApplication().invokeLater({
             operation.invoke();
         }, ModalityState.stateForComponent(uiThreadAnchor))
-    }
-
-    override fun dispose() {
-        Disposer.dispose(this)
     }
 }
 

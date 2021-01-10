@@ -10,6 +10,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.patterns.ElementPattern
+import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiElementVisitor.EMPTY_VISITOR
@@ -23,6 +24,7 @@ import com.jetbrains.jsonSchema.impl.JsonSchemaComplianceChecker
 import com.jetbrains.jsonSchema.impl.JsonSchemaObject
 import git4idea.util.GitFileUtils
 import org.apache.commons.text.similarity.LevenshteinDistance
+import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import org.jetbrains.yaml.YAMLElementGenerator
 import org.jetbrains.yaml.psi.*
 import org.jetbrains.yaml.psi.impl.YAMLScalarImpl
@@ -33,8 +35,11 @@ import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.ArrayList
+import kotlin.reflect.KProperty1
 
 const val TWO_DOLLARS = "${"$"}${"$"}"
+
+data class SpecSection(val name: String, val keyExtractor: KProperty1<XmEntitySpecInfo, List<String>>)
 
 class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
 
@@ -47,6 +52,7 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
                 { "Create entity save lep $it" },
                 "/lep/service/entity/"
             )
+            moveToSeparateFileTip(element, holder)
             checkEntityKeyDuplication(element, holder)
         }
         addLocalInspection(entitySectionPlace("functions", "key")) { element, holder ->
@@ -54,7 +60,7 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
             functionCheckDuplicateKeys(element, holder)
         }
         addLocalInspection(entitySectionPlace("links", "key")) { element, holder ->
-            checkDuplicateKeys(element, holder, "links", "key", "link keys")
+            checkDuplicateKeys(element, holder, SpecSection("links", XmEntitySpecInfo::linksKeys), "link keys")
         }
         addLocalInspection(entitySectionPlace("links", "typeKey")) { element, holder ->
             checkEntityKeyIsExists(element, holder)
@@ -67,9 +73,16 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
             changeStateLep(element, holder)
             checkStateKeys(element, holder)
         }
-        listOf("attachments", "calendars", "locations", "tags", "comments", "ratings") .forEach {
-            addLocalInspection(entitySectionPlace(it, "key")) { element, holder ->
-                checkDuplicateKeys(element, holder, it, "key", "$it keys")
+        listOf(
+            SpecSection("attachments", XmEntitySpecInfo::attachmentsKeys),
+            SpecSection("calendars", XmEntitySpecInfo::calendarsKeys),
+            SpecSection("locations", XmEntitySpecInfo::locationsKeys),
+            SpecSection("tags", XmEntitySpecInfo::tagsKeys),
+            SpecSection("comments", XmEntitySpecInfo::commentsKeys),
+            SpecSection("ratings", XmEntitySpecInfo::ratingsKeys),
+        ) .forEach {
+            addLocalInspection(entitySectionPlace(it.name, "key")) { element, holder ->
+                checkDuplicateKeys(element, holder, it, "${it.name} keys")
             }
         }
         addLocalInspection(calendarEventFieldPlace("key")) { element, holder ->
@@ -139,6 +152,56 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
             { "Create change state lep file $it" },
             "/lep/lifecycle/chained/"
         )
+    }
+
+    private fun moveToSeparateFileTip(element: LeafPsiElement, holder: ProblemsHolder) {
+        val project = holder.project
+        val file = holder.file
+        val containingDirectory = file.containingDirectory
+        val isEntityDir = containingDirectory?.name?.equals("entity") ?: false
+        val isEntitySpecFile = "xmentityspec.yml".equals(file.name)
+        if (isEntityDir && isEntitySpecFile) {
+            val text = element.text
+            if (text.contains('.') && text.split(".").first().isNotBlank()) {
+                splitXmEntityTip(element, holder, containingDirectory, text.split(".").first().toLowerCase())
+            }
+            splitXmEntityTip(element, holder, containingDirectory, text.toLowerCase())
+        }
+    }
+
+    private fun splitXmEntityTip(
+        element: LeafPsiElement,
+        holder: ProblemsHolder,
+        containingDirectory: PsiDirectory,
+        fileName: String
+    ) {
+        val description = "Move entity declaration to separate file"
+        holder.registerProblem(element, description, INFORMATION, object : LocalQuickFix {
+            override fun getFamilyName() = "Move entity declaration to separate file (xmentityspec/$fileName.yml)"
+
+            override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+                var prefix = "---\ntypes:\n"
+                val path = containingDirectory.virtualFile.path + "/xmentityspec/${fileName}.yml"
+                val file = VfsUtil.findFile(File(path).toPath(), true)
+                if (file != null && file.exists()) {
+                    prefix = VfsUtil.loadText(file).trimEnd() + "\n"
+                }
+                ApplicationManager.getApplication().runWriteAction {
+                    val seqOffset = element.getParentOfType<YAMLSequence>()?.parent?.childrenOfType<PsiElement>()
+                        ?.filter { it is LeafPsiElement }?.last()
+                    createFile(
+                        containingDirectory.virtualFile.path,
+                        "/xmentityspec",
+                        "/xmentityspec/${fileName}.yml",
+                        project,
+                        prefix + "${seqOffset?.text}${element.getParentOfType<YAMLSequenceItem>()?.text}\n"
+                    )
+                    element.getParentOfType<YAMLSequenceItem>()?.delete()
+                    project.xmEntitySpecService.invalidate(element.originalFile.getTenantName(project))
+                    project.save()
+                }
+            }
+        })
     }
 
     private fun lepCreationTip(
@@ -261,9 +324,11 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
         }
     }
 
+    private val ProblemsHolder.spec get() = project.xmEntitySpecService.getEntitySpec(file.originalFile)
+
     private fun checkCalendarEventsKeyDuplication(element: PsiElement, holder: ProblemsHolder) {
         val parent = element.getParentOfType<YAMLKeyValue>() ?: return
-        val count = getAllEventsKeys(element).groupingBy { it }.eachCount().get(parent.valueText) ?: 0
+        val count = holder.spec.eventsKeys.groupingBy { it }.eachCount().get(parent.valueText) ?: 0
         if (count > 1) {
             holder.registerProblem(element, "Duplicate events key ${parent.valueText}", ERROR)
         }
@@ -284,13 +349,11 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
     private fun checkDuplicateKeys(
         element: PsiElement,
         holder: ProblemsHolder,
-        section: String,
-        attribute: String,
+        section: SpecSection,
         message: String
     ) {
         val parent = element.getParentOfType<YAMLKeyValue>() ?: return
-
-        val count = getAllKeys(parent, section, attribute).groupingBy { it }.eachCount().get(parent.valueText) ?: 0
+        val count = section.keyExtractor.get(holder.spec).groupingBy { it }.eachCount().get(parent.valueText) ?: 0
         if (count > 1) {
             holder.registerProblem(element, "Duplicate ${message} ${parent.valueText}", ERROR)
         }
@@ -303,27 +366,13 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
         val parent = element.getParentOfType<YAMLKeyValue>() ?: return
 
         val functionName = translateToLepConvention(parent.valueText)
-        val count = getAllKeys(parent, "functions", "key")
+        val count = holder.spec.functionKeys
             .map { translateToLepConvention(it) }
             .groupingBy { it }.eachCount().get(functionName) ?: 0
         if (count > 1) {
             val (_, fullFunctionName) = toFunctionKey(element)
             holder.registerProblem(element, "Duplicate ${fullFunctionName} name", ERROR)
         }
-    }
-
-    private fun getAllKeys(
-        element: PsiElement,
-        sectionName: String,
-        fieldName: String
-    ): List<String> {
-        return getAllSubElements(element, sectionName, fieldName).map { it.valueText.trim() }
-    }
-
-    private fun getAllEventsKeys(element: PsiElement): List<String> {
-        return getAllSubElements(element, "calendars", "events")
-            .map { it.findChildOfType<YAMLSequence>() }
-            .map{ it.mapToFields("key") }.flatten().map{ it.valueText }
     }
 
     private fun functionKeyCheck(element: PsiElement, holder: ProblemsHolder) {
@@ -353,10 +402,22 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
         project: Project,
         pathToLep: String = ""
     ) {
-        File(lepDirectory + pathToLep).mkdirs()
-        val file = File(lepDirectory + lepName)
-        file.createNewFile()
-        file.writeText("return null")
+        createFile(lepDirectory, pathToLep, lepName, project, "return null")
+    }
+
+    private fun createFile(
+        directory: String,
+        path: String = "",
+        name: String,
+        project: Project,
+        body: String
+    ) {
+        File(directory + path).mkdirs()
+        val file = File(directory + name)
+        if (!file.exists()) {
+            file.createNewFile()
+        }
+        file.writeText(body)
         val virtualFile = VfsUtil.findFileByIoFile(file, true) ?: return
         val psiFile = virtualFile.toPsiFile(project)
         psiFile?.navigate(true)
@@ -478,4 +539,9 @@ private fun PsiElement.getFunctionDirectory(): String {
     return "${getRootFolder()}/lep/function/"
 }
 
-private fun PsiElement.getRootFolder() = this.originalFile.virtualFile.path.substringBeforeLast('/')
+private fun PsiElement.getRootFolder(): String {
+    val project = this.project
+    val tenantName = this.originalFile.getTenantName(project)
+    val path = "${project.basePath}/config/tenants/${tenantName}/entity"
+    return path
+}

@@ -1,5 +1,6 @@
 package com.icthh.xm.extensions.entityspec
 
+import com.icthh.xm.extensions.entityspec.XmEntitySpecInfo.Companion.NULL_OBJECT
 import com.icthh.xm.service.getTenantName
 import com.icthh.xm.service.toPsiFile
 import com.icthh.xm.utils.*
@@ -19,9 +20,14 @@ import org.jetbrains.yaml.psi.*
 import java.io.File
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
+import kotlin.reflect.KProperty1
 
 val IS_ENTITY_SPEC: Key<Boolean> = Key.create("IS_ENTITY_SPEC")
 val ORIGINAL_FILE: Key<PsiFile> = Key.create("ORIGINAL_FILE")
+val TENANT_NAME: Key<String> = Key.create("TENANT_NAME")
+val XMENTITY_SPEC_SERVICE: Key<XmEntitySpecService> = Key.create("XMENTITY_SPEC_SERVICE")
 
 fun <T> PsiElement.withCache(compute: () -> T): T {
     return CachedValuesManager.getManager(project).getCachedValue(this) {
@@ -197,58 +203,12 @@ fun entitySpecField(
 
 fun getAllEntitiesKeys(project: Project,
                        originalFile: PsiFile): List<String> {
-    val cachedValue = getEntitiesKeys(project, originalFile)
-    return cachedValue.map { it.valueText }
+    return project.xmEntitySpecService.getEntitiesKeys(originalFile).map { it.valueText }
 }
 
-fun getEntitiesKeys(
-    project: Project,
-    originalFile: PsiFile
-): List<YAMLKeyValue> {
-    val entityKeys = ArrayList<YAMLKeyValue>()
-    start("getEntitiesKeys")
-    val tenantName = originalFile.virtualFile.getTenantName(project)
-    val path = "/config/tenants/${tenantName}/entity/xmentityspec"
-    val specYml = VfsUtil.findFile(File("${project.basePath}/$path.yml").toPath(), true)
-    val psiFile = specYml?.toPsiFile(project) ?: return emptyList()
-    entityKeys.addAll(getEntityKeys(project, psiFile))
-
-    val specDirectory = VfsUtil.findFile(File("${project.basePath}/$path").toPath(), true)
-    specDirectory?.children?.toList()?.mapNotNull { it.toPsiFile(project) }?.forEach {
-        entityKeys.addAll(getEntityKeys(project, it))
-    }
-    stop("getEntitiesKeys")
-    return entityKeys
-}
-
-private fun getEntityKeys(
-    project: Project,
-    psiFile: PsiFile
-) = CachedValuesManager.getManager(project).getCachedValue(psiFile) {
-    val file = psiFile.originalFile
-    project.logger.info("\n\n\n UPDATE ${file.name} cache \n\n\n")
-    val keys = getEntityDeclarations(file).getKeys()
-    CachedValueProvider.Result.create(keys, MODIFICATION_COUNT)
-}
-
-fun getEntityDeclarations(originalFile: PsiFile): YAMLSequence? = originalFile
-    .getChildOfType<YAMLDocument>()
-    .getChildOfType<YAMLMapping>()
-    .getChildOfType<YAMLKeyValue>()
-    .getChildOfType<YAMLSequence>()
-
-fun getEntityKeys(element: PsiElement) = getEntitiesKeys(element.project, element.originalFile)
+fun getEntityKeys(element: PsiElement) = element.project.xmEntitySpecService.getEntitiesKeys(element.originalFile)
 
 fun getAllEntityKeys(element: PsiElement) = getAllEntitiesKeys(element.project, element.originalFile)
-
-fun getAllSubElements(
-    element: PsiElement,
-    sectionName: String,
-    fieldName: String
-): List<YAMLKeyValue> {
-    return getEntityDeclarations(element.originalFile).mapToFields(sectionName)
-        .map{ it.getChildOfType<YAMLSequence>().mapToFields(fieldName) }.flatten()
-}
 
 fun YAMLSequenceItem.getStateKeys(): List<String> {
     val stateKeys = stateKeysPsi().map { it.valueText }
@@ -286,3 +246,223 @@ val PsiElement.originalFile: PsiFile
         }
         return originalFile
     }
+
+fun PsiFile.getTenantName(project: Project): String {
+    var tenantName = getUserData(TENANT_NAME)
+    if (tenantName == null) {
+        tenantName = virtualFile.getTenantName(project)
+        putUserData(TENANT_NAME, tenantName)
+    }
+    return tenantName
+}
+
+val Project.xmEntitySpecService: XmEntitySpecService
+    get() {
+        val service = this.getUserData(XMENTITY_SPEC_SERVICE)
+        if (service == null) {
+            return synchronized(this) {
+                var userData = getUserData(XMENTITY_SPEC_SERVICE)
+                if (userData == null) {
+                    userData = XmEntitySpecService(this)
+                    putUserData(XMENTITY_SPEC_SERVICE, userData)
+                }
+                userData
+            }
+        }
+        return service
+    }
+
+class XmEntitySpecService(val project: Project) {
+    private val entityByTenants: MutableMap<String, XmEntitySpecInfo> = ConcurrentHashMap()
+    private val filesByTenants: MutableMap<String, MutableSet<String>> = ConcurrentHashMap()
+    private val entityFiles: MutableMap<String, XmEntitySpecInfo> = ConcurrentHashMap()
+
+    fun getEntitiesKeys(
+        originalFile: PsiFile
+    ): List<YAMLKeyValue> {
+        val result = getEntitySpec(originalFile)
+        return result.keys
+    }
+
+    fun getEntitySpec(originalFile: PsiFile): XmEntitySpecInfo {
+        start("getEntitiesSpec")
+        val tenant = originalFile.getTenantName(project)
+        val result = entityByTenants.computeIfAbsent(tenant) {
+            computeTenantEntityInfo(tenant)
+        }
+        stop("getEntitiesSpec")
+        return result
+    }
+
+    fun removeEntityFile(file: VirtualFile) {
+        logger.info("removeEntityFile")
+        val tenantName = file.getTenantName(project)
+        val files = filesByTenants.get(tenantName)
+        val path = file.path.substring(project.basePath?.length ?: 0)
+        files?.remove(path)
+        entityFiles.remove(path)
+        entityByTenants.remove(tenantName)
+    }
+
+    fun updateEntityFile(file: VirtualFile) {
+        logger.info("updateEntityFile")
+        val tenantName = file.getTenantName(project)
+        val files = filesByTenants.get(tenantName)
+        val path = file.path.substring(project.basePath?.length ?: 0)
+        files?.add(path)
+        entityFiles.put(path, file.toXmEntitySpecInfo())
+        entityByTenants.remove(tenantName)
+    }
+
+    private fun computeTenantEntityInfo(tenantName: String): XmEntitySpecInfo {
+        logger.info("computeTenantEntityInfo")
+        val builder = XmEntitySpecInfoBuilder(tenantName)
+        filesByTenants.computeIfAbsent(tenantName) {
+            computeEntityFiles(tenantName)
+        }.map{
+            entityFiles.computeIfAbsent(it) {
+                computeEntityInfo(it)
+            }
+        }.forEach {
+            builder.add(it)
+        }
+        return builder.toXmEntitySpecInfo()
+    }
+
+    private fun computeEntityFiles(
+        tenantName: String
+    ): HashSet<String> {
+        logger.info("computeEntityFiles")
+        val files = HashSet<String>()
+        val path = "/config/tenants/${tenantName}/entity/xmentityspec"
+        val specYml = VfsUtil.findFile(File("${project.basePath}/$path.yml").toPath(), true)
+        val psiFile = specYml?.toPsiFile(project)
+        psiFile?.let { files.add(path + ".yml") }
+
+        val specDirectory = VfsUtil.findFile(File("${project.basePath}/$path").toPath(), true)
+        specDirectory?.children?.toList()?.mapNotNull { it.toPsiFile(project) }?.forEach {
+            files.add(path + "/" + it.name)
+        }
+        return files
+    }
+
+    private fun VirtualFile.toXmEntitySpecInfo(): XmEntitySpecInfo {
+        val psiFile = toPsiFile(project) ?: return NULL_OBJECT
+        return psiFile.toXmEntitySpecInfo()
+    }
+
+    private fun PsiFile.toXmEntitySpecInfo(): XmEntitySpecInfo {
+        return XmEntitySpecInfo(
+            getTenantName(this.project),
+            getFileXmEntityKeys(),
+            getAllKeys("functions", "key"),
+            getAllEventsKeys(),
+            getAllKeys("links", "key"),
+            getAllKeys("attachments", "key"),
+            getAllKeys("calendars", "key"),
+            getAllKeys("locations", "key"),
+            getAllKeys("tags", "key"),
+            getAllKeys("comments", "key"),
+            getAllKeys("ratings", "key")
+        )
+    }
+
+    private fun PsiFile.getFileXmEntityKeys(): List<YAMLKeyValue> {
+        val file = originalFile
+        project.logger.info("\n\n\n UPDATE ${file.name} cache \n\n\n")
+        return file.getEntityDeclarations().getKeys()
+    }
+
+    private fun computeEntityInfo(
+        path: String
+    ): XmEntitySpecInfo {
+        logger.info("computeEntityInfo")
+        val specYml = VfsUtil.findFile(File("${project.basePath}$path").toPath(), true)
+        val psiFile = specYml?.toPsiFile(project)
+        return psiFile?.toXmEntitySpecInfo() ?: NULL_OBJECT
+    }
+
+    private fun PsiFile.getEntityDeclarations(): YAMLSequence? = this
+        .getChildOfType<YAMLDocument>()
+        .getChildOfType<YAMLMapping>()
+        .getChildOfType<YAMLKeyValue>()
+        .getChildOfType<YAMLSequence>()
+
+
+    private fun PsiFile.getAllSubElements(
+        sectionName: String,
+        fieldName: String
+    ): List<YAMLKeyValue> {
+        return getEntityDeclarations().mapToFields(sectionName)
+            .map{ it.getChildOfType<YAMLSequence>().mapToFields(fieldName) }.flatten()
+    }
+
+    private fun PsiFile.getAllKeys(
+        sectionName: String,
+        fieldName: String
+    ): List<String> {
+        return getAllSubElements(sectionName, fieldName).map { it.valueText.trim() }
+    }
+
+    private fun PsiFile.getAllEventsKeys(): List<String> {
+        return getAllSubElements("calendars", "events")
+            .map { it.findChildOfType<YAMLSequence>() }
+            .map{ it.mapToFields("key") }.flatten().map{ it.valueText }
+    }
+
+    fun invalidate(tenantName: String) {
+        entityFiles.values.removeIf{it.tenantName == tenantName}
+        filesByTenants.remove(tenantName)
+        entityByTenants.remove(tenantName)
+    }
+
+}
+
+data class XmEntitySpecInfo(
+    val tenantName: String,
+    val keys: List<YAMLKeyValue>,
+    val functionKeys: List<String>,
+    val eventsKeys: List<String>,
+    val linksKeys: List<String>,
+    val attachmentsKeys: List<String>,
+    val calendarsKeys: List<String>,
+    val locationsKeys: List<String>,
+    val tagsKeys: List<String>,
+    val commentsKeys: List<String>,
+    val ratingsKeys: List<String>
+) {
+    companion object {
+        val NULL_OBJECT = XmEntitySpecInfo("NULL", emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(),
+            emptyList(), emptyList(), emptyList(), emptyList())
+    }
+
+}
+
+class XmEntitySpecInfoBuilder(
+    val tenantName: String,
+    val keys: MutableList<YAMLKeyValue> = ArrayList(),
+    val functionKeys: MutableList<String> = ArrayList(),
+    val eventsKeys: MutableList<String> = ArrayList(),
+    val linksKeys: MutableList<String> = ArrayList(),
+    val attachmentsKeys: MutableList<String> = ArrayList(),
+    val calendarsKeys: MutableList<String> = ArrayList(),
+    val locationsKeys: MutableList<String> = ArrayList(),
+    val tagsKeys: MutableList<String> = ArrayList(),
+    val commentsKeys: MutableList<String> = ArrayList(),
+    val ratingsKeys: MutableList<String> = ArrayList()
+) {
+    fun add(it: XmEntitySpecInfo) {
+        keys.addAll(it.keys)
+        functionKeys.addAll(it.functionKeys)
+        eventsKeys.addAll(it.eventsKeys)
+        linksKeys.addAll(it.linksKeys)
+        attachmentsKeys.addAll(it.attachmentsKeys)
+        calendarsKeys.addAll(it.calendarsKeys)
+        locationsKeys.addAll(it.locationsKeys)
+        tagsKeys.addAll(it.tagsKeys)
+        commentsKeys.addAll(it.commentsKeys)
+        ratingsKeys.addAll(it.ratingsKeys)
+    }
+    fun toXmEntitySpecInfo() = XmEntitySpecInfo(tenantName, keys, functionKeys, eventsKeys, linksKeys, attachmentsKeys,
+        calendarsKeys, locationsKeys, tagsKeys, commentsKeys, ratingsKeys)
+}

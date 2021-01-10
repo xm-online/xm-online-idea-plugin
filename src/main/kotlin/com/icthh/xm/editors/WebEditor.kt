@@ -15,13 +15,9 @@ abstract class WebEditor(val project: Project,
                          val title: String,
                          val dimension: Dimension = Dimension(500, 500)): FileEditorBase() {
 
-    val jCefWebPanelWrapper = JCefWebPanelWrapper(viewName, dimension)
+    val jCefWebPanelWrapper = JCefWebPanelWrapper(viewName, dimension, this)
     val centerPanel = lazy {
         jCefWebPanelWrapper.createCenterPanel({callbacks(it)}, {onReady(it)})
-    }
-
-    init {
-        Disposer.register(this, jCefWebPanelWrapper)
     }
 
     override fun getComponent(): JComponent = centerPanel.value

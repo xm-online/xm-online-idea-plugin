@@ -27,7 +27,7 @@ import com.intellij.openapi.actionSystem.DataContext
 class ConfigurationProjectApp: ProjectComponent {
 
     override fun initComponent() {
-        // this.startDiagnostic()
+        this.startDiagnostic()
     }
 
     override fun disposeComponent() {
