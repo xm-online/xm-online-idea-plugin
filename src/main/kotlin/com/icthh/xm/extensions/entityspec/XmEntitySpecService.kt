@@ -369,6 +369,7 @@ class XmEntitySpecService(val project: Project) {
 
     private fun PsiFile.getFileXmEntityKeys(): List<YAMLKeyValue> {
         val file = originalFile
+        file.virtualFile.refresh(false, false)
         project.logger.info("\n\n\n UPDATE ${file.name} cache \n\n\n")
         return file.getEntityDeclarations().getKeys()
     }

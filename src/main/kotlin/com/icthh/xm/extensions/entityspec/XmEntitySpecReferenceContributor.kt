@@ -42,7 +42,7 @@ class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
 
     private fun referenceToState(element: PsiElement): Array<PsiReference> {
         val entityDefinition = element.getParentOfType<YAMLKeyValue>().getParentOfType<YAMLSequence>()
-            .getParentOfType<YAMLSequenceItem>()!!
+            .getParentOfType<YAMLSequenceItem>() ?: return emptyArray()
         return entityDefinition.stateKeysPsi().filter { element.text.trim() == it.valueText.trim() }
             .map { toPsiReference(element, it) }
             .toTypedArray()

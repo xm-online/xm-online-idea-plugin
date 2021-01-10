@@ -1,10 +1,12 @@
 package com.icthh.xm.extensions.entityspec
 
+import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.service.getRepository
 import com.icthh.xm.service.toPsiFile
 import com.icthh.xm.utils.*
 import com.intellij.codeInspection.*
 import com.intellij.codeInspection.ProblemHighlightType.*
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
@@ -23,6 +25,7 @@ import com.jetbrains.jsonSchema.impl.JsonComplianceCheckerOptions
 import com.jetbrains.jsonSchema.impl.JsonSchemaComplianceChecker
 import com.jetbrains.jsonSchema.impl.JsonSchemaObject
 import git4idea.util.GitFileUtils
+import org.apache.commons.io.FileUtils
 import org.apache.commons.text.similarity.LevenshteinDistance
 import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import org.jetbrains.yaml.YAMLElementGenerator
@@ -31,11 +34,16 @@ import org.jetbrains.yaml.psi.impl.YAMLScalarImpl
 import org.jetbrains.yaml.schema.YamlJsonPsiWalker
 import org.jetbrains.yaml.schema.YamlJsonSchemaHighlightingInspection
 import java.io.File
+import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.Path
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.ArrayList
 import kotlin.reflect.KProperty1
+import com.intellij.codeInspection.InspectionManager
+
+
+
 
 const val TWO_DOLLARS = "${"$"}${"$"}"
 
@@ -160,7 +168,9 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
         val containingDirectory = file.containingDirectory
         val isEntityDir = containingDirectory?.name?.equals("entity") ?: false
         val isEntitySpecFile = "xmentityspec.yml".equals(file.name)
-        if (isEntityDir && isEntitySpecFile) {
+        val seqOffset = element.getParentOfType<YAMLSequence>()?.parent?.childrenOfType<PsiElement>()
+            ?.filter { it is LeafPsiElement }?.last()
+        if (isEntityDir && isEntitySpecFile && seqOffset != null) {
             val text = element.text
             if (text.contains('.') && text.split(".").first().isNotBlank()) {
                 splitXmEntityTip(element, holder, containingDirectory, text.split(".").first().toLowerCase())
@@ -181,24 +191,48 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
 
             override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
                 var prefix = "---\ntypes:\n"
-                val path = containingDirectory.virtualFile.path + "/xmentityspec/${fileName}.yml"
-                val file = VfsUtil.findFile(File(path).toPath(), true)
-                if (file != null && file.exists()) {
-                    prefix = VfsUtil.loadText(file).trimEnd() + "\n"
+                val targetFilePath = containingDirectory.virtualFile.path + "/xmentityspec/${fileName}.yml"
+                val targetFile = VfsUtil.findFile(File(targetFilePath).toPath(), true)
+                if (targetFile != null && targetFile.exists()) {
+                    prefix = VfsUtil.loadText(targetFile).trimEnd() + "\n"
                 }
                 ApplicationManager.getApplication().runWriteAction {
                     val seqOffset = element.getParentOfType<YAMLSequence>()?.parent?.childrenOfType<PsiElement>()
                         ?.filter { it is LeafPsiElement }?.last()
+
+                    if (seqOffset == null) {
+                        project.showNotification("WARNING", "Can not perform action during indexing", NotificationType.WARNING) {
+                            "Can not perform action during indexing"
+                        }
+                        return@runWriteAction
+                    }
+
+                    val seqItem = element.getParentOfType<YAMLSequenceItem>() ?: return@runWriteAction
                     createFile(
                         containingDirectory.virtualFile.path,
                         "/xmentityspec",
                         "/xmentityspec/${fileName}.yml",
                         project,
-                        prefix + "${seqOffset?.text}${element.getParentOfType<YAMLSequenceItem>()?.text}\n"
+                        prefix + "${seqOffset.text ?: ""}${seqItem.text}\n"
                     )
-                    element.getParentOfType<YAMLSequenceItem>()?.delete()
-                    project.xmEntitySpecService.invalidate(element.originalFile.getTenantName(project))
+
+                    val originalFile = element.originalFile
+                    val tenantName = originalFile.getTenantName(project)
+                    var body = originalFile.text.substring(0, seqItem.textRange.startOffset)
+                    body += originalFile.text.substring(seqItem.textRange.endOffset)
+                    val file = File(originalFile.virtualFile.path)
+                    FileUtils.writeStringToFile(file, body, UTF_8)
+                    project.xmEntitySpecService.invalidate(tenantName)
                     project.save()
+                    ApplicationManager.getApplication().executeOnPooledThread {
+                        Thread.sleep(2000)
+                        ApplicationManager.getApplication().invokeLater {
+                            project.xmEntitySpecService.invalidate(tenantName)
+                            originalFile.virtualFile?.refresh(true, false)
+                            VfsUtil.findFile(File(targetFilePath).toPath(), true)?.refresh(true, false)
+                            project.save()
+                        }
+                    }
                 }
             }
         })
@@ -423,7 +457,9 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
         psiFile?.navigate(true)
 
         val repository = project.getRepository()
-        GitFileUtils.addPaths(project, repository.root, listOf(VcsUtil.getFilePath(virtualFile)))
+        ApplicationManager.getApplication().executeOnPooledThread {
+            GitFileUtils.addPaths(project, repository.root, listOf(VcsUtil.getFilePath(virtualFile)))
+        }
     }
 
 }
