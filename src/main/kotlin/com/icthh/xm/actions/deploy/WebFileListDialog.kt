@@ -26,6 +26,7 @@ import git4idea.GitRevisionNumber
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 import java.awt.Dimension
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
     project = project, viewName = "file-list-dialog", dialogTitle = "File to update",
@@ -34,7 +35,7 @@ class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
     lateinit var mainComponent: HasComponents
 
     val mapper = jacksonObjectMapper()
-    val conflictedFilesContent = HashMap<String, String>()
+    val configFilesContent = ConcurrentHashMap<String, String>()
 
     override fun callbacks(browser: JBCefBrowser): List<BrowserCallback> {
         val modalState = ModalityState.current()
@@ -75,7 +76,7 @@ class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
                 invokeOnUiThread {
                     val virtualFile = VfsUtil.findFile(File(path).toPath(), false) ?: return@invokeOnUiThread
                     showDiffDialog(
-                        "File difference", conflictedFilesContent.get(path) ?: "",
+                        "File difference", configFilesContent.get(path) ?: "",
                         path, fileName, project, virtualFile
                     )
                 }
@@ -116,8 +117,8 @@ class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
                 if (!config.equals(content) && wasChanged(config, settings, fileName)) {
                     file.editedInThisIteration = false
                     file.isConflict = true
-                    conflictedFilesContent.put(fileName, config)
                 }
+                configFilesContent.put(fileName, config)
             }
             onChange.invoke(file)
         }
