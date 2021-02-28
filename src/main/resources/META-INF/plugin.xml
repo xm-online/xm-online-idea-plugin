@@ -32,7 +32,7 @@
         <iconProvider implementation="com.icthh.xm.extensions.ConfigIconProvider" order="first" />
         <treeStructureProvider implementation="com.icthh.xm.extensions.TreeProvider" />
 
-<!--        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />-->
+        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />
 <!--        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />-->
 
         <!--        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />-->

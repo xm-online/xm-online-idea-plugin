@@ -1,6 +1,7 @@
 package com.icthh.xm.actions
 
 import com.icthh.xm.ViewServer
+import com.icthh.xm.ViewServer.isDev
 import com.icthh.xm.utils.logger
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -134,7 +135,14 @@ class BrowserPipe(private val browser: JBCefBrowser, pipeId: String, callbacks: 
     init {
         addBrowserEvents(WINDOW_READY_EVENT)
         callbacks.forEach { addBrowserEvents(it.name) }
-        CefApp.getInstance().registerSchemeHandlerFactory("http", "registercallback-${pipeId}", InjectJsHandlerFactory(inject()))
+        val js = inject()
+        val instance = CefApp.getInstance()
+        instance.registerSchemeHandlerFactory("http", "registercallback-${pipeId}", InjectJsHandlerFactory(js))
+        if (isDev) {
+            instance.registerSchemeHandlerFactory("http", "registercallback-dev", InjectJsHandlerFactory(js))
+        } else {
+            instance.registerSchemeHandlerFactory("http", "registercallback-dev", InjectJsHandlerFactory("console.log('PROD MODE');"))
+        }
         callbacks.forEach { subscribe(it) }
         subscribe(BrowserCallback(WINDOW_READY_EVENT){_, pipe -> onReady(pipe)})
     }

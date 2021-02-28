@@ -1,1 +1,55 @@
-<p>role-matrix works!</p>
+<div class="role-matrix-container">
+    <div class="filters-row">
+        <mat-form-field appearance="fill" class="filter-item">
+            <mat-label>Permission groups</mat-label>
+            <mat-select multiple [(ngModel)]="visibleMsNames" (ngModelChange)="updateFilter()">
+                <mat-option *ngFor="let msName of msNames" [value]="msName">{{msName}}</mat-option>
+            </mat-select>
+        </mat-form-field>
+        <mat-form-field class="input-filter filter-item filter-input">
+            <mat-label>Filter</mat-label>
+            <input matInput type="text" [(ngModel)]="filter" (ngModelChange)="updateFilter()">
+            <button mat-button *ngIf="filter" matSuffix mat-icon-button aria-label="Clear" (click)="filter=''">
+                <mat-icon>close</mat-icon>
+            </button>
+        </mat-form-field>
+        <mat-form-field appearance="fill" class="filter-item">
+            <mat-label>Roles</mat-label>
+            <mat-select multiple [(ngModel)]="visibleRoles">
+                <mat-option *ngFor="let role of roles" [value]="role">{{role}}</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+    <div>
+        <table mat-table
+               [dataSource]="dataSource"
+               matSort>
+
+            <ng-container matColumnDef="privilegeKey">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Privilege key </th>
+                <td mat-cell *matCellDef="let element"> {{element.privilegeKey}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="msName">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Privilege group </th>
+                <td mat-cell *matCellDef="let element" class="privilege-group"> {{element.msName}} </td>
+            </ng-container>
+
+            <ng-container *ngFor="let role of roles">
+                <ng-container matColumnDef="{{role}}">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header> {{role}} </th>
+                    <td mat-cell *matCellDef="let element" class="role-component">
+                        <mat-checkbox [(ngModel)]="element[role]"
+                                      (ngModelChange)="updatePermission(element, role, $event)">
+                        </mat-checkbox>
+                    </td>
+                </ng-container>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="getColumns()"></tr>
+            <tr mat-row *matRowDef="let row; columns: getColumns();"></tr>
+        </table>
+
+        <mat-paginator [pageSizeOptions]="[10, 20, 50, 100, 500, 1000]" showFirstLastButtons></mat-paginator>
+    </div>
+</div>
