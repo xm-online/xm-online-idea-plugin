@@ -33,7 +33,7 @@
         <treeStructureProvider implementation="com.icthh.xm.extensions.TreeProvider" />
 
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />
-<!--        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />-->
+        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />
 
         <!--        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />-->
         <!--        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />-->

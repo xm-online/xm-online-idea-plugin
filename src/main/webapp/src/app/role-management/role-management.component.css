@@ -1,0 +1,54 @@
+table {
+    width: 100%;
+}
+
+.filters-row {
+    display: flex;
+    width: 100%;
+}
+
+.input-filter {
+    flex-grow: 1;
+}
+
+.role-matrix-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-item {
+    margin: 5px;
+}
+
+.filter-input {
+    margin-top: 20px;
+}
+
+.left-space {
+    padding-left: 10px;
+}
+
+.role-component {
+    text-align: center;
+    padding-right: 25px;
+}
+
+.condition {
+    width: 30%;
+}
+
+.env-condition {
+    width: 15%;
+}
+
+.reaction-th {
+    min-width: 90px;
+}
+
+th {
+    min-width: 100px;
+    padding-left: 10px!important;
+    padding-right: 10px!important;
+}

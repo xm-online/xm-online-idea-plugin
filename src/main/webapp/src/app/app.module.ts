@@ -22,6 +22,7 @@ import { MatTableModule } from "@angular/material/table";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 import { MatPaginatorModule } from "@angular/material/paginator";
 import { MatSortModule } from "@angular/material/sort";
+import { SelectCheckAllComponent } from "./role-matrix/app-select-check-all.component";
 
 const routes: Routes = [
   { path: 'settings', component: SettingsComponent },
@@ -36,7 +37,8 @@ const routes: Routes = [
     SettingsComponent,
     FileListDialogComponent,
     RoleManagementComponent,
-    RoleMatrixComponent
+    RoleMatrixComponent,
+    SelectCheckAllComponent
   ],
   imports: [
     BrowserModule,
