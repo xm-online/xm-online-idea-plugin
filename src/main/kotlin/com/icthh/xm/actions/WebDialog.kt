@@ -97,7 +97,7 @@ class JCefWebPanelWrapper(
 
         val browser = JBCefBrowser(url)
         logger.info("URL load ${url}")
-        val browserPipe = BrowserPipe(browser, pipeId, callbacks(browser), onReady)
+        val browserPipe = BrowserPipe(browser, pipeId, viewName, callbacks(browser), onReady)
 
         val panel = JPanel(BorderLayout())
         panel.preferredSize = dimension
@@ -129,19 +129,23 @@ class GpuDisabler: JBCefAppRequiredArgumentsProvider {
         get() = listOf("--disable-gpu", "--disable-gpu-compositing")
 }
 
-class BrowserPipe(private val browser: JBCefBrowser, pipeId: String, callbacks: List<BrowserCallback>, onReady: (BrowserPipe) -> Unit = {}) : Disposable {
+class BrowserPipe(private val browser: JBCefBrowser, pipeId: String, viewName: String, callbacks: List<BrowserCallback>, onReady: (BrowserPipe) -> Unit = {}) : Disposable {
     private val events = HashMap<String, JBCefJSQuery>()
 
     init {
         addBrowserEvents(WINDOW_READY_EVENT)
         callbacks.forEach { addBrowserEvents(it.name) }
-        val js = inject()
+        val initCallback = """
+            const event = new Event("callbackReady");
+            window.dispatchEvent(event);            
+        """.trimIndent()
+        val js = inject() + "\n" + initCallback
         val instance = CefApp.getInstance()
         instance.registerSchemeHandlerFactory("http", "registercallback-${pipeId}", InjectJsHandlerFactory(js))
         if (isDev) {
-            instance.registerSchemeHandlerFactory("http", "registercallback-dev", InjectJsHandlerFactory(js))
+            instance.registerSchemeHandlerFactory("http", "registercallback-${viewName}", InjectJsHandlerFactory(js))
         } else {
-            instance.registerSchemeHandlerFactory("http", "registercallback-dev", InjectJsHandlerFactory("console.log('PROD MODE');"))
+            instance.registerSchemeHandlerFactory("http", "registercallback-${viewName}", InjectJsHandlerFactory("console.log('PROD MODE');"))
         }
         callbacks.forEach { subscribe(it) }
         subscribe(BrowserCallback(WINDOW_READY_EVENT){_, pipe -> onReady(pipe)})

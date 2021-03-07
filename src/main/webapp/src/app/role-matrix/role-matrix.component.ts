@@ -5,13 +5,15 @@ import { MessagePipeService } from "../message-pipe.service";
 import { MatTableDataSource } from "@angular/material/table";
 import { Subject } from "rxjs";
 import { debounceTime } from "rxjs/operators";
+import { ActivatedRoute, Router } from "@angular/router";
+import { Callback } from "../callback";
 
 @Component({
   selector: 'app-role-matrix',
   templateUrl: './role-matrix.component.html',
   styleUrls: ['./role-matrix.component.css']
 })
-export class RoleMatrixComponent implements OnInit, AfterViewInit {
+export class RoleMatrixComponent extends Callback implements AfterViewInit {
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
@@ -34,23 +36,21 @@ export class RoleMatrixComponent implements OnInit, AfterViewInit {
   filterChanges: Subject<string> = new Subject<string>();
   permissionChange: Subject<string> = new Subject<string>();
 
-
-  constructor(private messagePipe: MessagePipeService) {
-    messagePipe.subscribe('initData', (res) => {
-      console.info('initData', res);
-      this.updateData(res);
-    });
-    messagePipe.subscribe('updateData', (res) => {
-      console.info('updateData', res);
-      this.updateData(res);
-    });
+  constructor(protected messagePipe: MessagePipeService, route: ActivatedRoute) {
+    super(messagePipe, route);
     this.initFilterListener();
     this.initUpdatePermissionListener();
   }
 
-
-  ngOnInit(): void {
-    this.messagePipe.post('componentReady', 'SettingsComponent ready')
+  callbackReady() {
+    this.messagePipe.subscribe('initData', (res) => {
+      console.info('initData', res);
+      this.updateData(res);
+    });
+    this.messagePipe.subscribe('updateData', (res) => {
+      console.info('updateData', res);
+      this.updateData(res);
+    });
   }
 
   ngAfterViewInit() {

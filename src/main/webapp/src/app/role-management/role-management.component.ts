@@ -5,13 +5,15 @@ import { MatTableDataSource } from "@angular/material/table";
 import { Subject } from "rxjs";
 import { MessagePipeService } from "../message-pipe.service";
 import { debounceTime } from "rxjs/operators";
+import { ActivatedRoute } from "@angular/router";
+import { Callback } from "../callback";
 
 @Component({
   selector: 'app-role-management',
   templateUrl: './role-management.component.html',
   styleUrls: ['./role-management.component.css']
 })
-export class RoleManagementComponent implements OnInit, AfterViewInit {
+export class RoleManagementComponent extends Callback implements AfterViewInit {
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
@@ -35,19 +37,18 @@ export class RoleManagementComponent implements OnInit, AfterViewInit {
 
   reactionStrategies = [ReactionStrategy.SKIP, ReactionStrategy.EXCEPTION]
 
-  constructor(private messagePipe: MessagePipeService) {
-    messagePipe.subscribe('initData', (res) => {
-      console.info('initData', res);
-      this.updateData(res);
-    });
+  constructor(protected messagePipe: MessagePipeService, route: ActivatedRoute) {
+    super(messagePipe, route);
 
     this.initFilterListener();
     this.initUpdatePermissionListener();
   }
 
-
-  ngOnInit(): void {
-    this.messagePipe.post('componentReady', 'SettingsComponent ready')
+  callbackReady() {
+    this.messagePipe.subscribe('initData', (res) => {
+      console.info('initData', res);
+      this.updateData(res);
+    });
   }
 
   ngAfterViewInit() {

@@ -1,34 +1,36 @@
 import {Component, NgZone, OnInit} from '@angular/core';
 import { MessagePipeService } from "../message-pipe.service";
+import { Callback } from "../callback";
+import { ActivatedRoute } from "@angular/router";
 
 @Component({
   selector: 'app-file-list-dialog',
   templateUrl: './file-list-dialog.component.html',
   styleUrls: ['./file-list-dialog.component.css']
 })
-export class FileListDialogComponent implements OnInit {
+export class FileListDialogComponent extends Callback {
 
   changes: FileChange[];
   isForceUpdate: boolean = false;
 
-  constructor(private messagePipe: MessagePipeService) {
-    messagePipe.subscribe('initData', (res: ChangesFiles) => {
-      console.info('initData', res);
-        this.initData(res);
-    });
-    messagePipe.subscribe('updateFile', (res: FileChange) => {
-      console.info('updateFile', res);
-        this.changes.filter(it => it.fileName === res.fileName)
-            .forEach(it => {
-              Object.keys(res).forEach(key => {
-                it[key] = res[key];
-              })
-            });
-    });
+  constructor(protected messagePipe: MessagePipeService, route: ActivatedRoute) {
+    super(messagePipe, route);
   }
 
-  ngOnInit(): void {
-    this.messagePipe.post('componentReady', 'FileListDialogComponent ready')
+  callbackReady() {
+    this.messagePipe.subscribe('initData', (res: ChangesFiles) => {
+      console.info('initData', res);
+      this.initData(res);
+    });
+    this.messagePipe.subscribe('updateFile', (res: FileChange) => {
+      console.info('updateFile', res);
+      this.changes.filter(it => it.fileName === res.fileName)
+          .forEach(it => {
+            Object.keys(res).forEach(key => {
+              it[key] = res[key];
+            })
+          });
+    });
   }
 
   private initData(res: ChangesFiles) {

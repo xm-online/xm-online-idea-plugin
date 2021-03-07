@@ -2,13 +2,15 @@ import {Component, OnInit} from '@angular/core';
 import { UUID } from "angular2-uuid";
 import { MatSelectionListChange } from "@angular/material/list";
 import { MessagePipeService } from "../message-pipe.service";
+import { Callback } from "../callback";
+import { ActivatedRoute } from "@angular/router";
 
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.css']
 })
-export class SettingsComponent implements OnInit {
+export class SettingsComponent extends Callback {
 
   envs: EnvironmentSettings[] = [];
   environment: EnvironmentSettings;
@@ -19,19 +21,19 @@ export class SettingsComponent implements OnInit {
 
   connectionResult = null;
 
-  constructor(private messagePipe: MessagePipeService) {
-    messagePipe.subscribe('initData', (res) => {
+  constructor(protected messagePipe: MessagePipeService, route: ActivatedRoute) {
+    super(messagePipe, route);
+  }
+
+  callbackReady() {
+    this.messagePipe.subscribe('initData', (res) => {
       console.info('initData', res);
       this.updateData(res);
     });
-    messagePipe.subscribe('connectionResult', (res) => {
+    this.messagePipe.subscribe('connectionResult', (res) => {
       console.info('connectionResult', res);
       this.connectionResult = res.success;
     });
-  }
-
-  ngOnInit(): void {
-     this.messagePipe.post('componentReady', 'SettingsComponent ready')
   }
 
   private updateData(res) {
