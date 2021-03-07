@@ -1,31 +1,17 @@
 package com.icthh.xm.utils
 
-import com.intellij.codeInsight.completion.*
-import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.diff.DiffContentFactory
 import com.intellij.diff.DiffManager
 import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Pair
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.patterns.ElementPattern
-import com.intellij.psi.PsiElement
-import com.intellij.util.ProcessingContext
-import com.vaadin.server.VaadinServlet
 import org.apache.commons.lang3.time.StopWatch
-import org.jetbrains.yaml.psi.YAMLKeyValue
-import org.jetbrains.yaml.psi.YAMLMapping
-import org.jetbrains.yaml.psi.YAMLSequence
-import org.jetbrains.yaml.psi.YAMLSequenceItem
 import java.io.InputStream
-import java.lang.StringBuilder
 import java.nio.charset.Charset
-import java.util.HashSet
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
-import java.util.stream.Collectors
 
 val loggers = ConcurrentHashMap<Class<Any>, Logger>()
 val loggerFactory: (Class<Any>) -> Logger = { Logger.getInstance(it) }

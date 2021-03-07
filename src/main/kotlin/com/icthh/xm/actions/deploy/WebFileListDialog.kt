@@ -3,7 +3,6 @@ package com.icthh.xm.actions.deploy
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.github.mvysny.karibudsl.v8.*
 import com.icthh.xm.actions.BrowserCallback
 import com.icthh.xm.actions.WebDialog
 import com.icthh.xm.actions.permission.GitContentProvider
@@ -20,8 +19,6 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.jcef.JBCefBrowser
-import com.vaadin.icons.VaadinIcons.*
-import com.vaadin.ui.*
 import git4idea.GitRevisionNumber
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 import java.awt.Dimension
@@ -32,7 +29,6 @@ class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
     project = project, viewName = "file-list-dialog", dialogTitle = "File to update",
     dimension = Dimension(1024, 300)
 ) {
-    lateinit var mainComponent: HasComponents
 
     val mapper = jacksonObjectMapper()
     val configFilesContent = ConcurrentHashMap<String, String>()
@@ -142,10 +138,6 @@ class WebFileListDialog(project: Project, val changes: ChangesFiles): WebDialog(
         settings: EnvironmentSettings,
         fileName: String
     ) = (!sha256Hex(config).equals(settings.editedFiles.get(fileName)?.sha256))
-
-    private fun removeEditIcon(line: HorizontalLayout) {
-        line.filter { it.id == "EDIT" }.forEach { line.removeComponent(it) }
-    }
 
 }
 

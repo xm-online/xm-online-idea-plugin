@@ -12,6 +12,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.jcef.JBCefAppRequiredArgumentsProvider
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefJSQuery
+import com.intellij.util.ui.UIUtil
 import org.cef.CefApp
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
@@ -101,6 +102,7 @@ class JCefWebPanelWrapper(
 
         val panel = JPanel(BorderLayout())
         panel.preferredSize = dimension
+
         panel.add(browser.component, BorderLayout.CENTER);
         panel.add(uiThreadAnchor, BorderLayout.SOUTH)
         Disposer.register(this.disposable, browser)
@@ -135,9 +137,11 @@ class BrowserPipe(private val browser: JBCefBrowser, pipeId: String, viewName: S
     init {
         addBrowserEvents(WINDOW_READY_EVENT)
         callbacks.forEach { addBrowserEvents(it.name) }
+        val theme = if (UIUtil.isUnderDarcula()) "dark-theme" else "light-theme"
         val initCallback = """
             const event = new Event("callbackReady");
-            window.dispatchEvent(event);            
+            window.dispatchEvent(event);
+            document.querySelector("body").classList.add('${theme}');
         """.trimIndent()
         val js = inject() + "\n" + initCallback
         val instance = CefApp.getInstance()

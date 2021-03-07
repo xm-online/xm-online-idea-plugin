@@ -10,7 +10,6 @@
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.vcs</depends>
-    <depends>com.intellij.javafx</depends>
     <depends>org.intellij.intelliLang</depends>
     <depends>Git4Idea</depends>
     <depends>org.intellij.groovy</depends>

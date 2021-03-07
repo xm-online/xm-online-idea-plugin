@@ -24,6 +24,8 @@ import { MatPaginatorModule } from "@angular/material/paginator";
 import { MatSortModule } from "@angular/material/sort";
 import { SelectCheckAllComponent } from "./role-matrix/app-select-check-all.component";
 import { MatDialogModule } from "@angular/material/dialog";
+import { Callback } from "./callback";
+import { OverlayContainer } from "@angular/cdk/overlay";
 
 const routes: Routes = [
   { path: 'settings', component: SettingsComponent },
@@ -66,4 +68,5 @@ const routes: Routes = [
   providers: [],
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule {
+}

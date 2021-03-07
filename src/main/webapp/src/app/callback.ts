@@ -1,7 +1,10 @@
 import { ActivatedRoute } from "@angular/router";
 import { MessagePipeService } from "./message-pipe.service";
-import { OnInit } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 
+@Component({
+    template: ''
+})
 export abstract class Callback implements OnInit {
 
     inited: boolean = false;

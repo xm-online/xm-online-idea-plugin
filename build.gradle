@@ -9,9 +9,6 @@ version '0.1.8'
 
 repositories {
     mavenCentral()
-    maven {
-        url "http://maven.vaadin.com/vaadin-addons"
-    }
 }
 
 task fatJar(type: Jar) {
@@ -65,16 +62,10 @@ task installAngular(type:Exec) {
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
 
-    compile 'com.vaadin:vaadin-server:8.8.6'
-    compile 'com.vaadin:vaadin-push:8.8.6'
-    compile 'com.vaadin:vaadin-client-compiled:8.8.6'
-    compile 'com.vaadin:vaadin-themes:8.8.6'
-
     compile 'javax.servlet:javax.servlet-api:3.0.1'
     compile 'org.eclipse.jetty:jetty-server:9.3.20.v20170531'
     compile 'org.eclipse.jetty:jetty-webapp:9.3.20.v20170531'
     compile 'org.eclipse.jetty:jetty-continuation:9.3.20.v20170531'
-    compile 'org.eclipse.jetty.websocket:websocket-server:9.3.20.v20170531'
 
     compile 'com.fasterxml.jackson.module:jackson-module-kotlin:2.9.7'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.2'
@@ -82,8 +73,6 @@ dependencies {
     compile 'org.apache.commons:commons-lang3:3.10'
 
     compile 'org.apache.commons:commons-text:1.8'
-
-    compile("com.github.mvysny.karibudsl:karibu-dsl-v8:0.7.1")
 
     compile 'org.jclarion:image4j:0.7'
 
@@ -102,8 +91,8 @@ compileTestKotlin {
 }
 
 intellij {
-    version = '2020.3'
-    plugins = ['git4idea', 'Groovy', 'yaml', 'com.intellij.javafx:1.0.2', 'org.intellij.intelliLang']
+    version = '2020.3.2'
+    plugins = ['git4idea', 'Groovy', 'yaml', 'org.intellij.intelliLang']
     updateSinceUntilBuild = false
 }
 
