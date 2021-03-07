@@ -141,7 +141,8 @@ class BrowserPipe(private val browser: JBCefBrowser, pipeId: String, viewName: S
         val initCallback = """
             const event = new Event("callbackReady");
             window.dispatchEvent(event);
-            document.querySelector("body").classList.add('${theme}');
+            window.callbackReady = true;
+            document.querySelector("body").classList.add('${theme}');            
         """.trimIndent()
         val js = inject() + "\n" + initCallback
         val instance = CefApp.getInstance()

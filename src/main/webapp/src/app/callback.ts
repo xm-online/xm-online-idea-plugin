@@ -13,10 +13,15 @@ export abstract class Callback implements OnInit {
     constructor(protected messagePipe: MessagePipeService, route: ActivatedRoute) {
         const w: any = window;
         w.initCallbacks(route.snapshot.routeConfig.path);
-        w.addEventListener('callbackReady', () => {
-            this.onReady();
+        if (w.callbackReady) {
             this.callbackReady();
-        });
+            this.onReady();
+        } else {
+            w.addEventListener('callbackReady', () => {
+                this.callbackReady();
+                this.onReady();
+            });
+        }
     }
 
     ngOnInit(): void {
