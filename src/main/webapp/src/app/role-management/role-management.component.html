@@ -38,8 +38,6 @@
                 <td mat-cell *matCellDef="let element" class="left-space"> {{element.msName}} </td>
             </ng-container>
 
-<!--            columns: string[] = ['privilegeKey', 'msName', 'enabled', 'reactionStrategy', 'resourceCondition', 'envCondition'];-->
-
             <ng-container matColumnDef="enabled">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> Permit </th>
                 <td mat-cell *matCellDef="let element" class="left-space">
@@ -61,12 +59,26 @@
 
             <ng-container matColumnDef="resourceCondition">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> Resource condition </th>
-                <td mat-cell *matCellDef="let element" class="left-space condition"> {{element.resourceCondition}} </td>
+                <td mat-cell *matCellDef="let element" class="left-space condition">
+                    <div class="condition-container">
+                        <div class="condition-body">{{element.resourceCondition}}</div>
+                        <div class="edit-condition" (click)="onConditionEdit(element, 'resourceCondition', element.resources)">
+                            <mat-icon>edit</mat-icon>
+                        </div>
+                    </div>
+                </td>
             </ng-container>
 
             <ng-container matColumnDef="envCondition">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> Environment condition </th>
-                <td mat-cell *matCellDef="let element" class="left-space env-condition"> {{element.envCondition}} </td>
+                <td mat-cell *matCellDef="let element" class="left-space env-condition">
+                    <div class="condition-container">
+                        <div class="condition-body">{{element.envCondition}}</div>
+                        <div class="edit-condition" (click)="onConditionEdit(element, 'envCondition', ['#env[\'ipAddress\']'])">
+                            <mat-icon>edit</mat-icon>
+                        </div>
+                    </div>
+                </td>
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="columns"></tr>

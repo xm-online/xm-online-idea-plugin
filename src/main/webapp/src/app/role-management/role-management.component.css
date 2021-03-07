@@ -52,3 +52,23 @@ th {
     padding-left: 10px!important;
     padding-right: 10px!important;
 }
+
+.edit-condition {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+.condition-container {
+    display: flex;
+}
+
+.condition-body {
+    flex-grow: 1;
+}
+
+.condition-area {
+    height: 100%;
+}

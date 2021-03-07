@@ -16,13 +16,14 @@ import { FormsModule } from "@angular/forms";
 import { MatSelectModule } from "@angular/material/select";
 import { MatCheckboxModule } from "@angular/material/checkbox";
 import { FileListDialogComponent } from './file-list-dialog/file-list-dialog.component';
-import { RoleManagementComponent } from './role-management/role-management.component';
+import { EditConditionDialogComponent, RoleManagementComponent } from './role-management/role-management.component';
 import { RoleMatrixComponent } from './role-matrix/role-matrix.component';
 import { MatTableModule } from "@angular/material/table";
 import { DragDropModule } from "@angular/cdk/drag-drop";
 import { MatPaginatorModule } from "@angular/material/paginator";
 import { MatSortModule } from "@angular/material/sort";
 import { SelectCheckAllComponent } from "./role-matrix/app-select-check-all.component";
+import { MatDialogModule } from "@angular/material/dialog";
 
 const routes: Routes = [
   { path: 'settings', component: SettingsComponent },
@@ -38,6 +39,7 @@ const routes: Routes = [
     FileListDialogComponent,
     RoleManagementComponent,
     RoleMatrixComponent,
+    EditConditionDialogComponent,
     SelectCheckAllComponent
   ],
   imports: [
@@ -57,6 +59,7 @@ const routes: Routes = [
     MatTableModule,
     MatPaginatorModule,
     FormsModule,
+    MatDialogModule,
     MatSortModule
   ],
   exports: [RouterModule],

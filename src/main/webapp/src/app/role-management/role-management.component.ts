@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Inject, OnInit, Output, ViewChild } from '@angular/core';
 import { MatPaginator } from "@angular/material/paginator";
 import { MatSort } from "@angular/material/sort";
 import { MatTableDataSource } from "@angular/material/table";
@@ -7,6 +7,7 @@ import { MessagePipeService } from "../message-pipe.service";
 import { debounceTime } from "rxjs/operators";
 import { ActivatedRoute } from "@angular/router";
 import { Callback } from "../callback";
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from "@angular/material/dialog";
 
 @Component({
   selector: 'app-role-management',
@@ -37,7 +38,9 @@ export class RoleManagementComponent extends Callback implements AfterViewInit {
 
   reactionStrategies = [ReactionStrategy.SKIP, ReactionStrategy.EXCEPTION]
 
-  constructor(protected messagePipe: MessagePipeService, route: ActivatedRoute) {
+  constructor(protected messagePipe: MessagePipeService,
+              route: ActivatedRoute,
+              private dialog: MatDialog) {
     super(messagePipe, route);
 
     this.initFilterListener();
@@ -118,6 +121,71 @@ export class RoleManagementComponent extends Callback implements AfterViewInit {
 
   updateRole() {
     this.permissionChange.next("changed");
+  }
+
+  onConditionEdit(item, fieldName, resources) {
+    const dialogRef = this.dialog.open(EditConditionDialogComponent, {
+      minWidth: '700px',
+      minHeight: '500px',
+      data: {
+        value: item[fieldName],
+        variables: resources.join(', ')
+      },
+      disableClose: false,
+    });
+    dialogRef.componentInstance.valueChange.subscribe(value => {
+      this.updateField(item, fieldName, value);
+    })
+    dialogRef.afterClosed().subscribe(() => {
+      this.updateField(item, fieldName, dialogRef.componentInstance.value);
+    });
+  }
+
+  private updateField(item, fieldName, value) {
+    item[fieldName] = value;
+    if (!item[fieldName] || !item[fieldName].trim()) {
+      item[fieldName] = null;
+    }
+    this.updateRole();
+  }
+}
+
+@Component({
+  selector: 'edit-condition',
+  styleUrls: ['./role-management.component.css'],
+  template: `
+    <mat-form-field style="display: block">
+      <textarea rows="20" matInput  [(ngModel)]="value" (ngModelChange)="update()" class="condition-area"></textarea>
+    </mat-form-field>
+    <br><br>
+    <span style="color: #9d9d9d;">
+      1. use SpEL functionality<br>
+      2. use # before variable<br>
+      3. #subject.role, #subject.userKey, #subject.login are available<br>
+      4. Available variables: {{variables}}
+    </span>
+  `
+})
+export class EditConditionDialogComponent implements OnInit {
+
+  @Output() public valueChange: EventEmitter<string> = new EventEmitter<string>();
+
+  value: string;
+  variables: string;
+
+  constructor(
+      @Inject(MAT_DIALOG_DATA) public data: any,
+      public dialogRef: MatDialogRef<EditConditionDialogComponent>,
+  ) {
+  }
+
+  ngOnInit(): void {
+    this.value = this.data.value;
+    this.variables = this.data.variables;
+  }
+
+  update() {
+    this.valueChange.next(this.value);
   }
 }
 
