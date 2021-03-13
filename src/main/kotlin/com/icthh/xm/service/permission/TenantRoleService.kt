@@ -66,12 +66,12 @@ open class TenantRoleService(val tenant: String, val project: Project, val write
             mapper.readTree(it)?.get("entity-functions")?.get("dynamicPermissionCheckEnabled")?.booleanValue() ?: false
         }.orElse(false)
 
+        val xmEntitySpec = project.xmEntitySpecService.getByTenant(tenant)
         if (functionPermissionEnabled) {
-            val xmEntitySpec = project.xmEntitySpecService.getByTenant(tenant)
             val functionKeys = xmEntitySpec.functionKeys
             val functionKeysWithEntityId = xmEntitySpec.functionKeysWithEntityId ?: listOf()
-            customPrivileges.putIfAbsent("entity-functions", TreeSet())
-            val privileges = customPrivileges.getOrDefault("entity-functions", TreeSet())
+            val privileges = customPrivileges.computeIfAbsent("entity-functions") { TreeSet() }
+
             functionKeys.forEach {
                 if (functionKeysWithEntityId.contains(it)) {
                     privileges.add(Privilege("entity-functions", "XMENTITY.FUNCTION.${it}"))
@@ -80,6 +80,9 @@ open class TenantRoleService(val tenant: String, val project: Project, val write
                 }
             }
         }
+
+        val applications = customPrivileges.computeIfAbsent("applications") { TreeSet() }
+        xmEntitySpec.keys.forEach { applications.add(Privilege("applications", "APPLICATION.${it.valueText}")) }
 
         return customPrivileges
     }
