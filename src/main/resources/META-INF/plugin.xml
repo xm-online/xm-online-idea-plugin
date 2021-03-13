@@ -1,10 +1,11 @@
 <idea-plugin>
     <id>com.icthh.xm.configuration</id>
-    <name>Support development using XM^online</name>
-    <vendor email="serhii.senko@xm-online.com" url="http://xm-online.com">XM^online</vendor>
+    <name>Support development using XME.digital</name>
+    <vendor email="serhii.senko@xm-online.com" url="https://www.xme.digital/">XME.digital</vendor>
 
     <description><![CDATA[
      This plugin add button for deploy and refresh LEP files to XM^online im memory without commit to GIT.
+     Add UI permission editor, and full support of entity specification.
     ]]></description>
 
     <depends>com.intellij.modules.lang</depends>
