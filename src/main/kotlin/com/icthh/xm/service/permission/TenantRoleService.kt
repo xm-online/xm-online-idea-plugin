@@ -13,6 +13,7 @@ import com.icthh.xm.domain.permission.dto.PermissionType.TENANT
 import com.icthh.xm.domain.permission.mapper.PermissionDomainMapper
 import com.icthh.xm.domain.permission.mapper.PermissionMapper
 import com.icthh.xm.domain.permission.mapper.PrivilegeMapper
+import com.icthh.xm.extensions.entityspec.xmEntitySpecService
 import com.icthh.xm.service.configPathToRealPath
 import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.log
@@ -55,9 +56,32 @@ open class TenantRoleService(val tenant: String, val project: Project, val write
     fun getCustomPrivileges(): Map<String, Set<Privilege>> {
         var configPath = CUSTOM_PRIVILEGES_PATH.replace("{tenantName}", tenant)
         configPath = project.configPathToRealPath(configPath)
-        return getConfigContent(configPath).map {
+        val customPrivileges: MutableMap<String, MutableSet<Privilege>> = getConfigContent(configPath).map {
             PrivilegeMapper().ymlToPrivileges(it)
         }.orElse(TreeMap())
+
+        var tenantConfig = TENANT_CONFIG.replace("{tenantName}", tenant)
+        tenantConfig = project.configPathToRealPath(tenantConfig)
+        val functionPermissionEnabled: Boolean = getConfigContent(tenantConfig).map {
+            mapper.readTree(it)?.get("entity-functions")?.get("dynamicPermissionCheckEnabled")?.booleanValue() ?: false
+        }.orElse(false)
+
+        if (functionPermissionEnabled) {
+            val xmEntitySpec = project.xmEntitySpecService.getByTenant(tenant)
+            val functionKeys = xmEntitySpec.functionKeys
+            val functionKeysWithEntityId = xmEntitySpec.functionKeysWithEntityId ?: listOf()
+            customPrivileges.putIfAbsent("entity-functions", TreeSet())
+            val privileges = customPrivileges.getOrDefault("entity-functions", TreeSet())
+            functionKeys.forEach {
+                if (functionKeysWithEntityId.contains(it)) {
+                    privileges.add(Privilege("entity-functions", "XMENTITY.FUNCTION.${it}"))
+                } else {
+                    privileges.add(Privilege("entity-functions", "FUNCTION.CALL.${it}"))
+                }
+            }
+        }
+
+        return customPrivileges
     }
 
     fun getEnvironments(): List<String>? {
@@ -384,10 +408,12 @@ open class TenantRoleService(val tenant: String, val project: Project, val write
     companion object {
 
         private val EMPTY_YAML = "---"
+        private val TENANT_CONFIG = "/config/tenants/{tenantName}/tenant-config.yml"
         private val CUSTOM_PRIVILEGES_PATH = "/config/tenants/{tenantName}/custom-privileges.yml"
         private val PRIVILEGES_PATH = "/config/tenants/privileges.yml"
         private val PERMISSIONS_PATH = "/config/tenants/{tenantName}/permissions.yml"
         private val ROLES_PATH = "/config/tenants/{tenantName}/roles.yml"
         private val ENV_PATH = "/config/tenants/environments.yml"
+        private val ENTITY_SPEC_PATH = "config/tenants/{tenantName}/entity/xmentityspec.yml"
     }
 }

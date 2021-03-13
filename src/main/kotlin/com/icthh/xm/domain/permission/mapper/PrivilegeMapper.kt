@@ -37,9 +37,9 @@ class PrivilegeMapper {
             }
         }
 
-        fun ymlToPrivileges(yml: String): Map<String, Set<Privilege>> {
+        fun ymlToPrivileges(yml: String): MutableMap<String, MutableSet<Privilege>> {
             try {
-                val map = mapper.readValue<Map<String, Set<Privilege>>>(yml)
+                val map = mapper.readValue<MutableMap<String, MutableSet<Privilege>>>(yml)
                 map.forEach { (msName, privileges) -> privileges.forEach { privilege -> privilege.msName = msName } }
                 return map
             } catch (e: Exception) {

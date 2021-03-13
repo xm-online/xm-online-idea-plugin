@@ -52,6 +52,10 @@ export class RoleManagementComponent extends Callback implements AfterViewInit {
       console.info('initData', res);
       this.updateData(res);
     });
+    this.messagePipe.subscribe('updateData', (res) => {
+      console.info('updateData', res);
+      this.updateData(res);
+    });
   }
 
   ngAfterViewInit() {
@@ -63,11 +67,17 @@ export class RoleManagementComponent extends Callback implements AfterViewInit {
 
   updateData(res: any) {
     this.msNames = res.msNames;
-    this.visibleMsNames = this.msNames;
+    if (this.visibleMsNames.length == 0) {
+      this.visibleMsNames = this.msNames;
+    }
     this.allRoles = res.allRoles || [];
-    if (!this.selectedRole && this.allRoles.length > 0) {
+    if (this.selectedRole) {
+      this.selectedRole = this.allRoles.filter(role => this.selectedRole.roleKey == role.roleKey)[0];
+    }
+    if (!this.selectedRole) {
       this.selectedRole = this.allRoles[0];
     }
+
     this.initDataSource();
   }
 

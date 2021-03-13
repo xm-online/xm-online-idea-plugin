@@ -15,10 +15,12 @@ export abstract class Callback implements OnInit {
         w.initCallbacks(route.snapshot.routeConfig.path);
         if (w.callbackReady) {
             this.callbackReady();
+            console.info("Callback inited");
             this.onReady();
         } else {
             w.addEventListener('callbackReady', () => {
                 this.callbackReady();
+                console.info("Callback inited");
                 this.onReady();
             });
         }
@@ -29,7 +31,9 @@ export abstract class Callback implements OnInit {
     }
 
     onReady() {
+        console.log(`inited ${this.inited} ready ${this.ready}`)
         if (this.inited && !this.ready) {
+            console.log('send ready event')
             this.messagePipe.post('componentReady', 'ready')
             this.ready = true;
         }

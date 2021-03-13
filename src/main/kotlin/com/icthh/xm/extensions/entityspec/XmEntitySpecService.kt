@@ -277,6 +277,10 @@ class XmEntitySpecService(val project: Project) {
     private val filesByTenants: MutableMap<String, MutableSet<String>> = ConcurrentHashMap()
     private val entityFiles: MutableMap<String, XmEntitySpecInfo> = ConcurrentHashMap()
 
+    fun getByTenant(tenant: String) = entityByTenants.computeIfAbsent(tenant) {
+        computeTenantEntityInfo(tenant)
+    }
+
     fun getEntitiesKeys(
         originalFile: PsiFile
     ): List<YAMLKeyValue> {
@@ -314,7 +318,7 @@ class XmEntitySpecService(val project: Project) {
         entityByTenants.remove(tenantName)
     }
 
-    private fun computeTenantEntityInfo(tenantName: String): XmEntitySpecInfo {
+    fun computeTenantEntityInfo(tenantName: String): XmEntitySpecInfo {
         logger.info("computeTenantEntityInfo")
         val builder = XmEntitySpecInfoBuilder(tenantName)
         filesByTenants.computeIfAbsent(tenantName) {
@@ -356,6 +360,7 @@ class XmEntitySpecService(val project: Project) {
             getTenantName(this.project),
             getFileXmEntityKeys(),
             getAllKeys("functions", "key"),
+            getAllFunctionKeysWithEntityId(),
             getAllEventsKeys(),
             getAllKeys("links", "key"),
             getAllKeys("attachments", "key"),
@@ -405,6 +410,19 @@ class XmEntitySpecService(val project: Project) {
         return getAllSubElements(sectionName, fieldName).map { it.valueText.trim() }
     }
 
+    private fun PsiFile.getAllFunctionKeysWithEntityId(): Set<String> {
+        return getEntityDeclarations().mapToFields("functions")
+            .map{
+                it.findChildrenOfType<YAMLMapping>().map{
+                    if (it.getKeyValueByKey("withEntityId")?.valueText.toBoolean()) {
+                        it.getKeyValueByKey("key")?.valueText
+                    } else {
+                        null
+                    }
+                }.filterNotNull()
+            }.flatten().toSet()
+    }
+
     private fun PsiFile.getAllEventsKeys(): List<String> {
         return getAllSubElements("calendars", "events")
             .map { it.findChildOfType<YAMLSequence>() }
@@ -423,6 +441,7 @@ data class XmEntitySpecInfo(
     val tenantName: String,
     val keys: List<YAMLKeyValue>,
     val functionKeys: List<String>,
+    val functionKeysWithEntityId: Set<String>,
     val eventsKeys: List<String>,
     val linksKeys: List<String>,
     val attachmentsKeys: List<String>,
@@ -433,8 +452,8 @@ data class XmEntitySpecInfo(
     val ratingsKeys: List<String>
 ) {
     companion object {
-        val NULL_OBJECT = XmEntitySpecInfo("NULL", emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(),
-            emptyList(), emptyList(), emptyList(), emptyList())
+        val NULL_OBJECT = XmEntitySpecInfo("NULL", emptyList(), emptyList(), emptySet(), emptyList(),
+            emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
     }
 
 }
@@ -443,6 +462,7 @@ class XmEntitySpecInfoBuilder(
     val tenantName: String,
     val keys: MutableList<YAMLKeyValue> = ArrayList(),
     val functionKeys: MutableList<String> = ArrayList(),
+    val functionKeysWithEntityId: MutableSet<String> = HashSet(),
     val eventsKeys: MutableList<String> = ArrayList(),
     val linksKeys: MutableList<String> = ArrayList(),
     val attachmentsKeys: MutableList<String> = ArrayList(),
@@ -455,6 +475,7 @@ class XmEntitySpecInfoBuilder(
     fun add(it: XmEntitySpecInfo) {
         keys.addAll(it.keys)
         functionKeys.addAll(it.functionKeys)
+        functionKeysWithEntityId.addAll(it.functionKeysWithEntityId)
         eventsKeys.addAll(it.eventsKeys)
         linksKeys.addAll(it.linksKeys)
         attachmentsKeys.addAll(it.attachmentsKeys)
@@ -464,6 +485,19 @@ class XmEntitySpecInfoBuilder(
         commentsKeys.addAll(it.commentsKeys)
         ratingsKeys.addAll(it.ratingsKeys)
     }
-    fun toXmEntitySpecInfo() = XmEntitySpecInfo(tenantName, keys, functionKeys, eventsKeys, linksKeys, attachmentsKeys,
+    fun toXmEntitySpecInfo() = XmEntitySpecInfo(tenantName, keys, functionKeys, functionKeysWithEntityId, eventsKeys, linksKeys, attachmentsKeys,
         calendarsKeys, locationsKeys, tagsKeys, commentsKeys, ratingsKeys)
+}
+
+fun VirtualFile?.isEntitySpecification(): Boolean {
+    this ?: return false
+    val containingDirectory = this.parent
+    val isEntitySpecDir = containingDirectory?.name?.equals("xmentityspec") ?: false
+    val isYamlFile = name.endsWith(".yml")
+    if (isEntitySpecDir && isYamlFile) {
+        return true
+    }
+    val isEntityDir = containingDirectory?.name?.equals("entity") ?: return false
+    val isEntitySpecFile = "xmentityspec.yml".equals(name)
+    return isEntityDir && isEntitySpecFile
 }

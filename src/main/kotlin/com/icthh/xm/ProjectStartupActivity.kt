@@ -1,5 +1,6 @@
 package com.icthh.xm
 
+import com.icthh.xm.extensions.entityspec.isEntitySpecification
 import com.icthh.xm.extensions.entityspec.xmEntitySpecService
 import com.icthh.xm.service.getConfigRootDir
 import com.icthh.xm.service.getTenantName
@@ -46,18 +47,6 @@ class ProjectStartupActivity: StartupActivity {
                 xmEntitySpecService.updateEntityFile(file);
             }
 
-            fun VirtualFile?.isEntitySpecification(): Boolean {
-                this ?: return false
-                val containingDirectory = this.parent
-                val isEntitySpecDir = containingDirectory?.name?.equals("xmentityspec") ?: false
-                val isYamlFile = name.endsWith(".yml")
-                if (isEntitySpecDir && isYamlFile) {
-                    return true
-                }
-                val isEntityDir = containingDirectory?.name?.equals("entity") ?: return false
-                val isEntitySpecFile = "xmentityspec.yml".equals(name)
-                return isEntityDir && isEntitySpecFile
-            }
         })
     }
 
