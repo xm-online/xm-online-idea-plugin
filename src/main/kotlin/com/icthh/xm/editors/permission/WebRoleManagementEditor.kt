@@ -13,6 +13,7 @@ import com.icthh.xm.service.getTenantName
 import com.icthh.xm.service.permission.TenantRoleService
 import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.log
+import com.icthh.xm.utils.logger
 import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -27,6 +28,8 @@ class WebRoleManagementEditor(val currentProject: Project, val currentFile: Virt
 
     val mapper = jacksonObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     val connection = project.messageBus.connect()
+
+    var lastWriteTime = System.currentTimeMillis()
 
     fun writeAction(update: () -> Unit) {
         invokeOnUiThread {
@@ -63,8 +66,17 @@ class WebRoleManagementEditor(val currentProject: Project, val currentFile: Virt
             BrowserCallback("updateRole") { body, pipe ->
                 val role = mapper.readValue<RoleDTO>(body)
                 with(role) {
-                    log.info("update permission")
+                    logger.info("update permission")
+                    lastWriteTime = System.currentTimeMillis()
                     tenantRoleService.updateRole(role)
+                    lastWriteTime = System.currentTimeMillis()
+                    logger.info("permission updated")
+                    getApplication().invokeLater {
+                        getApplication().runWriteAction {
+                            lastWriteTime = System.currentTimeMillis()
+                            project.save()
+                        }
+                    }
                 }
             }
         )
@@ -78,12 +90,20 @@ class WebRoleManagementEditor(val currentProject: Project, val currentFile: Virt
             override fun after(events: List<VFileEvent?>) {
                 events.forEach {
                     it ?: return@forEach
+
+                    if (System.currentTimeMillis() - lastWriteTime < 100) {
+                        return@forEach
+                    }
+
                     if (it.path.startsWith(project.getConfigRootDir())
-                            .isTrue() && (it.file.isEntitySpecification() || it.path.endsWith("permissions.yml"))
+                            .isTrue() && (it.file.isEntitySpecification() || it.path.endsWith("permissions.yml")
+                                || it.path.endsWith("custom-privileges.yml") || it.path.endsWith("privileges.yml"))
                     ) {
+                        logger.info("entity updated")
                         getApplication().executeOnPooledThread {
-                            log.info("entity updated")
-                            updateData(tenantRoleService, pipe)
+                            getApplication().runReadAction {
+                                updateData(tenantRoleService, pipe)
+                            }
                         }
                     }
                 }

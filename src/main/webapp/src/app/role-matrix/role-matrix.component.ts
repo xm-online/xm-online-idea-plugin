@@ -63,9 +63,13 @@ export class RoleMatrixComponent extends Callback implements AfterViewInit {
   updateData(res: any) {
     this.roleMatrix = res.roleMatrix;
     this.roles = res.roleMatrix.roles;
-    this.visibleRoles = this.roles;
+    if (this.visibleRoles.length == 0) {
+      this.visibleRoles = this.roles;
+    }
     this.msNames = res.msNames;
-    this.visibleMsNames = this.msNames;
+    if (this.visibleMsNames.length == 0) {
+      this.visibleMsNames = this.msNames;
+    }
     this.initDataSource();
   }
 

@@ -32,6 +32,8 @@ class WebRoleMatrixEditor(val currentProject: Project, val currentFile: VirtualF
     val mapper = jacksonObjectMapper().disable(FAIL_ON_UNKNOWN_PROPERTIES)
     val connection = project.messageBus.connect()
 
+    var lastWriteTime = System.currentTimeMillis()
+
     fun writeAction(update: () -> Unit) {
         invokeOnUiThread {
             getApplication().runWriteAction {
@@ -59,7 +61,16 @@ class WebRoleMatrixEditor(val currentProject: Project, val currentFile: VirtualF
                 val roleMatrix = mapper.readValue<RoleMatrixDTO>(body)
                 with(roleMatrix) {
                     log.info("update permission")
+                    lastWriteTime = System.currentTimeMillis()
                     tenantRoleService.updateRoleMatrix(roleMatrix)
+                    lastWriteTime = System.currentTimeMillis()
+                    log.info("permission updated")
+                    getApplication().invokeLater {
+                        getApplication().runWriteAction {
+                            lastWriteTime = System.currentTimeMillis()
+                            project.save()
+                        }
+                    }
                 }
             }
         )
@@ -73,12 +84,20 @@ class WebRoleMatrixEditor(val currentProject: Project, val currentFile: VirtualF
             override fun after(events: List<VFileEvent?>) {
                 events.forEach {
                     it ?: return@forEach
+
+                    if (System.currentTimeMillis() - lastWriteTime < 100) {
+                        return@forEach
+                    }
+
                     if (it.path.startsWith(project.getConfigRootDir())
-                            .isTrue() && (it.file.isEntitySpecification() || it.path.endsWith("permissions.yml"))
+                            .isTrue() && (it.file.isEntitySpecification() || it.path.endsWith("permissions.yml")
+                                || it.path.endsWith("custom-privileges.yml") || it.path.endsWith("privileges.yml"))
                     ) {
+                        log.info("entity updated")
                         getApplication().executeOnPooledThread {
-                            log.info("entity updated")
-                            updateData(tenantRoleService, pipe)
+                            getApplication().runReadAction {
+                                updateData(tenantRoleService, pipe)
+                            }
                         }
                     }
                 }
