@@ -4,6 +4,7 @@ import com.icthh.xm.extensions.entityspec.XmEntitySpecInfo.Companion.NULL_OBJECT
 import com.icthh.xm.service.getTenantName
 import com.icthh.xm.service.toPsiFile
 import com.icthh.xm.utils.*
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VfsUtil
@@ -374,7 +375,7 @@ class XmEntitySpecService(val project: Project) {
 
     private fun PsiFile.getFileXmEntityKeys(): List<YAMLKeyValue> {
         val file = originalFile
-        file.virtualFile.refresh(false, false)
+        file.virtualFile.refresh(true, false)
         project.logger.info("\n\n\n UPDATE ${file.name} cache \n\n\n")
         return file.getEntityDeclarations().getKeys()
     }

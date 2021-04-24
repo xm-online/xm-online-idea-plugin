@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.jetbrains.intellij' version '0.6.5'
+    id 'org.jetbrains.intellij' version '0.7.2'
     id 'org.jetbrains.kotlin.jvm' version '1.4.21'
 }
 
@@ -92,6 +92,7 @@ compileTestKotlin {
 
 intellij {
     version = '2020.3.2'
+    //version = '2021.1'
     plugins = ['git4idea', 'Groovy', 'yaml', 'org.intellij.intelliLang']
     updateSinceUntilBuild = false
 }

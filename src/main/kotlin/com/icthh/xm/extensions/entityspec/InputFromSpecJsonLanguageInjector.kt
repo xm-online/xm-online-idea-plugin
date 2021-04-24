@@ -12,7 +12,6 @@ import com.intellij.psi.InjectedLanguagePlaces
 import com.intellij.psi.LanguageInjector
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiLanguageInjectionHost
-import org.intellij.plugins.intelliLang.inject.groovy.GroovyLanguageInjectionSupport
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.yaml.psi.*
 import org.jetbrains.yaml.psi.impl.YAMLKeyValueImpl

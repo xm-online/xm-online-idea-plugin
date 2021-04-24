@@ -1,6 +1,8 @@
 package com.icthh.xm;
 
 import com.icthh.xm.utils.SocketUtils;
+import com.intellij.openapi.application.ApplicationInfo;
+import com.intellij.ui.jcef.JBCefApp;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
@@ -39,13 +41,18 @@ public class ViewServer {
     public static void startServer() throws Exception {
         if (isInited.compareAndSet(false, true)) {
 
-            URL url = ViewServer.class.getClassLoader().getResource("/static/");
+            ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+
+            URL url = AppServlet.class.getClassLoader().getResource("/static");
+            if (url == null) {
+                url = AppServlet.class.getClassLoader().getResource("/static/");
+                context.setWelcomeFiles(new String[] { "index.html" });
+            } else {
+                context.setWelcomeFiles(new String[] { "/index.html" });
+            }
             URI webRootUri = url.toURI();
-            ServletContextHandler context = new ServletContextHandler(
-                    ServletContextHandler.SESSIONS);
             context.setContextPath("/");
             context.setBaseResource(Resource.newResource(webRootUri));
-            context.setWelcomeFiles(new String[] { "index.html" });
 
             ServletHolder holderPwd = new ServletHolder("default", DefaultServlet.class);
             holderPwd.setInitParameter("dirAllowed", "true");
@@ -72,8 +79,8 @@ public class ViewServer {
         }
 
         private static String readIndexHtml() {
-            try {
-                return IOUtils.toString(AppServlet.class.getClassLoader().getResourceAsStream("/static/index.html"), UTF_8);
+            try(var is = AppServlet.class.getClassLoader().getResourceAsStream("/static/index.html")) {
+                return IOUtils.toString(is, UTF_8);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

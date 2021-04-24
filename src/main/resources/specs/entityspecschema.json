@@ -1,372 +1,381 @@
 {
-  "type": "object",
-  "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:XmEntitySpec",
-  "additionalProperties": false,
-  "properties": {
-    "types": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:TypeSpec",
-        "additionalProperties": false,
-        "properties": {
-          "key": {
-            "type": "string"
+  "type" : "object",
+  "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:XmEntitySpec",
+  "additionalProperties" : false,
+  "properties" : {
+    "types" : {
+      "type" : "array",
+      "items" : {
+        "type" : "object",
+        "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:TypeSpec",
+        "additionalProperties" : false,
+        "properties" : {
+          "key" : {
+            "type" : "string"
           },
-          "name": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
+          "name" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
             }
           },
-          "namePattern": {
-            "type": "string"
+          "namePattern" : {
+            "type" : "string"
           },
-          "nameValidationPattern": {
-            "type": "string"
+          "nameValidationPattern" : {
+            "type" : "string"
           },
-          "descriptionPattern": {
-            "type": "string"
+          "descriptionPattern" : {
+            "type" : "string"
           },
-          "pluralName": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
+          "pluralName" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
             }
           },
-          "isApp": {
-            "type": "boolean"
+          "isApp" : {
+            "type" : "boolean"
           },
-          "isAbstract": {
-            "type": "boolean"
+          "isAbstract" : {
+            "type" : "boolean"
           },
-          "isAvatarEnabled": {
-            "type": "boolean"
+          "isAvatarEnabled" : {
+            "type" : "boolean"
           },
-          "isKeyRequired": {
-            "type": "boolean"
+          "isKeyRequired" : {
+            "type" : "boolean"
           },
-          "isNameRequired": {
-            "type": "boolean"
+          "isNameRequired" : {
+            "type" : "boolean"
           },
-          "fastSearch": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:FastSearchSpec",
-              "additionalProperties": false,
-              "properties": {
-                "query": {
-                  "type": "string"
+          "fastSearch" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:FastSearchSpec",
+              "additionalProperties" : false,
+              "properties" : {
+                "query" : {
+                  "type" : "string"
                 },
-                "name": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "name" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 },
-                "code": {
-                  "type": "string"
+                "code" : {
+                  "type" : "string"
                 }
               }
             }
           },
-          "icon": {
-            "type": "string"
+          "icon" : {
+            "type" : "string"
           },
-          "dataSpec": {
-            "type": "string"
+          "dataSpec" : {
+            "type" : "string"
           },
-          "dataForm": {
-            "type": "string"
+          "dataForm" : {
+            "type" : "string"
           },
-          "functions": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:FunctionSpec",
-              "additionalProperties": false,
-              "properties": {
-                "key": {
-                  "type": "string"
+          "functions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:FunctionSpec",
+              "additionalProperties" : false,
+              "properties" : {
+                "key" : {
+                  "type" : "string"
                 },
-                "name": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "name" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 },
-                "actionName": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "actionName" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 },
-                "allowedStateKeys": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
+                "allowedStateKeys" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
                   }
                 },
-                "withEntityId": {
-                  "type": "boolean"
+                "withEntityId" : {
+                  "type" : "boolean"
                 },
-                "isShowFormWithoutData": {
-                  "type": "boolean"
+                "isShowFormWithoutData" : {
+                  "type" : "boolean"
                 },
-                "inputSpec": {
-                  "type": "string"
+                "inputSpec" : {
+                  "type" : "string"
                 },
-                "inputForm": {
-                  "type": "string"
+                "inputForm" : {
+                  "type" : "string"
                 },
-                "contextDataSpec": {
-                  "type": "string"
+                "contextDataSpec" : {
+                  "type" : "string"
                 },
-                "contextDataForm": {
-                  "type": "string"
+                "contextDataForm" : {
+                  "type" : "string"
                 },
-                "showResponse": {
-                  "type": "boolean"
+                "showResponse" : {
+                  "type" : "boolean"
                 },
-                "onlyData": {
-                  "type": "boolean"
+                "onlyData" : {
+                  "type" : "boolean"
                 },
-                "dynamicPrivilegeKey": {
-                  "type": "string"
+                "validateFunctionInput" : {
+                  "type" : "boolean"
                 },
-                "saveFunctionContext": {
-                  "type": "boolean"
+                "dynamicPrivilegeKey" : {
+                  "type" : "string"
+                },
+                "saveFunctionContext" : {
+                  "type" : "boolean"
+                },
+                "binaryDataField" : {
+                  "type" : "string"
+                },
+                "binaryDataType" : {
+                  "type" : "string"
                 }
               }
             }
           },
-          "access": {
-            "type": "array",
-            "items": {
-              "type": "string"
+          "access" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
             }
           },
-          "attachments": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:AttachmentSpec",
-              "additionalProperties": false,
-              "properties": {
-                "key": {
-                  "type": "string"
+          "attachments" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:AttachmentSpec",
+              "additionalProperties" : false,
+              "properties" : {
+                "key" : {
+                  "type" : "string"
                 },
-                "name": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "name" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 },
-                "contentTypes": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
+                "contentTypes" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
                   }
                 },
-                "max": {
-                  "type": "integer"
+                "max" : {
+                  "type" : "integer"
                 },
-                "size": {
-                  "type": "string"
+                "size" : {
+                  "type" : "string"
                 }
               }
             }
           },
-          "calendars": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:CalendarSpec",
-              "additionalProperties": false,
-              "properties": {
-                "key": {
-                  "type": "string"
+          "calendars" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:CalendarSpec",
+              "additionalProperties" : false,
+              "properties" : {
+                "key" : {
+                  "type" : "string"
                 },
-                "events": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:EventSpec",
-                    "additionalProperties": false,
-                    "properties": {
-                      "key": {
-                        "type": "string"
+                "events" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "object",
+                    "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:EventSpec",
+                    "additionalProperties" : false,
+                    "properties" : {
+                      "key" : {
+                        "type" : "string"
                       },
-                      "name": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "type": "string"
+                      "name" : {
+                        "type" : "object",
+                        "additionalProperties" : {
+                          "type" : "string"
                         }
                       },
-                      "color": {
-                        "type": "string"
+                      "color" : {
+                        "type" : "string"
                       },
-                      "dataTypeKey": {
-                        "type": "string"
+                      "dataTypeKey" : {
+                        "type" : "string"
                       }
                     }
                   }
                 },
-                "name": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "name" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 },
-                "timeZoneStrategy": {
-                  "type": "string"
+                "timeZoneStrategy" : {
+                  "type" : "string"
                 },
-                "timeZoneDataRef": {
-                  "type": "string"
+                "timeZoneDataRef" : {
+                  "type" : "string"
                 }
               }
             }
           },
-          "links": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:LinkSpec",
-              "additionalProperties": false,
-              "properties": {
-                "key": {
-                  "type": "string"
+          "links" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:LinkSpec",
+              "additionalProperties" : false,
+              "properties" : {
+                "key" : {
+                  "type" : "string"
                 },
-                "builderType": {
-                  "type": "string"
+                "builderType" : {
+                  "type" : "string"
                 },
-                "name": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "name" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 },
-                "backName": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "backName" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 },
-                "icon": {
-                  "type": "string"
+                "icon" : {
+                  "type" : "string"
                 },
-                "typeKey": {
-                  "type": "string"
+                "typeKey" : {
+                  "type" : "string"
                 },
-                "max": {
-                  "type": "integer"
+                "max" : {
+                  "type" : "integer"
                 },
-                "isUnique": {
-                  "type": "boolean"
+                "isUnique" : {
+                  "type" : "boolean"
                 }
               }
             }
           },
-          "locations": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:LocationSpec",
-              "additionalProperties": false,
-              "properties": {
-                "key": {
-                  "type": "string"
+          "locations" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:LocationSpec",
+              "additionalProperties" : false,
+              "properties" : {
+                "key" : {
+                  "type" : "string"
                 },
-                "name": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "name" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 },
-                "max": {
-                  "type": "integer"
+                "max" : {
+                  "type" : "integer"
                 }
               }
             }
           },
-          "ratings": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:RatingSpec",
-              "additionalProperties": false,
-              "properties": {
-                "key": {
-                  "type": "string"
+          "ratings" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:RatingSpec",
+              "additionalProperties" : false,
+              "properties" : {
+                "key" : {
+                  "type" : "string"
                 },
-                "name": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "name" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 },
-                "style": {
-                  "type": "string"
+                "style" : {
+                  "type" : "string"
                 },
-                "votes": {
-                  "type": "integer"
+                "votes" : {
+                  "type" : "integer"
                 }
               }
             }
           },
-          "states": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:StateSpec",
-              "additionalProperties": false,
-              "properties": {
-                "key": {
-                  "type": "string"
+          "states" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:StateSpec",
+              "additionalProperties" : false,
+              "properties" : {
+                "key" : {
+                  "type" : "string"
                 },
-                "name": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "name" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 },
-                "icon": {
-                  "type": "string"
+                "icon" : {
+                  "type" : "string"
                 },
-                "color": {
-                  "type": "string"
+                "color" : {
+                  "type" : "string"
                 },
-                "next": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:NextSpec",
-                    "additionalProperties": false,
-                    "properties": {
-                      "stateKey": {
-                        "type": "string"
+                "next" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "object",
+                    "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:NextSpec",
+                    "additionalProperties" : false,
+                    "properties" : {
+                      "stateKey" : {
+                        "type" : "string"
                       },
-                      "name": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "type": "string"
+                      "name" : {
+                        "type" : "object",
+                        "additionalProperties" : {
+                          "type" : "string"
                         }
                       },
-                      "inputSpec": {
-                        "type": "string"
+                      "inputSpec" : {
+                        "type" : "string"
                       },
-                      "inputForm": {
-                        "type": "string"
+                      "inputForm" : {
+                        "type" : "string"
                       },
-                      "actionName": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "type": "string"
+                      "actionName" : {
+                        "type" : "object",
+                        "additionalProperties" : {
+                          "type" : "string"
                         }
                       },
-                      "showResponse": {
-                        "type": "boolean"
+                      "showResponse" : {
+                        "type" : "boolean"
                       }
                     }
                   }
@@ -374,54 +383,60 @@
               }
             }
           },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:TagSpec",
-              "additionalProperties": false,
-              "properties": {
-                "key": {
-                  "type": "string"
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:TagSpec",
+              "additionalProperties" : false,
+              "properties" : {
+                "key" : {
+                  "type" : "string"
                 },
-                "name": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "name" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 }
               }
             }
           },
-          "indexAfterSaveEnabled": {
-            "type": "boolean"
+          "dataSpecInheritance" : {
+            "type" : "boolean"
           },
-          "indexAfterDeleteEnabled": {
-            "type": "boolean"
+          "dataFormInheritance" : {
+            "type" : "boolean"
           },
-          "comments": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "id": "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:CommentSpec",
-              "additionalProperties": false,
-              "properties": {
-                "key": {
-                  "type": "string"
+          "indexAfterSaveEnabled" : {
+            "type" : "boolean"
+          },
+          "indexAfterDeleteEnabled" : {
+            "type" : "boolean"
+          },
+          "comments" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object",
+              "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:CommentSpec",
+              "additionalProperties" : false,
+              "properties" : {
+                "key" : {
+                  "type" : "string"
                 },
-                "name": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
+                "name" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
                   }
                 }
               }
             }
           },
-          "ignoreInheritanceFor": {
-            "type": "array",
-            "items": {
-              "type": "string"
+          "ignoreInheritanceFor" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
             }
           }
         }
@@ -429,5 +444,3 @@
     }
   }
 }
-
-
