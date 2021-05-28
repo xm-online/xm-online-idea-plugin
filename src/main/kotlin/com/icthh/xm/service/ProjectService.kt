@@ -45,7 +45,8 @@ fun Project?.isConfigProject(): Boolean {
             &&
             File(getConfigRootDir() + "/tenants/tenants-list.json").exists()
 }
-fun Project?.isSupportProject() = isConfigProject()
+fun Project?.isSupportProject() = isConfigProject() || isEntityProject()
+fun Project?.isEntityProject() = this?.name == "xm-ms-entity"
 fun Project.getConfigRootDir() = this.basePath + CONFIG_DIR_NAME
 fun Project.configPathToRealPath(configPath: String): String {
     return this.basePath + configPath
@@ -60,11 +61,10 @@ fun Project.toRelatedPath(absolutePath: String): String {
     }
 }
 
-fun Project.getRepository(): GitRepository {
+fun Project.getRepository(): GitRepository? {
     val repos = GitRepositoryManager.getInstance(this).getRepositories()
     val path = root()?.path
     val repo = repos.findLast { it.root.path == path }
-    repo ?: throw RepositoryNotFound()
     return repo
 }
 
@@ -221,7 +221,7 @@ fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: Environmen
     }
 }
 
-fun GitRepository.getLocalBranches(): List<String> {
-    val repository = project.getRepository()
+fun GitRepository?.getLocalBranches(): List<String> {
+    val repository = this?.project?.getRepository() ?: return listOf()
     return repository.branches.localBranches.map { it.name }.filter { repository.currentBranch?.name != it }
 }

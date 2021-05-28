@@ -31,7 +31,7 @@ class DeployToEnv() : AnAction() {
             }
         } catch (e: UncorrectStateOfRepository) {
             val content = """
-            Uncorrect state of repository ${project.getRepository().state.name}
+            Uncorrect state of repository ${project.getRepository()?.state?.name}
         """.trimIndent()
             val dialog = ConfirmDialog("Uncorrect state for repository", content)
             dialog.show()

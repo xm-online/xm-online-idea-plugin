@@ -33,8 +33,8 @@ class GitFileChange(
 
         val repository = project.getRepository()
         val root = root()
-        if (repository.state != NORMAL || root == null) {
-            throw UncorrectStateOfRepository(repository.state)
+        if (repository?.state != NORMAL || root == null) {
+            throw UncorrectStateOfRepository(repository?.state)
         }
 
         val localChanges = getChanges()
@@ -58,7 +58,7 @@ class GitFileChange(
         val editedInThisIteration = LinkedHashSet<String>()
         val updatedFileContent: MutableMap<String, InputStream> = HashMap()
 
-        val repository = project.getRepository()
+        val repository = project.getRepository() ?: return ChangesFiles()
         val root = root()
         if (repository.state != NORMAL || root == null) {
             throw UncorrectStateOfRepository(repository.state)
@@ -117,7 +117,7 @@ class GitFileChange(
     private fun Project.getChanges(): MutableCollection<Change> {
         try {
             return ApplicationManager.getApplication().executeOnPooledThread(Callable {
-                val repository = this.getRepository()
+                val repository = this.getRepository() ?: return@Callable mutableListOf()
                 val settings = project.getSettings()?.selected() ?: return@Callable mutableListOf()
                 val changes = HashSet<Change>()
                 if (settings.updateMode == UpdateMode.GIT_LOCAL_CHANGES) {

@@ -18,6 +18,7 @@ export class SettingsComponent extends Callback {
   updateModesMap = {};
   updateModes = [];
   branches = [];
+  isConfigProject = false;
 
   connectionResult = null;
 
@@ -50,9 +51,11 @@ export class SettingsComponent extends Callback {
       this.branches = res.branches;
       this.branches.push('HEAD');
     }
+    this.isConfigProject = res.isConfigProject;
   }
 
   addEnv() {
+    console.info("On add");
     let i = this.envs.length;
     i++
     while(this.envs.filter(it =>  it.name == `env ${i}` ).length > 0) {
@@ -67,8 +70,14 @@ export class SettingsComponent extends Callback {
       updateMode: 'GIT_LOCAL_CHANGES',
       branchName: 'HEAD'
     };
-    this.envs.push(element)
-    this.onUpdate();
+    if (this.isConfigProject) {
+      this.envs.push(element)
+      this.onUpdate();
+    } else {
+      let element: any = document.querySelector("#openfile");
+      console.log(element);
+      element.click();
+    }
   }
 
   removeEnv() {
@@ -93,6 +102,10 @@ export class SettingsComponent extends Callback {
   testConnection() {
     this.messagePipe.post('testConnection', this.environment);
   }
+
+    onChooseFile($event: Event) {
+      console.log($event);
+    }
 }
 
 interface EnvironmentSettings {

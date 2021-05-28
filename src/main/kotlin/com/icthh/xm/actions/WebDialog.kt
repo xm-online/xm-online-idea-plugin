@@ -97,6 +97,9 @@ class JCefWebPanelWrapper(
         val uiThreadAnchor = this.uiThreadAnchor
 
         val browser = JBCefBrowser(url)
+        if (isDev) {
+            //browser.openDevtools()
+        }
         logger.info("URL load ${url}")
         val browserPipe = BrowserPipe(browser, pipeId, viewName, callbacks(browser), onReady)
 

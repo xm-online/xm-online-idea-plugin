@@ -11,7 +11,7 @@ class GitContentProvider(
     val branch: String
 ) {
     fun getFileContent(filePath: String): String {
-        val repository = project.getRepository()
+        val repository = project.getRepository() ?: return ""
         val relativePath = filePath.substringAfter(repository.root.path)
         try {
             val fileContent = GitFileUtils.getFileContent(project, repository.root, branch, "." + relativePath)

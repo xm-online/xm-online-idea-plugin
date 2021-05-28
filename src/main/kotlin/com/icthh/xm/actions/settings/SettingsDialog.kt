@@ -7,10 +7,7 @@ import com.icthh.xm.actions.BrowserCallback
 import com.icthh.xm.actions.BrowserPipe
 import com.icthh.xm.actions.WebDialog
 import com.icthh.xm.actions.shared.showNotification
-import com.icthh.xm.service.getExternalConfigService
-import com.icthh.xm.service.getLocalBranches
-import com.icthh.xm.service.getRepository
-import com.icthh.xm.service.getSettings
+import com.icthh.xm.service.*
 import com.icthh.xm.utils.logger
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.project.Project
@@ -36,8 +33,9 @@ class SettingsDialog(project: Project): WebDialog(
                 this.data.addAll(data)
                 pipe.post("initData", mapper.writeValueAsString(mapOf(
                     "updateModes" to updateModes,
-                    "branches" to project.getRepository().getLocalBranches(),
+                    "branches" to project.getRepository()?.getLocalBranches(),
                     "envs" to data,
+                    "isConfigProject" to project.isConfigProject()
                 )))
             },
             BrowserCallback("envsUpdated") {body, pipe ->

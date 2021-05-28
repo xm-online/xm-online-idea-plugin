@@ -456,7 +456,7 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
         val psiFile = virtualFile.toPsiFile(project)
         psiFile?.navigate(true)
 
-        val repository = project.getRepository()
+        val repository = project.getRepository() ?: return
         ApplicationManager.getApplication().executeOnPooledThread {
             GitFileUtils.addPaths(project, repository.root, listOf(VcsUtil.getFilePath(virtualFile)))
         }
