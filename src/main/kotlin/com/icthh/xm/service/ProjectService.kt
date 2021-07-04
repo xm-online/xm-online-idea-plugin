@@ -8,12 +8,12 @@ import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.service.filechanges.ChangesFiles
 import com.icthh.xm.service.filechanges.GitFileChange
 import com.icthh.xm.service.filechanges.MemoryFileChange
-import com.icthh.xm.utils.logger
+import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.readTextAndClose
 import com.intellij.history.LocalHistory
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
@@ -25,9 +25,12 @@ import com.intellij.psi.PsiManager
 import com.intellij.util.io.inputStream
 import com.intellij.util.io.isDirectory
 import com.intellij.util.io.systemIndependentPath
+import git4idea.GitUtil.getRepositoryForRoot
 import git4idea.repo.GitRepository
+import git4idea.repo.GitRepositoryImpl
 import git4idea.repo.GitRepositoryManager
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
+import org.jetbrains.annotations.NotNull
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -39,16 +42,39 @@ const val CONFIG_DIR_NAME = "/config"
 fun Project.getSettings() = ServiceManager.getService(this, SettingService::class.java)
 fun Project.getExternalConfigService() = ServiceManager.getService(this, ExternalConfigService::class.java)
 fun Project?.isConfigProject(): Boolean {
-    return this != null
-            &&
-            File(getConfigRootDir()).exists()
-            &&
-            File(getConfigRootDir() + "/tenants/tenants-list.json").exists()
+    return this != null && isConfigRoot(this.basePath)
 }
+
+fun Project.getConfigRootDir() = if (isConfigProject()) {
+    toConfigFolder(basePath)
+} else {
+    toConfigFolder(getSettings().selected()?.basePath)
+}
+
+private fun toConfigFolder(basePath: String?) = basePath + CONFIG_DIR_NAME
+
+fun isConfigRoot(path: String?): Boolean {
+    return  File(toConfigFolder(path)).exists() && File(toConfigFolder(path) + "/tenants/tenants-list.json").exists()
+}
+
 fun Project?.isSupportProject() = isConfigProject() || isEntityProject()
 fun Project?.isEntityProject() = this?.name == "xm-ms-entity"
-fun Project.getConfigRootDir() = this.basePath + CONFIG_DIR_NAME
+
+fun Project?.projectType(): String {
+    if (isConfigProject()) {
+        return "CONFIG"
+    } else if (isEntityProject()) {
+        return "ENTITY"
+    } else {
+        return "UNKNOWN"
+    }
+}
+
 fun Project.configPathToRealPath(configPath: String): String {
+    val selected = this.getSettings().selected()
+    if (!selected?.isConfigProject.isTrue()) {
+        return selected?.basePath.let { it + configPath }
+    }
     return this.basePath + configPath
 }
 
@@ -61,10 +87,22 @@ fun Project.toRelatedPath(absolutePath: String): String {
     }
 }
 
-fun Project.getRepository(): GitRepository? {
-    val repos = GitRepositoryManager.getInstance(this).getRepositories()
-    val path = root()?.path
-    val repo = repos.findLast { it.root.path == path }
+fun Project.getRepository(onlyProject: Boolean = false): GitRepository? {
+    val repositoryManager = GitRepositoryManager.getInstance(this)
+    val repos = repositoryManager.getRepositories()
+    val root = root()
+    val path = root?.path
+    var repo = repos.findLast { it.root.path == path }
+    if (onlyProject) {
+        return repo
+    }
+    if (repo == null) {
+        repo = repositoryManager.getRepositoryForRoot(root)
+    }
+    if (repo == null && root != null) {
+        repositoryManager.addExternalRepository(root, GitRepositoryImpl.createInstance(root, this, this, true))
+        repo = repositoryManager.getRepositoryForRoot(root)
+    }
     return repo
 }
 

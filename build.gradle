@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.icthh.xm'
-version '0.1.12'
+version '0.2.1'
 
 repositories {
     mavenCentral()
@@ -91,8 +91,8 @@ compileTestKotlin {
 }
 
 intellij {
-    version = '2020.3.2'
-    //version = '2021.1'
+    //version = '2020.3.2'
+    version = '2021.1.2'
     plugins = ['git4idea', 'Groovy', 'yaml', 'org.intellij.intelliLang']
     updateSinceUntilBuild = false
 }

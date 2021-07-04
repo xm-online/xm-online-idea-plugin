@@ -6,6 +6,7 @@ import com.icthh.xm.service.filechanges.UncorrectStateOfRepository
 import com.icthh.xm.utils.isTrue
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
 
@@ -20,24 +21,31 @@ class DeployToEnv() : AnAction() {
 
         FileDocumentManager.getInstance().saveAllDocuments()
 
-        try {
-            val changesFiles = project.getChangedFiles()
-            val fileListDialog = WebFileListDialog(project, changesFiles)
-            fileListDialog.show()
-            if (fileListDialog.isOK) {
-                FileDocumentManager.getInstance().saveAllDocuments()
-                changesFiles.refresh(project)
-                project.updateFilesInMemory(changesFiles, selected)
-            }
-        } catch (e: UncorrectStateOfRepository) {
-            val content = """
-            Uncorrect state of repository ${project.getRepository()?.state?.name}
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                val changesFiles = project.getChangedFiles()
+
+                ApplicationManager.getApplication().invokeLater {
+                    val fileListDialog = WebFileListDialog(project, changesFiles)
+                    fileListDialog.show()
+                    if (fileListDialog.isOK) {
+                        FileDocumentManager.getInstance().saveAllDocuments()
+                        changesFiles.refresh(project)
+                        project.updateFilesInMemory(changesFiles, selected)
+                    }
+                }
+            } catch (e: UncorrectStateOfRepository) {
+                ApplicationManager.getApplication().invokeLater {
+                    val content = """
+            Uncorrect state of repository ${project.getRepository(true)?.state?.name}
         """.trimIndent()
-            val dialog = ConfirmDialog("Uncorrect state for repository", content)
-            dialog.show()
+                    val dialog = ConfirmDialog("Uncorrect state for repository", content)
+                    dialog.show()
+                }
+            }
         }
     }
-
 
     override fun update(anActionEvent: AnActionEvent) {
         super.update(anActionEvent)

@@ -57,6 +57,9 @@ class EnvironmentSettings {
 
     var lastTimeTryToNotifyAboutDifference: Long = 0
 
+    var isConfigProject: Boolean = false
+    var basePath: String? = null
+
     override fun toString() = name
 
     override fun equals(other: Any?): Boolean {

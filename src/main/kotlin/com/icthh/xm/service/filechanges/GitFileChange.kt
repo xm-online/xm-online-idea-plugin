@@ -29,8 +29,6 @@ class GitFileChange(
         val selected = getSettings().selected()
         selected ?: return ChangesFiles()
 
-        FileDocumentManager.getInstance().saveAllDocuments()
-
         val repository = project.getRepository()
         val root = root()
         if (repository?.state != NORMAL || root == null) {

@@ -28,6 +28,20 @@ $dark-theme: mat-dark-theme((
 
 .dark-theme {
   @include angular-material-theme($dark-theme);
+  .mat-list-base .mat-list-item {
+    background: #424242;
+    color: white;
+    border-color: white;
+    border-bottom-style: solid;
+  }
+
+  .mat-list-base .mat-list-item.mat-list-single-selected-option {
+    background: #636363;
+  }
+  .envList {
+    background: #424242;
+    color: white;
+  }
 }
 
 /* Global Styles */

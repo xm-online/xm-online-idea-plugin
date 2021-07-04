@@ -28,6 +28,15 @@
                         <mat-label>Name</mat-label>
                         <input type="text" matInput [(ngModel)]="environment.name" (ngModelChange)="onUpdate()">
                     </mat-form-field>
+                    <div style="display: flex;">
+                        <mat-form-field class="full-width" *ngIf="!environment.isConfigProject">
+                            <mat-label>Path to config root</mat-label>
+                            <input type="text" disabled="true" matInput [(ngModel)]="environment.basePath">
+                        </mat-form-field>
+                        <button mat-raised-button class="pathButton" (click)="changePath(environment)">
+                            ...
+                        </button>
+                    </div>
                     <mat-form-field class="full-width">
                         <mat-label>Xm base url (example: http://xm-online.com)</mat-label>
                         <input type="text" matInput [(ngModel)]="environment.xmUrl" (ngModelChange)="onUpdate()">

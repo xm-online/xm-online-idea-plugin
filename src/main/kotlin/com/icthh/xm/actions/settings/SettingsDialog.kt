@@ -1,25 +1,28 @@
 package com.icthh.xm.actions.settings
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.fasterxml.jackson.module.kotlin.readValues
 import com.icthh.xm.actions.BrowserCallback
-import com.icthh.xm.actions.BrowserPipe
 import com.icthh.xm.actions.WebDialog
 import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.service.*
 import com.icthh.xm.utils.logger
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.fileChooser.FileChooser
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.ui.jcef.JBCefBrowser
 import java.awt.Dimension
+import java.io.File
 
 
 class SettingsDialog(project: Project): WebDialog(
     project, "settings", Dimension(820, 600), "Settings"
 ) {
 
-    val mapper = jacksonObjectMapper()
+    val mapper = jacksonObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     var data = ArrayList<EnvironmentSettings>()
     val updateModes = UpdateMode.values().toList().map { UpdateModeDto(it.isGitMode, it.name) }
 
@@ -35,7 +38,8 @@ class SettingsDialog(project: Project): WebDialog(
                     "updateModes" to updateModes,
                     "branches" to project.getRepository()?.getLocalBranches(),
                     "envs" to data,
-                    "isConfigProject" to project.isConfigProject()
+                    "isConfigProject" to project.isConfigProject(),
+                    "projectType" to project.projectType()
                 )))
             },
             BrowserCallback("envsUpdated") {body, pipe ->
@@ -59,10 +63,52 @@ class SettingsDialog(project: Project): WebDialog(
                         e.message ?: ""
                     }
                 }
-            }
+            },
+            BrowserCallback("openFileInput") {body, pipe ->
+                val item = mapper.readValue<CurrentPath>(body)
+                val currentFile = item.currentPath?.let { VfsUtil.findFile(File(it).toPath(), false) }
+                invokeOnUiThread {
+                    FileChooser.chooseFile(
+                        FileChooserDescriptorFactory.createSingleFolderDescriptor(),
+                        project,
+                        currentFile
+                    ) {
+                        var path: String? = it.path
+                        logger.info("Selected path: ${path}")
+                        var configDir: File? = File(path!!)
+                        while (configDir !=null && configDir.exists() && !isConfigRoot(configDir.absolutePath)) {
+                            configDir = configDir.parentFile
+                        }
+                        path = configDir?.absolutePath
+
+                        if (path == null) {
+                            pipe.post("fileSelected", mapper.writeValueAsString(mapOf(
+                                "path" to it.path,
+                                "isConfigRoot" to false,
+                                "id" to item.id
+                            )))
+                            project.showNotification("ConfigRoot", "Wrong path", NotificationType.ERROR) {
+                                "${it.path} it's not config root."
+                            }
+                            return@chooseFile
+                        }
+
+                        pipe.post("fileSelected", mapper.writeValueAsString(mapOf(
+                            "path" to path,
+                            "isConfigRoot" to true,
+                            "id" to item.id
+                        )))
+                    }
+                }
+            },
         )
     }
 }
+
+data class CurrentPath (
+    val currentPath: String?,
+    val id: String?
+)
 
 data class UpdateModeDto(
     val isGitMode: Boolean,

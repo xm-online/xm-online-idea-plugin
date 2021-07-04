@@ -19,6 +19,7 @@ export class SettingsComponent extends Callback {
   updateModes = [];
   branches = [];
   isConfigProject = false;
+  projectType = 'UNKNOWN'
 
   connectionResult = null;
 
@@ -34,6 +35,17 @@ export class SettingsComponent extends Callback {
     this.messagePipe.subscribe('connectionResult', (res) => {
       console.info('connectionResult', res);
       this.connectionResult = res.success;
+    });
+    this.messagePipe.subscribe('fileSelected', (res) => {
+      console.info('fileSelected', res);
+      if (res.isConfigRoot) {
+        if (res.id) {
+          this.envs.filter(it => it.id == res.id)[0].basePath = res.path;
+          this.onUpdate();
+        } else {
+          this.addNewItem(res.path);
+        }
+      }
     });
   }
 
@@ -52,13 +64,26 @@ export class SettingsComponent extends Callback {
       this.branches.push('HEAD');
     }
     this.isConfigProject = res.isConfigProject;
+    this.projectType = res.projectType;
   }
 
   addEnv() {
     console.info("On add");
+
+    if (this.projectType === 'ENTITY') {
+      this.messagePipe.post('openFileInput', {
+        currentPath: null
+      });
+      return;
+    }
+
+    this.addNewItem(null);
+  }
+
+  private addNewItem(basePath?: string) {
     let i = this.envs.length;
     i++
-    while(this.envs.filter(it =>  it.name == `env ${i}` ).length > 0) {
+    while (this.envs.filter(it => it.name == `env ${i}`).length > 0) {
       i++
     }
 
@@ -68,16 +93,13 @@ export class SettingsComponent extends Callback {
       clientId: 'webapp',
       clientPassword: 'webapp',
       updateMode: 'GIT_LOCAL_CHANGES',
-      branchName: 'HEAD'
+      branchName: 'HEAD',
+      isConfigProject: this.isConfigProject,
+      basePath: basePath
     };
-    if (this.isConfigProject) {
-      this.envs.push(element)
-      this.onUpdate();
-    } else {
-      let element: any = document.querySelector("#openfile");
-      console.log(element);
-      element.click();
-    }
+
+    this.envs.push(element)
+    this.onUpdate();
   }
 
   removeEnv() {
@@ -103,9 +125,12 @@ export class SettingsComponent extends Callback {
     this.messagePipe.post('testConnection', this.environment);
   }
 
-    onChooseFile($event: Event) {
-      console.log($event);
-    }
+  changePath(env: EnvironmentSettings) {
+    this.messagePipe.post('openFileInput', {
+      currentPath: env.basePath,
+      id: env.id
+    });
+  }
 }
 
 interface EnvironmentSettings {
@@ -119,4 +144,6 @@ interface EnvironmentSettings {
   updateMode?: string;
   branchName?: string;
   startTrackChangesOnEdit?: boolean;
+  isConfigProject?: boolean;
+  basePath?: string;
 }
