@@ -1,9 +1,6 @@
 package com.icthh.xm.actions.deploy
 
-import com.icthh.xm.service.getChangedFiles
-import com.icthh.xm.service.getSettings
-import com.icthh.xm.service.updateFilesInMemory
-import com.icthh.xm.service.updateSupported
+import com.icthh.xm.service.*
 import com.intellij.diff.DiffContentFactory
 import com.intellij.diff.DiffManager
 import com.intellij.diff.requests.SimpleDiffRequest
@@ -20,11 +17,13 @@ class DeployCurrentFile: AnAction() {
         val selected = project.getSettings().selected()
         selected ?: return
         val file = e.getDataContext().getData(VIRTUAL_FILE)
-        file ?: return
+        if (file == null || !file.isConfigFile(project)) {
+            return
+        }
 
         FileDocumentManager.getInstance().saveAllDocuments()
 
-        val changes = project.getChangedFiles(setOf(file.path), true)
+        val changes = project.getChangedFiles(setOf(project.toAbsolutePath(file.path)), true)
 
         val fileListDialog = WebFileListDialog(project, changes)
         fileListDialog.show()

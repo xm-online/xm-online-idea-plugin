@@ -9,9 +9,11 @@ import com.intellij.openapi.vfs.VirtualFile
 import org.apache.commons.lang3.time.StopWatch
 import java.io.InputStream
 import java.nio.charset.Charset
-import java.util.*
+import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.FutureTask
 import java.util.concurrent.atomic.AtomicLong
+
 
 val loggers = ConcurrentHashMap<Class<Any>, Logger>()
 val loggerFactory: (Class<Any>) -> Logger = { Logger.getInstance(it) }
@@ -70,6 +72,13 @@ fun Any.startDiagnostic() {
             logger.info(line.toString())
         }
     }.start()
+}
+
+fun <R> doPseudoAsync(operation: Callable<R>):R {
+    val futureTask = FutureTask<R>(operation)
+    val t = Thread(futureTask)
+    t.start()
+    return futureTask.get()
 }
 
 

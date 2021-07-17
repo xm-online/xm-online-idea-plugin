@@ -8,6 +8,7 @@ import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.service.filechanges.ChangesFiles
 import com.icthh.xm.service.filechanges.GitFileChange
 import com.icthh.xm.service.filechanges.MemoryFileChange
+import com.icthh.xm.utils.doPseudoAsync
 import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.readTextAndClose
 import com.intellij.history.LocalHistory
@@ -43,6 +44,12 @@ fun Project.getSettings() = ServiceManager.getService(this, SettingService::clas
 fun Project.getExternalConfigService() = ServiceManager.getService(this, ExternalConfigService::class.java)
 fun Project?.isConfigProject(): Boolean {
     return this != null && isConfigRoot(this.basePath)
+}
+
+fun Project.getLinkedConfigRootDir() = if (isConfigProject()) {
+    getConfigRootDir()
+} else {
+    "${basePath}/src/main/lep"
 }
 
 fun Project.getConfigRootDir() = if (isConfigProject()) {
@@ -82,6 +89,8 @@ fun Project.toAbsolutePath(relatedPath: String) = configPathToRealPath(toRelated
 fun Project.toRelatedPath(absolutePath: String): String {
     if (absolutePath.startsWith(getConfigRootDir())) {
         return CONFIG_DIR_NAME + absolutePath.substringAfter(getConfigRootDir())
+    } else if (absolutePath.startsWith(getLinkedConfigRootDir())) {
+        return CONFIG_DIR_NAME + "/tenants" + absolutePath.substringAfter(getLinkedConfigRootDir())
     } else {
         return absolutePath
     }
@@ -97,11 +106,15 @@ fun Project.getRepository(onlyProject: Boolean = false): GitRepository? {
         return repo
     }
     if (repo == null) {
-        repo = repositoryManager.getRepositoryForRoot(root)
+        doPseudoAsync {
+            repo = repositoryManager.getRepositoryForRoot(root)
+        }
     }
     if (repo == null && root != null) {
         repositoryManager.addExternalRepository(root, GitRepositoryImpl.createInstance(root, this, this, true))
-        repo = repositoryManager.getRepositoryForRoot(root)
+        doPseudoAsync {
+            repo = repositoryManager.getRepositoryForRoot(root)
+        }
     }
     return repo
 }
@@ -181,7 +194,7 @@ fun VirtualFile.getConfigRootRelatedPath(project: Project): String {
 }
 
 fun VirtualFile.isConfigFile(project: Project): Boolean {
-    return this.path.startsWith(project.getConfigRootDir())
+    return this.path.startsWith(project.getConfigRootDir()) || this.path.startsWith(project.getLinkedConfigRootDir())
 }
 
 fun VirtualFile.toPsiFile(project: Project): PsiFile? {
