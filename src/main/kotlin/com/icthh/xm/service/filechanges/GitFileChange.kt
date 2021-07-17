@@ -6,20 +6,18 @@ import com.icthh.xm.utils.logger
 import com.intellij.dvcs.repo.Repository
 import com.intellij.dvcs.repo.Repository.State.NORMAL
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.Change
-import com.intellij.openapi.vcs.changes.Change.Type.*
+import com.intellij.openapi.vcs.changes.Change.Type.DELETED
+import com.intellij.openapi.vcs.changes.Change.Type.MOVED
 import com.intellij.openapi.vfs.VfsUtil
 import git4idea.GitRevisionNumber.HEAD
 import git4idea.changes.GitChangeUtils.getDiff
 import git4idea.changes.GitChangeUtils.getDiffWithWorkingTree
-import git4idea.repo.GitRepository
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
 import java.util.concurrent.Callable
-import java.util.concurrent.Future
 
 class GitFileChange(
     val project: Project

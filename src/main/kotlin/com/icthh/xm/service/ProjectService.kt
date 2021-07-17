@@ -13,7 +13,6 @@ import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.readTextAndClose
 import com.intellij.history.LocalHistory
 import com.intellij.notification.NotificationType
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
@@ -26,12 +25,10 @@ import com.intellij.psi.PsiManager
 import com.intellij.util.io.inputStream
 import com.intellij.util.io.isDirectory
 import com.intellij.util.io.systemIndependentPath
-import git4idea.GitUtil.getRepositoryForRoot
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryImpl
 import git4idea.repo.GitRepositoryManager
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
-import org.jetbrains.annotations.NotNull
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
