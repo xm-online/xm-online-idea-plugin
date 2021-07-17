@@ -1,14 +1,21 @@
 package com.icthh.xm.utils
 
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.intellij.diff.DiffContentFactory
 import com.intellij.diff.DiffManager
 import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import org.apache.commons.lang3.time.StopWatch
+import java.io.File
 import java.io.InputStream
 import java.nio.charset.Charset
+import java.nio.file.Files
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.FutureTask
@@ -19,6 +26,8 @@ val loggers = ConcurrentHashMap<Class<Any>, Logger>()
 val loggerFactory: (Class<Any>) -> Logger = { Logger.getInstance(it) }
 val Any.log: Logger get() = loggers.computeIfAbsent(this.javaClass, loggerFactory)
 val Any.logger get() = java.util.logging.Logger.getLogger(this.javaClass.name)
+val YAML_MAPPER = ObjectMapper(YAMLFactory()).registerModule(KotlinModule())
+    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
 fun InputStream.readTextAndClose(charset: Charset = Charsets.UTF_8): String {
     return this.bufferedReader(charset).use { it.readText() }
@@ -81,4 +90,15 @@ fun <R> doPseudoAsync(operation: Callable<R>):R {
     return futureTask.get()
 }
 
+fun File.deleteSymlink() {
+    walkTopDown().forEach {
+        if (Files.isSymbolicLink(it.toPath())) {
+            it.delete()
+            it.parentFile?.delete()
+            it.parentFile?.parentFile?.delete()
+        }
+    }
+    VfsUtil.findFile(toPath(), true)?.refresh(true, true)
+    delete()
+}
 

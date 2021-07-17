@@ -3,15 +3,12 @@ package com.icthh.xm.actions.deploy
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.service.getSettings
 import com.icthh.xm.service.updateSupported
+import com.icthh.xm.service.updateSymlinkToLep
 import com.icthh.xm.utils.logger
-import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.ex.ComboBoxAction
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.openapi.project.ProjectCoreUtil
-import com.intellij.openapi.project.ProjectManager
-import org.jetbrains.annotations.NotNull
 import java.awt.Dimension
 import javax.swing.JComponent
 
@@ -72,6 +69,7 @@ class DeployEnvSelector : ComboBoxAction(), DumbAware {
         override fun actionPerformed(e: AnActionEvent) {
             selectedItem = environmentSettings
             e.project?.getSettings()?.select(environmentSettings)
+            e.project?.updateSymlinkToLep()
         }
 
         init {

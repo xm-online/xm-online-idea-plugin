@@ -1,5 +1,6 @@
 package com.icthh.xm.service
 
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.FileState
 import com.icthh.xm.actions.settings.SettingService
@@ -8,16 +9,16 @@ import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.service.filechanges.ChangesFiles
 import com.icthh.xm.service.filechanges.GitFileChange
 import com.icthh.xm.service.filechanges.MemoryFileChange
-import com.icthh.xm.utils.doPseudoAsync
-import com.icthh.xm.utils.isTrue
-import com.icthh.xm.utils.readTextAndClose
+import com.icthh.xm.utils.*
 import com.intellij.history.LocalHistory
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.MessageType
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
@@ -30,10 +31,10 @@ import git4idea.repo.GitRepositoryImpl
 import git4idea.repo.GitRepositoryManager
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Paths
+import java.nio.file.*
 import java.util.concurrent.Future
 import kotlin.streams.asSequence
+
 
 const val CONFIG_DIR_NAME = "/config"
 
@@ -61,14 +62,69 @@ fun isConfigRoot(path: String?): Boolean {
     return  File(toConfigFolder(path)).exists() && File(toConfigFolder(path) + "/tenants/tenants-list.json").exists()
 }
 
-fun Project?.isSupportProject() = isConfigProject() || isEntityProject()
-fun Project?.isEntityProject() = this?.name == "xm-ms-entity"
+fun Project?.isSupportProject() = isConfigProject() || isMicroservice()
+
+val BOOTSTRAP = Key<Bootstrap>("bootstrap.yml")
+data class Bootstrap(val spring: SpringConfig?)
+data class SpringConfig(val application: ApplicationConfig?)
+data class ApplicationConfig(val name: String?)
+fun Project?.isMicroservice(): Boolean {
+    return this?.getApplicationName() != null
+}
+
+fun Project.getApplicationName(): String? {
+    var bootstrapConfig = this.getUserData(BOOTSTRAP)
+    if (bootstrapConfig == null) {
+        val configFile = VfsUtil.findFile(File("${this.basePath}/src/main/resources/config/bootstrap.yml").toPath(), true)
+        val config: Bootstrap? = configFile?.let { YAML_MAPPER.readValue<Bootstrap>(it.contentsToByteArray()) }
+        this.putUserData(BOOTSTRAP, config)
+        bootstrapConfig = config
+    }
+    return bootstrapConfig?.spring?.application?.name
+}
+
+fun Project.updateSymlinkToLep() {
+    val selected = this.getSettings().selected()
+    selected ?: return
+    if (selected.isConfigProject) {
+        return
+    }
+
+    File("${this.basePath}/src/main/lep").deleteSymlink()
+    File("${this.basePath}/src/test/lep").deleteSymlink()
+    if (selected.basePath.isNullOrBlank()) {
+        return
+    }
+
+    val tenantsPath = "${selected.basePath}/config/tenants"
+    val tenantsDirectory = File(tenantsPath)
+    if (!tenantsDirectory.exists()) {
+        logger.info("Folder '${tenantsPath}' not exists")
+        return
+    }
+
+    (tenantsDirectory.list() ?: emptyArray()).forEach {
+        createSymlink(tenantsPath, it, "lep", "main")
+        createSymlink(tenantsPath, it, "test", "test")
+    }
+    VfsUtil.findFile(File("${basePath}").toPath(), true)?.refresh(true, true)
+}
+
+private fun Project.createSymlink(tenantsPath: String, tenant: String, sourceType: String, targetType: String) {
+    val fromTest = File("${tenantsPath}/${tenant}/${getApplicationName()}/${sourceType}")
+    if (fromTest.exists()) {
+        val lepPath = "${this.basePath}/src/${targetType}/lep/${tenant}/${getApplicationName()}"
+        File(lepPath).mkdirs()
+        logger.info("${fromTest} -> ${lepPath}/lep")
+        Files.createSymbolicLink(File("${lepPath}/lep").toPath(), fromTest.toPath())
+    }
+}
 
 fun Project?.projectType(): String {
     if (isConfigProject()) {
         return "CONFIG"
-    } else if (isEntityProject()) {
-        return "ENTITY"
+    } else if (isMicroservice()) {
+        return "MICROSERVICE"
     } else {
         return "UNKNOWN"
     }

@@ -70,7 +70,7 @@ export class SettingsComponent extends Callback {
   addEnv() {
     console.info("On add");
 
-    if (this.projectType === 'ENTITY') {
+    if (this.projectType === 'MICROSERVICE') {
       this.messagePipe.post('openFileInput', {
         currentPath: null
       });
