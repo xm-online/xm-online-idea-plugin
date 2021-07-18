@@ -64,6 +64,11 @@
         <codeInsight.lineMarkerProvider language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntityIconLineMarkerProvider" />
         <psi.referenceContributor implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecReferenceContributor" />
         <!-- end xmentityspec.yml -->
+
+    </extensions>
+
+    <extensions defaultExtensionNs="org.intellij.groovy">
+        <membersContributor implementation="com.icthh.xm.extensions.LepContextNonCodeMembersContributor"/>
     </extensions>
 
     <application-components>
