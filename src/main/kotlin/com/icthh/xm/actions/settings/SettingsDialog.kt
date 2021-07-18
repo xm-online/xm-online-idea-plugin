@@ -7,6 +7,7 @@ import com.icthh.xm.actions.BrowserCallback
 import com.icthh.xm.actions.WebDialog
 import com.icthh.xm.actions.shared.showNotification
 import com.icthh.xm.service.*
+import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.logger
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.fileChooser.FileChooser
@@ -24,7 +25,27 @@ class SettingsDialog(project: Project): WebDialog(
 
     val mapper = jacksonObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     var data = ArrayList<EnvironmentSettings>()
-    val updateModes = UpdateMode.values().toList().map { UpdateModeDto(it.isGitMode, it.name) }
+    val updateModes = if (project.isConfigProject()) {
+        UpdateMode.values().toList().map { UpdateModeDto(it.isGitMode, it.name) }
+    } else {
+        UpdateMode.values().toList().map { UpdateModeDto(it.isGitMode, it.name) }.filter { it.isGitMode }
+    }
+    val tenants = getTenants(project)
+
+    private fun getTenants(project: Project): List<String> {
+        val tenants = ArrayList<String>()
+        val basePath = project.getSettings().selected()?.basePath
+        if (!project.isConfigProject() && !basePath.isNullOrBlank()) {
+            val tenantsPath = "${basePath}/config/tenants"
+            val tenantsDirectory = File(tenantsPath)
+            if (tenantsDirectory.exists()) {
+                val tenantFolders = tenantsDirectory.list() ?: emptyArray()
+                val tenantsList = tenantFolders.filter { File("${tenantsPath}/${it}").isDirectory }
+                tenants.addAll(tenantsList)
+            }
+        }
+        return tenants
+    }
 
     override fun callbacks(browser: JBCefBrowser): List<BrowserCallback> {
         return listOf(
@@ -35,6 +56,7 @@ class SettingsDialog(project: Project): WebDialog(
                 this.data.clear()
                 this.data.addAll(data)
                 pipe.post("initData", mapper.writeValueAsString(mapOf(
+                    "tenants" to tenants,
                     "updateModes" to updateModes,
                     "branches" to project.getRepository()?.getLocalBranches(),
                     "envs" to data,

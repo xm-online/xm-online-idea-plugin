@@ -3,6 +3,7 @@ package com.icthh.xm.actions.settings
 import com.icthh.xm.service.getSettings
 import com.icthh.xm.service.isSupportProject
 import com.icthh.xm.service.updateSupported
+import com.icthh.xm.service.updateSymlinkToLep
 import com.icthh.xm.utils.logger
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -21,6 +22,7 @@ class MainSettingAction : AnAction() {
         if (dialog.isOK) {
             project.getSettings().envs.clear()
             project.getSettings().envs.addAll(dialog.data)
+            project.updateSymlinkToLep()
         }
         project.save()
     }

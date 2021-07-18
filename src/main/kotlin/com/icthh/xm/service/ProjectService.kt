@@ -84,6 +84,13 @@ fun Project.getApplicationName(): String? {
 }
 
 fun Project.updateSymlinkToLep() {
+    doAsync {
+        doUpdateSymlinkToLep()
+    }
+}
+
+@Synchronized
+private fun Project.doUpdateSymlinkToLep() {
     val selected = this.getSettings().selected()
     selected ?: return
     if (selected.isConfigProject) {
@@ -103,11 +110,11 @@ fun Project.updateSymlinkToLep() {
         return
     }
 
-    (tenantsDirectory.list() ?: emptyArray()).forEach {
+    (tenantsDirectory.list() ?: emptyArray()).filter { selected.selectedTenants.contains(it) }.forEach {
         createSymlink(tenantsPath, it, "lep", "main")
         createSymlink(tenantsPath, it, "test", "test")
     }
-    VfsUtil.findFile(File("${basePath}").toPath(), true)?.refresh(true, true)
+    VfsUtil.findFile(File("${basePath}").toPath(), false)?.refresh(true, true)
 }
 
 private fun Project.createSymlink(tenantsPath: String, tenant: String, sourceType: String, targetType: String) {

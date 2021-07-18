@@ -18,6 +18,7 @@ export class SettingsComponent extends Callback {
   updateModesMap = {};
   updateModes = [];
   branches = [];
+  tenants: string[] = [];
   isConfigProject = false;
   projectType = 'UNKNOWN'
 
@@ -62,6 +63,9 @@ export class SettingsComponent extends Callback {
     if (res.branches) {
       this.branches = res.branches;
       this.branches.push('HEAD');
+    }
+    if (res.tenants) {
+      this.tenants = res.tenants;
     }
     this.isConfigProject = res.isConfigProject;
     this.projectType = res.projectType;
@@ -146,4 +150,5 @@ interface EnvironmentSettings {
   startTrackChangesOnEdit?: boolean;
   isConfigProject?: boolean;
   basePath?: string;
+  selectedTenants?: string[];
 }

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.intellij.diff.DiffContentFactory
 import com.intellij.diff.DiffManager
 import com.intellij.diff.requests.SimpleDiffRequest
+import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
@@ -90,6 +91,10 @@ fun <R> doPseudoAsync(operation: Callable<R>):R {
     return futureTask.get()
 }
 
+fun doAsync(action: Runnable) {
+    getApplication().executeOnPooledThread(action)
+}
+
 fun File.deleteSymlink() {
     walkTopDown().forEach {
         if (Files.isSymbolicLink(it.toPath())) {
@@ -98,7 +103,7 @@ fun File.deleteSymlink() {
             it.parentFile?.parentFile?.delete()
         }
     }
-    VfsUtil.findFile(toPath(), true)?.refresh(true, true)
+    VfsUtil.findFile(toPath(), false)?.refresh(false, false)
     delete()
 }
 

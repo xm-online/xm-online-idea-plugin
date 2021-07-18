@@ -60,6 +60,8 @@ class EnvironmentSettings {
     var isConfigProject: Boolean = false
     var basePath: String? = null
 
+    var selectedTenants: MutableSet<String> = HashSet()
+
     override fun toString() = name
 
     override fun equals(other: Any?): Boolean {

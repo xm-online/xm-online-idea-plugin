@@ -37,6 +37,12 @@
                             ...
                         </button>
                     </div>
+                    <mat-form-field class="full-width" *ngIf="!environment.isConfigProject">
+                        <mat-label>Tenants list</mat-label>
+                        <mat-select multiple [(ngModel)]="environment.selectedTenants" (ngModelChange)="onUpdate()">
+                            <mat-option *ngFor="let tenant of tenants" [value]="tenant">{{tenant}}</mat-option>
+                        </mat-select>
+                    </mat-form-field>
                     <mat-form-field class="full-width">
                         <mat-label>Xm base url (example: http://xm-online.com)</mat-label>
                         <input type="text" matInput [(ngModel)]="environment.xmUrl" (ngModelChange)="onUpdate()">
