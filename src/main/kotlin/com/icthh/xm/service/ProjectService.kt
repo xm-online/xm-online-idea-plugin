@@ -56,6 +56,11 @@ fun Project.getConfigRootDir() = if (isConfigProject()) {
     toConfigFolder(getSettings().selected()?.basePath)
 }
 
+fun VirtualFile.toRealPath(project: Project): String {
+    val relatedPath = path.substring(project.getLinkedConfigRootDir().length)
+    return "${project.getConfigRootDir()}${relatedPath}"
+}
+
 private fun toConfigFolder(basePath: String?) = basePath + CONFIG_DIR_NAME
 
 fun isConfigRoot(path: String?): Boolean {
@@ -267,7 +272,11 @@ private fun VirtualFile.getPathRelatedTo(
 ): String {
     var vFile = this;
 
-    while (vFile.parent != null && !vFile.parent.path.equals(project.getConfigRootDir() + root)) {
+    while (vFile.parent != null && !vFile.parent.path.equals(project.getLinkedConfigRootDir() + root)) {
+        vFile = vFile.parent
+    }
+
+    if (!project.isConfigProject()) {
         vFile = vFile.parent
     }
 

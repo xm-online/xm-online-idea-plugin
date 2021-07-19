@@ -20,7 +20,6 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 class ProjectStartupActivity: StartupActivity {
     override fun runActivity(project: Project) {
         logger.info("runActivity")
-        project.updateSymlinkToLep()
         project.messageBus.connect().subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
             override fun after(events: List<VFileEvent?>) {
                 events.forEach {

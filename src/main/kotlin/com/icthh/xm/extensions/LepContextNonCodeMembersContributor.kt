@@ -1,6 +1,8 @@
 package com.icthh.xm.extensions
 
 
+import com.icthh.xm.extensions.entityspec.originalFile
+import com.icthh.xm.service.*
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiType
@@ -8,6 +10,8 @@ import com.intellij.psi.ResolveState
 import com.intellij.psi.impl.light.LightFieldBuilder
 import com.intellij.psi.scope.NameHint
 import com.intellij.psi.scope.PsiScopeProcessor
+import com.intellij.psi.search.ProjectScope
+import com.intellij.psi.search.PsiShortNamesCache
 import org.jetbrains.plugins.groovy.lang.resolve.NonCodeMembersContributor
 
 
@@ -20,10 +24,22 @@ class LepContextNonCodeMembersContributor: NonCodeMembersContributor() {
         place: PsiElement,
         state: ResolveState
     ) {
+        val project = place.project
+        val selected = project.getSettings().selected()
+        selected ?: return
+        if (selected.isConfigProject) {
+            return
+        }
+
         val nameHint = processor.getHint(NameHint.KEY)
         if (aClass != null && aClass.getCountSubstring() > 1 && nameHint?.getName(state) == "lepContext") {
-            val lepContext = LightFieldBuilder("lepContext", "com.icthh.xm.ms.entity.lep.LepContext", aClass)
-            processor.execute(lepContext, state)
+            val candidates = PsiShortNamesCache.getInstance(project).getClassesByName("LepContext", ProjectScope.getProjectScope(project))
+            if (candidates.size > 0) {
+                candidates[0].qualifiedName?.let{
+                    val lepContext = LightFieldBuilder("lepContext", it, aClass)
+                    processor.execute(lepContext, state)
+                }
+            }
         }
     }
 

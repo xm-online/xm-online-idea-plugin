@@ -17,12 +17,18 @@ class MainSettingAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         // e.presentation.isEnabled = true
+        val basePath = project.getSettings().selected()?.basePath
+        val listOfTenants = HashSet<String>(project.getSettings().selected()?.selectedTenants ?: listOf())
+
         val dialog = SettingsDialog(project)
         dialog.show()
         if (dialog.isOK) {
             project.getSettings().envs.clear()
             project.getSettings().envs.addAll(dialog.data)
-            project.updateSymlinkToLep()
+            if (basePath != project.getSettings().selected()?.basePath
+                || !listOfTenants.equals(project.getSettings().selected()?.selectedTenants)) {
+                project.updateSymlinkToLep()
+            }
         }
         project.save()
     }
