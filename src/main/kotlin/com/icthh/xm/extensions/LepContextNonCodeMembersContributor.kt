@@ -32,7 +32,7 @@ class LepContextNonCodeMembersContributor: NonCodeMembersContributor() {
         }
 
         val nameHint = processor.getHint(NameHint.KEY)
-        if (aClass != null && aClass.getCountSubstring() > 1 && nameHint?.getName(state) == "lepContext") {
+        if (aClass != null && aClass.getCountSubstring() > 0 && nameHint?.getName(state) == "lepContext") {
             val candidates = PsiShortNamesCache.getInstance(project).getClassesByName("LepContext", ProjectScope.getProjectScope(project))
             if (candidates.size > 0) {
                 candidates[0].qualifiedName?.let{
