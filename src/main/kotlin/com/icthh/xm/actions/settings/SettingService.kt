@@ -57,7 +57,6 @@ class EnvironmentSettings {
 
     var lastTimeTryToNotifyAboutDifference: Long = 0
 
-    var isConfigProject: Boolean = false
     var basePath: String? = null
 
     var selectedTenants: MutableSet<String> = HashSet()

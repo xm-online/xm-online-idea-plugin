@@ -98,7 +98,7 @@ fun Project.updateSymlinkToLep() {
 private fun Project.doUpdateSymlinkToLep() {
     val selected = this.getSettings().selected()
     selected ?: return
-    if (selected.isConfigProject) {
+    if (isConfigProject()) {
         return
     }
 
@@ -144,7 +144,7 @@ fun Project?.projectType(): String {
 
 fun Project.configPathToRealPath(configPath: String): String {
     val selected = this.getSettings().selected()
-    if (!selected?.isConfigProject.isTrue()) {
+    if (!isConfigProject()) {
         return selected?.basePath.let { it + configPath }
     }
     return this.basePath + configPath
@@ -272,11 +272,11 @@ private fun VirtualFile.getPathRelatedTo(
 ): String {
     var vFile = this;
 
-    while (vFile.parent != null && !vFile.parent.path.equals(project.getLinkedConfigRootDir() + root)) {
+    while (vFile.parent != null && !vFile.parent.path.equals(project.getLinkedConfigRootDir() + root) && !vFile.parent.path.equals(project.getConfigRootDir() + root)) {
         vFile = vFile.parent
     }
 
-    if (!project.isConfigProject()) {
+    if (!project.isConfigProject() && vFile.parent != null && !vFile.parent.path.equals(project.getConfigRootDir() + root)) {
         vFile = vFile.parent
     }
 

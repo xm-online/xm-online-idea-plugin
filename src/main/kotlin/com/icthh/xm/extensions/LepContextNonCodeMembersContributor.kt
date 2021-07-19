@@ -27,7 +27,7 @@ class LepContextNonCodeMembersContributor: NonCodeMembersContributor() {
         val project = place.project
         val selected = project.getSettings().selected()
         selected ?: return
-        if (selected.isConfigProject) {
+        if (project.isConfigProject()) {
             return
         }
 

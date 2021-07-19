@@ -48,6 +48,10 @@ export class SettingsComponent extends Callback {
         }
       }
     });
+    this.messagePipe.subscribe('setTenants', (res) => {
+      console.info('setTenants', res);
+      this.tenants = res.tenants;
+    });
   }
 
   private updateData(res) {
@@ -118,11 +122,19 @@ export class SettingsComponent extends Callback {
       let shift = $event.options[0];
       this.environment = shift.value;
     }
+    this.refreshTenantsList();
   }
 
   onUpdate() {
     this.connectionResult = null;
     this.messagePipe.post('envsUpdated', this.envs);
+    this.refreshTenantsList();
+  }
+
+  private refreshTenantsList() {
+    if (this.environment && this.environment.basePath) {
+      this.messagePipe.post('getTenants', this.environment);
+    }
   }
 
   testConnection() {

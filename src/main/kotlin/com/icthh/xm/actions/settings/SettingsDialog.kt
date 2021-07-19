@@ -30,12 +30,10 @@ class SettingsDialog(project: Project): WebDialog(
     } else {
         UpdateMode.values().toList().map { UpdateModeDto(it.isGitMode, it.name) }.filter { it.isGitMode }
     }
-    val tenants = getTenants(project)
 
-    private fun getTenants(project: Project): List<String> {
+    private fun getTenants(basePath: String?): List<String> {
         val tenants = ArrayList<String>()
-        val basePath = project.getSettings().selected()?.basePath
-        if (!project.isConfigProject() && !basePath.isNullOrBlank()) {
+        if (!basePath.isNullOrBlank()) {
             val tenantsPath = "${basePath}/config/tenants"
             val tenantsDirectory = File(tenantsPath)
             if (tenantsDirectory.exists()) {
@@ -56,12 +54,19 @@ class SettingsDialog(project: Project): WebDialog(
                 this.data.clear()
                 this.data.addAll(data)
                 pipe.post("initData", mapper.writeValueAsString(mapOf(
-                    "tenants" to tenants,
+                    "tenants" to getTenants(project.getSettings()?.selected()?.basePath),
                     "updateModes" to updateModes,
                     "branches" to project.getRepository()?.getLocalBranches(),
                     "envs" to data,
                     "isConfigProject" to project.isConfigProject(),
                     "projectType" to project.projectType()
+                )))
+            },
+            BrowserCallback("getTenants") {body, pipe ->
+                logger.info("getTenants ${body}")
+                val basePathHolder = mapper.readValue<BasePathHolder>(body)
+                pipe.post("setTenants", mapper.writeValueAsString(mapOf(
+                    "tenants" to getTenants(basePathHolder.basePath),
                 )))
             },
             BrowserCallback("envsUpdated") {body, pipe ->
@@ -135,5 +140,9 @@ data class CurrentPath (
 data class UpdateModeDto(
     val isGitMode: Boolean,
     val name: String
+)
+
+data class BasePathHolder (
+    val basePath: String?
 )
 
