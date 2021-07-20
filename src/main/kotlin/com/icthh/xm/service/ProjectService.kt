@@ -127,8 +127,8 @@ private fun Project.createSymlink(tenantsPath: String, tenant: String, sourceTyp
     if (fromTest.exists()) {
         val lepPath = "${this.basePath}/src/${targetType}/lep/${tenant}/${getApplicationName()}"
         File(lepPath).mkdirs()
-        logger.info("${fromTest} -> ${lepPath}/lep")
-        Files.createSymbolicLink(File("${lepPath}/lep").toPath(), fromTest.toPath())
+        logger.info("${fromTest} -> ${lepPath}/${sourceType}")
+        Files.createSymbolicLink(File("${lepPath}/${sourceType}").toPath(), fromTest.toPath())
     }
 }
 
