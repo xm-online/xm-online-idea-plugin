@@ -12,6 +12,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiClass
 import org.apache.commons.lang3.time.StopWatch
 import java.io.File
 import java.io.InputStream
@@ -105,5 +106,16 @@ fun File.deleteSymlink() {
     }
     VfsUtil.findFile(toPath(), false)?.refresh(false, false)
     delete()
+}
+
+fun PsiClass.getCountSubstring(): Int {
+    val search = "$$"
+    var index = 0
+    var count = 0
+    while (index >= 0) {
+        index = this.name?.indexOf(search, index + 1) ?: -1
+        count++
+    }
+    return count
 }
 

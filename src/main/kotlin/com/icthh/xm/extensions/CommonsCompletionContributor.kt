@@ -1,29 +1,86 @@
 package com.icthh.xm.extensions
 
-import com.icthh.xm.utils.logger
+import com.icthh.xm.extensions.entityspec.originalFile
+import com.icthh.xm.service.getLinkedConfigRootDir
 import com.intellij.codeInsight.completion.*
+import com.intellij.codeInsight.completion.CompletionInitializationContext.DUMMY_IDENTIFIER_TRIMMED
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.patterns.PlatformPatterns
-import com.intellij.psi.PsiReferenceRegistrar
 import com.intellij.util.ProcessingContext
+import java.io.File
+import java.util.*
 
+const val COMMONS_PREFIX = "Commons$$"
+const val COMMONS_SUFFIX = "$${"$"}around.groovy"
 
 class CommonsCompletionContributor: CompletionContributor() {
     init {
 
-        /*if the parameter position is an xml attribute provide attributes using given xsd*/
         extend(CompletionType.BASIC,
             PlatformPatterns.psiElement(), object : CompletionProvider<CompletionParameters>() {
                 public override fun addCompletions(
-                    parameters: CompletionParameters, //completion parameters contain details of the curser position
+                    parameters: CompletionParameters,
                     context: ProcessingContext,
                     resultSet: CompletionResultSet
                 ) {
-                    logger.info("${parameters.position.parent.text}")
-                    logger.info("${context}")
+                    val parent = parameters.position.parent
+                    val commons = "lepContext.commons."
+
+                    val project = parameters.position.project
+                    val lepCommons = getLepFolder(project, parameters)?.children?.find { it.name == "commons" }
+                    if (lepCommons != null && parent != null && parent.text.startsWith(commons)) {
+
+                        var commonsPath = parent.text.substringAfter(commons)
+                        if (commonsPath.endsWith(DUMMY_IDENTIFIER_TRIMMED.decapitalize())) {
+                            commonsPath = commonsPath.substringBefore(DUMMY_IDENTIFIER_TRIMMED.decapitalize())
+                        }
+
+                        val commonsParts = commonsPath.split(".")
+                        val variants = getVariants(commonsParts, lepCommons)
+                        resultSet.addAllElements(variants.map { LookupElementBuilder.create(it) })
+                    }
                 }
             }
         )
 
+    }
+
+    private fun getVariants(commonsParts: List<String>, lepCommons: VirtualFile): List<String> {
+        var folder = lepCommons
+        val parts = LinkedList(commonsParts)
+        val last = parts.removeLast()
+
+        for (part in parts) {
+            folder = folder.children.find { it.name == part } ?: return listOf()
+        }
+        val variants = ArrayList<String>()
+        variants.addAll(folder.children.filter { it.isDirectory }.map { it.name })
+        val variantMethods = folder.children.filter { !it.isDirectory }
+            .filter { it.name.startsWith(COMMONS_PREFIX) }
+            .filter { it.name.endsWith(COMMONS_SUFFIX) }
+            .map { it.name }
+            .map { it.substringAfter(COMMONS_PREFIX) }
+            .map { it.substringBefore(COMMONS_SUFFIX) }
+            .map { "${it}()" }
+        variants.addAll(variantMethods)
+        return variants.filter { it.startsWith(last) }
+    }
+
+    private fun getLepFolder(project: Project, parameters: CompletionParameters): VirtualFile? {
+        val currentFile = parameters.position.originalFile.virtualFile
+        val configRootDir = VfsUtil.findFile(File(project.getLinkedConfigRootDir()).toPath(), false) ?: return null
+        val pathToLepFolder = listOf("lep", "tenant", "microservice", "lep")
+
+        var parent = currentFile
+        val path = LinkedList<VirtualFile>()
+        while(parent.path != configRootDir.path && parent.parent != null) {
+            parent = parent.parent
+            path.add(parent)
+        }
+
+        return path.get(path.size - pathToLepFolder.size)
     }
 }

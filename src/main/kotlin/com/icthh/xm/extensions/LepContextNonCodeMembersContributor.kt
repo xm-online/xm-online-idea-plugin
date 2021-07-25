@@ -3,6 +3,7 @@ package com.icthh.xm.extensions
 
 import com.icthh.xm.extensions.entityspec.originalFile
 import com.icthh.xm.service.*
+import com.icthh.xm.utils.getCountSubstring
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
@@ -59,17 +60,6 @@ class LepContextNonCodeMembersContributor: NonCodeMembersContributor() {
                 processor.execute(lepContext, state)
             }
         }
-    }
-
-    private fun PsiClass.getCountSubstring(): Int {
-        val search = "$$"
-        var index = 0
-        var count = 0
-        while (index >= 0) {
-            index = this.name?.indexOf(search, index + 1) ?: -1
-            count++
-        }
-        return count
     }
 
 }
