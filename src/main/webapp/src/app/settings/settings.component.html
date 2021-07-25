@@ -29,15 +29,15 @@
                         <input type="text" matInput [(ngModel)]="environment.name" (ngModelChange)="onUpdate()">
                     </mat-form-field>
                     <div style="display: flex;">
-                        <mat-form-field class="full-width" *ngIf="!environment.isConfigProject">
+                        <mat-form-field class="full-width" *ngIf="!isConfigProject">
                             <mat-label>Path to config root</mat-label>
                             <input type="text" disabled="true" matInput [(ngModel)]="environment.basePath">
                         </mat-form-field>
-                        <button mat-raised-button class="pathButton" (click)="changePath(environment)">
+                        <button mat-raised-button class="pathButton" (click)="changePath(environment)" *ngIf="!isConfigProject">
                             ...
                         </button>
                     </div>
-                    <mat-form-field class="full-width" *ngIf="!environment.isConfigProject">
+                    <mat-form-field class="full-width" *ngIf="!isConfigProject">
                         <mat-label>Tenants list</mat-label>
                         <mat-select multiple [(ngModel)]="environment.selectedTenants" (ngModelChange)="onUpdate()">
                             <mat-option *ngFor="let tenant of tenants" [value]="tenant">{{tenant}}</mat-option>

@@ -146,6 +146,9 @@
                 },
                 "binaryDataType" : {
                   "type" : "string"
+                },
+                "anonymous" : {
+                  "type" : "boolean"
                 }
               }
             }
@@ -233,6 +236,9 @@
                 },
                 "timeZoneDataRef" : {
                   "type" : "string"
+                },
+                "readonly" : {
+                  "type" : "boolean"
                 }
               }
             }
