@@ -16,12 +16,12 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.MessageType
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiManager
 import com.intellij.util.io.inputStream
 import com.intellij.util.io.isDirectory
@@ -31,7 +31,8 @@ import git4idea.repo.GitRepositoryImpl
 import git4idea.repo.GitRepositoryManager
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 import java.io.File
-import java.nio.file.*
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.concurrent.Future
 import kotlin.streams.asSequence
 
@@ -264,6 +265,11 @@ fun VirtualFile.isConfigFile(project: Project): Boolean {
 
 fun VirtualFile.toPsiFile(project: Project): PsiFile? {
     return PsiManager.getInstance(project).findFile(this)
+}
+
+fun VirtualFile.toPsiElement(project: Project): PsiFileSystemItem? {
+    val manager = PsiManager.getInstance(project)
+    return manager.findFile(this) ?: manager.findDirectory(this)
 }
 
 private fun VirtualFile.getPathRelatedTo(

@@ -12,7 +12,9 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiElement
 import org.apache.commons.lang3.time.StopWatch
 import java.io.File
 import java.io.InputStream
@@ -118,4 +120,6 @@ fun PsiClass.getCountSubstring(): Int {
     }
     return count
 }
+
+inline fun <reified T : PsiElement> psiElement() = PlatformPatterns.psiElement(T::class.java)
 

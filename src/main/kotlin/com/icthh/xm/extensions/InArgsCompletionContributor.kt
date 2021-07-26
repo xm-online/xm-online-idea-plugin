@@ -28,7 +28,7 @@ import org.jetbrains.plugins.groovy.lang.resolve.NonCodeMembersContributor
 import java.io.File
 import java.util.*
 
-class InArgsNonCompletionContributor: CompletionContributor() {
+class InArgsCompletionContributor: CompletionContributor() {
 
     init {
 

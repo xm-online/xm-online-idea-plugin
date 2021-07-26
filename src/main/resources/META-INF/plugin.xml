@@ -35,9 +35,9 @@
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />
 
-        <!--        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />-->
+<!--        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />-->
         <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />
-        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.InArgsNonCompletionContributor" />
+        <!--        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.InArgsCompletionContributor" />-->
 
         <!-- start xmentityspec.yml -->
         <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
@@ -70,6 +70,7 @@
 
     <extensions defaultExtensionNs="org.intellij.groovy">
         <membersContributor implementation="com.icthh.xm.extensions.LepContextNonCodeMembersContributor"/>
+        <membersContributor implementation="com.icthh.xm.extensions.CommonsNonCodeMembersContributor"/>
         <membersContributor implementation="com.icthh.xm.extensions.InArgsNonCodeMembersContributor"/>
     </extensions>
 
