@@ -1,10 +1,7 @@
 package com.icthh.xm.extensions
 
 import com.icthh.xm.extensions.entityspec.originalFile
-import com.icthh.xm.service.getSettings
-import com.icthh.xm.service.isConfigProject
-import com.icthh.xm.service.toPsiElement
-import com.icthh.xm.service.toPsiFile
+import com.icthh.xm.service.*
 import com.icthh.xm.utils.getCountSubstring
 import com.icthh.xm.utils.logger
 import com.intellij.codeInsight.AnnotationUtil.*
@@ -15,6 +12,8 @@ import com.intellij.psi.scope.NameHint
 import com.intellij.psi.scope.PsiScopeProcessor
 import org.jetbrains.plugins.groovy.lang.psi.impl.stringValue
 import org.jetbrains.plugins.groovy.lang.resolve.NonCodeMembersContributor
+import org.jetbrains.plugins.groovy.lang.resolve.processNonCodeMembers
+import org.jetbrains.plugins.groovy.lang.resolve.sorryCannotKnowElementKind
 import kotlin.collections.HashMap
 
 class CommonsNonCodeMembersContributor: NonCodeMembersContributor() {
@@ -29,7 +28,7 @@ class CommonsNonCodeMembersContributor: NonCodeMembersContributor() {
         val project = place.project
         val selected = project.getSettings().selected()
         selected ?: return
-        if (project.isConfigProject()) {
+        if (!project.isSupportProject() || project.isConfigProject()) {
             return
         }
 
@@ -62,25 +61,10 @@ class CommonsNonCodeMembersContributor: NonCodeMembersContributor() {
                 val folder = targetFolder
                 if (folder != null) {
                     val psiFile = folder.toPsiElement(project) ?: return
-                    inject(pathParts.last(), psiFile, processor, state)
+                    inject(nameHint, psiFile, processor, state)
                 }
-            } else {
-                // TODO
             }
         }
-    }
-
-    private fun getPackagePrefix(annotatedPsiMethod: PsiMethod): String {
-        val LEP_SERVICE_ANNOTATION = "com.icthh.xm.commons.lep.spring.LepService"
-        val packagePrefix =
-            findAnnotation(annotatedPsiMethod.containingClass, LEP_SERVICE_ANNOTATION)?.findAttributeValue(
-                "group"
-            )?.stringValue()
-        if (packagePrefix == "general" || packagePrefix == null) {
-            return ""
-        }
-        val pathPrefix = packagePrefix.replace(".", "/")
-        return "/$pathPrefix/"
     }
 
     private fun inject(
@@ -89,8 +73,9 @@ class CommonsNonCodeMembersContributor: NonCodeMembersContributor() {
         processor: PsiScopeProcessor,
         state: ResolveState
     ) {
-        val param = LightFieldBuilder(name, "java.lang.Object", element)
-        processor.execute(param, state)
+            val param = LightFieldBuilder(name, "java.lang.Object", element)
+            val newState = state.put(sorryCannotKnowElementKind, true)
+            processor.execute(param, newState)
     }
 
 }
