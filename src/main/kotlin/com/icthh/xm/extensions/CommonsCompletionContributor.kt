@@ -79,9 +79,11 @@ public fun getLepFolder(project: Project, place: PsiElement): VirtualFile? {
 
     var parent = currentFile
     val path = LinkedList<VirtualFile>()
-    while(parent.path != configRootDir.path && parent.parent != null) {
+    while(parent?.path != configRootDir.path && parent?.parent != null) {
         parent = parent.parent
-        path.add(parent)
+        if (parent != null) {
+            path.add(parent)
+        }
     }
 
     return path.get(path.size - pathToLepFolder.size)
