@@ -116,6 +116,7 @@ private fun Project.doUpdateSymlinkToLep() {
         return
     }
 
+    createCommonsSymlink(tenantsPath, "lep", "main")
     (tenantsDirectory.list() ?: emptyArray()).filter { selected.selectedTenants.contains(it) }.forEach {
         createSymlink(tenantsPath, it, "lep", "main")
         createSymlink(tenantsPath, it, "test", "test")
@@ -127,6 +128,16 @@ private fun Project.createSymlink(tenantsPath: String, tenant: String, sourceTyp
     val fromTest = File("${tenantsPath}/${tenant}/${getApplicationName()}/${sourceType}")
     if (fromTest.exists()) {
         val lepPath = "${this.basePath}/src/${targetType}/lep/${tenant}/${getApplicationName()}"
+        File(lepPath).mkdirs()
+        logger.info("${fromTest} -> ${lepPath}/${sourceType}")
+        Files.createSymbolicLink(File("${lepPath}/${sourceType}").toPath(), fromTest.toPath())
+    }
+}
+
+private fun Project.createCommonsSymlink(tenantsPath: String, sourceType: String, targetType: String) {
+    val fromTest = File("${tenantsPath}/commons/lep")
+    if (fromTest.exists()) {
+        val lepPath = "${this.basePath}/src/${targetType}/lep/commons"
         File(lepPath).mkdirs()
         logger.info("${fromTest} -> ${lepPath}/${sourceType}")
         Files.createSymbolicLink(File("${lepPath}/${sourceType}").toPath(), fromTest.toPath())

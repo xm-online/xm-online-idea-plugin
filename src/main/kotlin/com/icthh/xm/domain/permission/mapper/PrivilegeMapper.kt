@@ -40,7 +40,7 @@ class PrivilegeMapper {
         fun ymlToPrivileges(yml: String): MutableMap<String, MutableSet<Privilege>> {
             try {
                 val map = mapper.readValue<MutableMap<String, MutableSet<Privilege>>>(yml)
-                map.forEach { (msName, privileges) -> privileges.forEach { privilege -> privilege.msName = msName } }
+                map.forEach { (msName, privileges) -> privileges?.forEach { privilege -> privilege.msName = msName } }
                 return map
             } catch (e: Exception) {
                 log.error("Failed to create privileges collection from YML file, error: ${e.message}", e)
