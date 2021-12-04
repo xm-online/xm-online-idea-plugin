@@ -26,12 +26,14 @@ import { SelectCheckAllComponent } from "./role-matrix/app-select-check-all.comp
 import { MatDialogModule } from "@angular/material/dialog";
 import { Callback } from "./callback";
 import { OverlayContainer } from "@angular/cdk/overlay";
+import { EntityDiagramComponent } from './entity-diagram/entity-diagram.component';
 
 const routes: Routes = [
   { path: 'settings', component: SettingsComponent },
   { path: 'file-list-dialog', component: FileListDialogComponent },
   { path: 'role-management', component: RoleManagementComponent },
   { path: 'role-matrix', component: RoleMatrixComponent },
+  { path: 'entity-diagram', component: EntityDiagramComponent },
 ];
 
 @NgModule({
@@ -42,7 +44,8 @@ const routes: Routes = [
     RoleManagementComponent,
     RoleMatrixComponent,
     EditConditionDialogComponent,
-    SelectCheckAllComponent
+    SelectCheckAllComponent,
+    EntityDiagramComponent
   ],
   imports: [
     BrowserModule,

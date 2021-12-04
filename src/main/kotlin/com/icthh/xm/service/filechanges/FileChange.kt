@@ -55,6 +55,7 @@ data class ChangesFiles(
         val path = project.configPathToRealPath(key)
         val vf = VfsUtil.findFile(File(path).toPath(), true)
         val content = vf?.contentsToByteArray()
+        content ?: return InputStream.nullInputStream()
         return ByteArrayInputStream(content)
     }
 }

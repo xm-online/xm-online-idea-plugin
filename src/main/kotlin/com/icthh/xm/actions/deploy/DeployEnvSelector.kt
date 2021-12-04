@@ -36,7 +36,7 @@ class DeployEnvSelector : ComboBoxAction(), DumbAware {
         logger.info("actionPerformed=>> ${e.project?.name}")
     }
 
-    override fun createComboBoxButton(presentation: Presentation?): ComboBoxButton {
+    override fun createComboBoxButton(presentation: Presentation): ComboBoxButton {
         val component = super.createComboBoxButton(presentation)
         this.component = component;
         return component

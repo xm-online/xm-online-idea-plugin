@@ -43,9 +43,9 @@ public class ViewServer {
 
             ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
 
-            URL url = AppServlet.class.getClassLoader().getResource("/static");
+            URL url = AppServlet.class.getClassLoader().getResource("static");
             if (url == null) {
-                url = AppServlet.class.getClassLoader().getResource("/static/");
+                url = AppServlet.class.getClassLoader().getResource("static/");
                 context.setWelcomeFiles(new String[] { "index.html" });
             } else {
                 context.setWelcomeFiles(new String[] { "/index.html" });
@@ -79,7 +79,7 @@ public class ViewServer {
         }
 
         private static String readIndexHtml() {
-            try(var is = AppServlet.class.getClassLoader().getResourceAsStream("/static/index.html")) {
+            try(var is = AppServlet.class.getClassLoader().getResourceAsStream("static/index.html")) {
                 return IOUtils.toString(is, UTF_8);
             } catch (IOException e) {
                 throw new RuntimeException(e);
