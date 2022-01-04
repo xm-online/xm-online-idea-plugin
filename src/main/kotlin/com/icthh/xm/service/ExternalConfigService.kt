@@ -41,7 +41,6 @@ class ExternalConfigService {
     fun getConfigFileIfExists(project: Project, env: EnvironmentSettings, path: String, version: String? = env.version): String? {
         val baseUrl = env.xmUrl
         val accessToken = getToken(env)
-
         val response = Get(baseUrl + "/config/api/config/tenants${path}?${version.templateOrEmpty{"version=${it}"}}")
             .addHeader(AUTHORIZATION, "bearer $accessToken")
             .execute()
@@ -53,7 +52,7 @@ class ExternalConfigService {
             }
             if (returnResponse.statusLine.statusCode != 200) {
                 project.showNotification("Get configuration", "Error get configurations", ERROR) {
-                    "${returnResponse.statusLine.statusCode} ${returnResponse.statusLine.reasonPhrase}"
+                    "${returnResponse.statusLine.statusCode} ${returnResponse.statusLine.reasonPhrase} Url: ${baseUrl + "/config/api/config/tenants${path}?${version.templateOrEmpty{"version=${it}"}}"}"
                 }
                 throw RuntimeException(returnResponse.statusLine.reasonPhrase)
             }
