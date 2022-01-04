@@ -41,7 +41,7 @@ class ExternalConfigService {
     fun getConfigFileIfExists(project: Project, env: EnvironmentSettings, path: String, version: String? = env.version): String? {
         val baseUrl = env.xmUrl
         val accessToken = getToken(env)
-        val url = baseUrl + "/config/api/config/tenants${path}?${version.templateOrEmpty { "version=${it}" }}"
+        val url = baseUrl + "/config/api/config/tenants${path}?${version.templateOrEmpty{"version=${it}"}}"
         val response = Get(url)
             .addHeader(AUTHORIZATION, "bearer $accessToken")
             .execute()
