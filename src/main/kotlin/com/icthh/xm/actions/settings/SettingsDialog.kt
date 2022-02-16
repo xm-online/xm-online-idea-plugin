@@ -31,20 +31,6 @@ class SettingsDialog(project: Project): WebDialog(
         UpdateMode.values().toList().map { UpdateModeDto(it.isGitMode, it.name) }.filter { it.isGitMode }
     }
 
-    private fun getTenants(basePath: String?): List<String> {
-        val tenants = ArrayList<String>()
-        if (!basePath.isNullOrBlank()) {
-            val tenantsPath = "${basePath}/config/tenants"
-            val tenantsDirectory = File(tenantsPath)
-            if (tenantsDirectory.exists()) {
-                val tenantFolders = tenantsDirectory.list() ?: emptyArray()
-                val tenantsList = tenantFolders.filter { File("${tenantsPath}/${it}").isDirectory }
-                tenants.addAll(tenantsList)
-            }
-        }
-        return tenants
-    }
-
     override fun callbacks(browser: JBCefBrowser): List<BrowserCallback> {
         return listOf(
             BrowserCallback("componentReady") {body, pipe ->
@@ -54,7 +40,7 @@ class SettingsDialog(project: Project): WebDialog(
                 this.data.clear()
                 this.data.addAll(data)
                 pipe.post("initData", mapper.writeValueAsString(mapOf(
-                    "tenants" to getTenants(project.getSettings()?.selected()?.basePath),
+                    "tenants" to project.getTenants(),
                     "updateModes" to updateModes,
                     "branches" to project.getRepository()?.getLocalBranches(),
                     "envs" to data,
@@ -66,7 +52,7 @@ class SettingsDialog(project: Project): WebDialog(
                 logger.info("getTenants ${body}")
                 val basePathHolder = mapper.readValue<BasePathHolder>(body)
                 pipe.post("setTenants", mapper.writeValueAsString(mapOf(
-                    "tenants" to getTenants(basePathHolder.basePath),
+                    "tenants" to project.getTenants(basePathHolder.basePath),
                 )))
             },
             BrowserCallback("envsUpdated") {body, pipe ->

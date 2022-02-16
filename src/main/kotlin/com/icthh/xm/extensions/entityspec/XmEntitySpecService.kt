@@ -5,6 +5,7 @@ import com.icthh.xm.service.getTenantName
 import com.icthh.xm.service.toPsiFile
 import com.icthh.xm.utils.*
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VfsUtil
@@ -15,6 +16,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker.MODIFICATION_COUNT
+import com.intellij.util.application
 import com.jetbrains.jsonSchema.remote.JsonSchemaCatalogExclusion
 import org.jetbrains.yaml.YAMLFileType
 import org.jetbrains.yaml.psi.*
@@ -357,27 +359,34 @@ class XmEntitySpecService(val project: Project) {
     }
 
     private fun PsiFile.toXmEntitySpecInfo(): XmEntitySpecInfo {
-        return XmEntitySpecInfo(
-            getTenantName(this.project),
-            getFileXmEntityKeys(),
-            getAllKeys("functions", "key"),
-            getAllFunctionKeysWithEntityId(),
-            getAllEventsKeys(),
-            getAllKeys("links", "key"),
-            getAllKeys("attachments", "key"),
-            getAllKeys("calendars", "key"),
-            getAllKeys("locations", "key"),
-            getAllKeys("tags", "key"),
-            getAllKeys("comments", "key"),
-            getAllKeys("ratings", "key")
-        )
+        try {
+            return XmEntitySpecInfo(
+                getTenantName(this.project),
+                getFileXmEntityKeys(),
+                getAllKeys("functions", "key"),
+                getAllFunctionKeysWithEntityId(),
+                getAllEventsKeys(),
+                getAllKeys("links", "key"),
+                getAllKeys("attachments", "key"),
+                getAllKeys("calendars", "key"),
+                getAllKeys("locations", "key"),
+                getAllKeys("tags", "key"),
+                getAllKeys("comments", "key"),
+                getAllKeys("ratings", "key")
+            )
+        } catch (e: Throwable) {
+            //log.error("Error {}", e)
+            throw e
+        }
     }
 
     private fun PsiFile.getFileXmEntityKeys(): List<YAMLKeyValue> {
         val file = originalFile
         file.virtualFile.refresh(true, false)
         project.logger.info("\n\n\n UPDATE ${file.name} cache \n\n\n")
-        return file.getEntityDeclarations().getKeys()
+        return runReadAction {
+            file.getEntityDeclarations().getKeys()
+        }
     }
 
     private fun computeEntityInfo(
@@ -434,6 +443,7 @@ class XmEntitySpecService(val project: Project) {
         entityFiles.values.removeIf{it.tenantName == tenantName}
         filesByTenants.remove(tenantName)
         entityByTenants.remove(tenantName)
+        getByTenant(tenantName)
     }
 
 }

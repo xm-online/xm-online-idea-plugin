@@ -13,6 +13,5 @@ class XmMenuGroup: DefaultActionGroup() {
     override fun update(e: AnActionEvent) {
         // e.presentation.isEnabled = true
         e.updateSupported() ?: return
-        logger.info("Update main group ${e.updateSupported()}")
     }
 }

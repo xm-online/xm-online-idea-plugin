@@ -55,7 +55,7 @@ object IconProvider {
     val iconsSet: Map<String, FontIcon> = localIconsSet()
 
     fun loadFont() =
-        javaClass.classLoader.getResourceAsStream("/icons/mdi/MaterialIcons-Regular.ttf").use {
+        javaClass.classLoader.getResourceAsStream("icons/mdi/MaterialIcons-Regular.ttf").use {
             var font = Font.createFont(Font.TRUETYPE_FONT, it)
             GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(font);
             font = font.deriveFont(14f)
@@ -63,7 +63,7 @@ object IconProvider {
         }
 
     fun localIconsSet() =
-        javaClass.classLoader.getResourceAsStream("/icons/mdi/codepoints.txt").use {
+        javaClass.classLoader.getResourceAsStream("icons/mdi/codepoints.txt").use {
             it.readTextAndClose().lines().map { it.split(" ") }
                 .filter { it.size == 2 }
                 .map { it[0] to it[1] }

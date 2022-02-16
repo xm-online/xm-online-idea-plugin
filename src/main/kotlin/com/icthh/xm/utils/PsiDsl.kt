@@ -12,6 +12,7 @@ import com.intellij.patterns.StandardPatterns
 import com.intellij.patterns.StringPattern
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil.*
+import com.intellij.psi.util.parents
 import com.intellij.psi.util.parentsWithSelf
 import com.intellij.util.ProcessingContext
 import org.jetbrains.yaml.psi.*
@@ -133,7 +134,7 @@ fun PsiElement.getChildrenByPath(vararg types: Class<out PsiElement>): List<PsiE
 fun PsiElement.printDebugInfo() {
     val builder = StringBuilder()
     val path = ArrayList<PsiElement>()
-    path.addAll(this.parentsWithSelf)
+    path.addAll(this.parents(true))
     path.reverse()
     path.forEachIndexed { index, psiElement ->
         builder.append(" ".repeat(index)).append("└")

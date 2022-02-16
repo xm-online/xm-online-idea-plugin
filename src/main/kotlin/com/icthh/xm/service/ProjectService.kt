@@ -6,6 +6,7 @@ import com.icthh.xm.actions.settings.FileState
 import com.icthh.xm.actions.settings.SettingService
 import com.icthh.xm.actions.shared.showMessage
 import com.icthh.xm.actions.shared.showNotification
+import com.icthh.xm.extensions.entityspec.xmEntitySpecService
 import com.icthh.xm.service.filechanges.ChangesFiles
 import com.icthh.xm.service.filechanges.GitFileChange
 import com.icthh.xm.service.filechanges.MemoryFileChange
@@ -89,11 +90,20 @@ fun Project.getApplicationName(): String? {
     return bootstrapConfig?.spring?.application?.name
 }
 
-fun Project.updateSymlinkToLep() {
-    doAsync {
+fun Project.updateEnv() {
+    doAsync{
         doUpdateSymlinkToLep()
+        try {
+            this.getTenants().forEach {
+                this.xmEntitySpecService.computeTenantEntityInfo(it)
+            }
+        } catch (e: Throwable) {
+            log.error("Error {}", e)
+            throw e
+        }
     }
 }
+
 
 @Synchronized
 private fun Project.doUpdateSymlinkToLep() {
@@ -356,6 +366,25 @@ fun Project.updateFilesInMemory(changesFiles: ChangesFiles, selected: Environmen
         }
         this.saveCurrentFileStates()
     }
+}
+
+fun Project.getTenants(root: String? = null): List<String> {
+    var path = root ?: this.getSettings()?.selected()?.basePath
+    if (isConfigProject()) {
+        path = this.basePath
+    }
+    path ?: return emptyList()
+    val tenants = ArrayList<String>()
+    if (!path.isBlank()) {
+        val tenantsPath = "${path}/config/tenants"
+        val tenantsDirectory = File(tenantsPath)
+        if (tenantsDirectory.exists()) {
+            val tenantFolders = tenantsDirectory.list() ?: emptyArray()
+            val tenantsList = tenantFolders.filter { File("${tenantsPath}/${it}").isDirectory }
+            tenants.addAll(tenantsList)
+        }
+    }
+    return tenants
 }
 
 fun GitRepository?.getLocalBranches(): List<String> {

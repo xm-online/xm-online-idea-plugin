@@ -2,8 +2,8 @@ package com.icthh.xm.actions.deploy
 
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.service.getSettings
+import com.icthh.xm.service.updateEnv
 import com.icthh.xm.service.updateSupported
-import com.icthh.xm.service.updateSymlinkToLep
 import com.icthh.xm.utils.logger
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.ex.ComboBoxAction
@@ -69,7 +69,7 @@ class DeployEnvSelector : ComboBoxAction(), DumbAware {
         override fun actionPerformed(e: AnActionEvent) {
             selectedItem = environmentSettings
             e.project?.getSettings()?.select(environmentSettings)
-            e.project?.updateSymlinkToLep()
+            e.project?.updateEnv()
         }
 
         init {

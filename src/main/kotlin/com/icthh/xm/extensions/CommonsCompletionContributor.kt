@@ -15,7 +15,8 @@ import java.io.File
 import java.util.*
 
 const val COMMONS_PREFIX = "Commons$$"
-const val COMMONS_SUFFIX = "$${"$"}around.groovy"
+const val COMMONS_SUFFIX_AROUND = "$${"$"}around.groovy"
+const val COMMONS_SUFFIX_TENANT = "$${"$"}tenant.groovy"
 
 class CommonsCompletionContributor: CompletionContributor() {
     init {
@@ -63,10 +64,11 @@ public fun getVariants(commonsParts: List<String>, lepCommons: VirtualFile): Lis
     variants.addAll(folder.children.filter { it.isDirectory }.map { it.name })
     val variantMethods = folder.children.filter { !it.isDirectory }
         .filter { it.name.startsWith(COMMONS_PREFIX) }
-        .filter { it.name.endsWith(COMMONS_SUFFIX) }
+        .filter { it.name.endsWith(COMMONS_SUFFIX_AROUND) || it.name.endsWith(COMMONS_SUFFIX_TENANT) }
         .map { it.name }
         .map { it.substringAfter(COMMONS_PREFIX) }
-        .map { it.substringBefore(COMMONS_SUFFIX) }
+        .map { it.substringBefore(COMMONS_SUFFIX_TENANT) }
+        .map { it.substringBefore(COMMONS_SUFFIX_AROUND) }
         .map { "${it}()" }
     variants.addAll(variantMethods)
     return variants.filter { it.startsWith(last) }
@@ -86,5 +88,10 @@ public fun getLepFolder(project: Project, place: PsiElement): VirtualFile? {
         }
     }
 
-    return path.get(path.size - pathToLepFolder.size)
+    val index = path.size - pathToLepFolder.size
+    if (path.size <= index || index < 0) {
+        return null
+    }
+
+    return path.get(index)
 }

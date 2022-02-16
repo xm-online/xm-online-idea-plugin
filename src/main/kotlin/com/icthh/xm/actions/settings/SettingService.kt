@@ -14,6 +14,7 @@ import kotlin.collections.HashSet
 class SettingService: PersistentStateComponent<SettingService> {
 
     var envs: MutableList<EnvironmentSettings> = ArrayList()
+    @Volatile
     var selectedEnv: String? = null
 
     override fun getState() = this
