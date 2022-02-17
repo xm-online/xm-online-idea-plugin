@@ -92,8 +92,8 @@ compileTestKotlin {
 }
 
 intellij {
-    //version = '2020.3.2'
-    version = '2021.3.2'
+    version = '2020.3.2'
+    //version = '2021.3.2'
     plugins = ['git4idea', 'Groovy', 'yaml', 'org.intellij.intelliLang', 'java']
     updateSinceUntilBuild = false
 }
