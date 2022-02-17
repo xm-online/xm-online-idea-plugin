@@ -131,20 +131,6 @@ fun PsiElement.getChildrenByPath(vararg types: Class<out PsiElement>): List<PsiE
     return result
 }
 
-fun PsiElement.printDebugInfo() {
-    val builder = StringBuilder()
-    val path = ArrayList<PsiElement>()
-    path.addAll(this.parents(true))
-    path.reverse()
-    path.forEachIndexed { index, psiElement ->
-        builder.append(" ".repeat(index)).append("└")
-            .append("${psiElement.javaClass.simpleName}${if(psiElement is YAMLKeyValue)":[${psiElement.keyText}]" else ""}")
-            .append("\n")
-    }
-
-    logger.info(builder.toString())
-}
-
 fun CompletionContributor.extendWithStop(type: CompletionType, place: ElementPattern<out PsiElement>,
                                          provider: (parameters: CompletionParameters) -> List<LookupElement>) {
     this.extend(type, place, object: CompletionProvider<CompletionParameters>() {

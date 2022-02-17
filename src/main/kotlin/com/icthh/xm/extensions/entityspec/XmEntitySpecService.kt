@@ -16,7 +16,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker.MODIFICATION_COUNT
-import com.intellij.util.application
 import com.jetbrains.jsonSchema.remote.JsonSchemaCatalogExclusion
 import org.jetbrains.yaml.YAMLFileType
 import org.jetbrains.yaml.psi.*
