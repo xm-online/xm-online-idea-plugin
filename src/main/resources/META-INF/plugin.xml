@@ -72,10 +72,18 @@
         <psi.referenceContributor implementation="com.icthh.xm.extensions.HandlerReferenceContributor" />
     </extensions>
 
+    <extensions defaultExtensionNs="JavaScript">
+        <JsonSchema.ProviderFactory implementation="com.icthh.xm.extensions.file.Metrics" />
+        <JsonSchema.ProviderFactory implementation="com.icthh.xm.extensions.file.Tasks" />
+        <JsonSchema.ProviderFactory implementation="com.icthh.xm.extensions.file.Uaa" />
+    </extensions>
+
     <extensions defaultExtensionNs="org.intellij.groovy">
         <membersContributor implementation="com.icthh.xm.extensions.LepContextNonCodeMembersContributor"/>
         <membersContributor implementation="com.icthh.xm.extensions.CommonsNonCodeMembersContributor"/>
         <membersContributor implementation="com.icthh.xm.extensions.InArgsNonCodeMembersContributor"/>
+        <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrMethodCall"
+                        implementationClass="com.icthh.xm.extensions.TenantConfigMethodCallTypeCalculator" />
     </extensions>
 
     <application-components>

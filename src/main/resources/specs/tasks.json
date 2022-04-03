@@ -1,0 +1,73 @@
+{
+  "type" : "object",
+  "id" : "urn:jsonschema:com:icthh:xm:ms:scheduler:domain:spec:TasksSpec",
+  "additionalProperties" : false,
+  "properties" : {
+    "tasks" : {
+      "type" : "array",
+      "items" : {
+        "type" : "object",
+        "id" : "urn:jsonschema:com:icthh:xm:ms:scheduler:service:dto:TaskDTO",
+        "additionalProperties" : false,
+        "properties" : {
+          "id" : {
+            "type" : "integer"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "tenant" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "typeKey" : {
+            "type" : "string"
+          },
+          "stateKey" : {
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "startDate" : {
+            "type" : "string"
+          },
+          "endDate" : {
+            "type" : "string"
+          },
+          "scheduleType" : {
+            "type" : "string",
+            "enum" : [ "FIXED_RATE", "FIXED_DELAY", "CRON", "ONE_TIME" ]
+          },
+          "delay" : {
+            "type" : "integer"
+          },
+          "cronExpression" : {
+            "type" : "string"
+          },
+          "cronTriggerTimeZoneId" : {
+            "type" : "string"
+          },
+          "channelType" : {
+            "type" : "string",
+            "enum" : [ "QUEUE", "TOPIC" ]
+          },
+          "targetMs" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "string"
+          },
+          "ttl" : {
+            "type" : "integer"
+          }
+        }
+      }
+    }
+  }
+}

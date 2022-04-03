@@ -1,0 +1,16 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "id": "urn:jsonschema:com:icthh:xm:ms:entity:service:metrics:CustomMetricsConfiguration:CustomMetric",
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "updatePeriodSeconds": {
+        "type": "integer"
+      }
+    }
+  }
+}
