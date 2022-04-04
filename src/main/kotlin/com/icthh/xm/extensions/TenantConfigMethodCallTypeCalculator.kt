@@ -44,8 +44,8 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
             &&
             GET_CONFIG.equals(expression.callReference?.methodName)
         ) {
-            val tenantName = expression.originalFile.virtualFile.getTenantName(expression.project)
-            // TODO cache result
+            val virtualFile = expression.originalFile.virtualFile ?: return delegate.getType(expression)
+            val tenantName = virtualFile.getTenantName(expression.project)
             val source = generateClassesByTenant(expression.project, tenantName)
             val psiClass = JavaPsiFacade.getElementFactory(expression.project).createClassFromText("""
                 ${source}                 
