@@ -72,9 +72,9 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
         val path = "${project.getConfigRootDir()}/tenants/${tenantName}/tenant-config.yml"
         val tenantConfig = VfsUtil.findFile(File(path).toPath(), true) ?: return ""
 
-        try {
+        val configJson = try {
             val tenantConfigYml: String = LoadTextUtil.loadText(tenantConfig).toString()
-            val configJson = convertYamlToJson(tenantConfigYml)
+            convertYamlToJson(tenantConfigYml)
         } catch (e: Exception) {
             return ""
         }
