@@ -72,8 +72,12 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
         val path = "${project.getConfigRootDir()}/tenants/${tenantName}/tenant-config.yml"
         val tenantConfig = VfsUtil.findFile(File(path).toPath(), true) ?: return ""
 
-        val tenantConfigYml: String = LoadTextUtil.loadText(tenantConfig).toString()
-        val configJson = convertYamlToJson(tenantConfigYml)
+        try {
+            val tenantConfigYml: String = LoadTextUtil.loadText(tenantConfig).toString()
+            val configJson = convertYamlToJson(tenantConfigYml)
+        } catch (e: Exception) {
+            return ""
+        }
 
         val codeModel = JCodeModel()
         val config: GenerationConfig = object: DefaultGenerationConfig() {
