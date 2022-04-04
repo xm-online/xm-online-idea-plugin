@@ -61,10 +61,10 @@ task installAngular(type:Exec) {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
+    compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
 
-    implementation 'org.jsonschema2pojo:jsonschema2pojo-core:1.1.1'
-    implementation 'com.sun.codemodel:codemodel:2.6'
+    compile 'org.jsonschema2pojo:jsonschema2pojo-core:1.1.1'
+    compile 'com.sun.codemodel:codemodel:2.6'
 
 
     compile 'javax.servlet:javax.servlet-api:3.0.1'
