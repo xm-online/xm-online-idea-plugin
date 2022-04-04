@@ -5,7 +5,7 @@ plugins {
 }
 
 group 'com.icthh.xm'
-version '0.2.10'
+version '0.2.10.1'
 
 
 repositories {
@@ -62,7 +62,10 @@ task installAngular(type:Exec) {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.21")
+
     implementation 'org.jsonschema2pojo:jsonschema2pojo-core:1.1.1'
+    implementation 'com.sun.codemodel:codemodel:2.6'
+
 
     compile 'javax.servlet:javax.servlet-api:3.0.1'
     compile 'org.eclipse.jetty:jetty-server:9.3.20.v20170531'
@@ -93,8 +96,8 @@ compileTestKotlin {
 }
 
 intellij {
-    version = '2020.3.2'
-    //version = '2021.3.2'
+    //version = '2020.3.2'
+    version = '2021.3.3'
     plugins = ['git4idea', 'Groovy', 'yaml', 'org.intellij.intelliLang', 'java']
     updateSinceUntilBuild = false
 }

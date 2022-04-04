@@ -3,6 +3,7 @@ package com.icthh.xm.extensions
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.icthh.xm.extensions.entityspec.originalFile
+import com.icthh.xm.extensions.entityspec.withCache
 import com.icthh.xm.service.getConfigRootDir
 import com.icthh.xm.service.getTenantName
 import com.icthh.xm.utils.log
@@ -44,6 +45,7 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
             GET_CONFIG.equals(expression.callReference?.methodName)
         ) {
             val tenantName = expression.originalFile.virtualFile.getTenantName(expression.project)
+            // TODO cache result
             val source = generateClassesByTenant(expression.project, tenantName)
             val psiClass = JavaPsiFacade.getElementFactory(expression.project).createClassFromText("""
                 ${source}                 
@@ -69,6 +71,7 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
     private fun generateClassesByTenant(project: Project, tenantName: String): String {
         val path = "${project.getConfigRootDir()}/tenants/${tenantName}/tenant-config.yml"
         val tenantConfig = VfsUtil.findFile(File(path).toPath(), true) ?: return ""
+
         val tenantConfigYml: String = LoadTextUtil.loadText(tenantConfig).toString()
         val configJson = convertYamlToJson(tenantConfigYml)
 

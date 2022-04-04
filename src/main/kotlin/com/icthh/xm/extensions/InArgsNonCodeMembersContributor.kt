@@ -55,7 +55,8 @@ class InArgsNonCodeMembersContributor: NonCodeMembersContributor() {
                 .filterIsInstance<PsiMethod>()
 
             val lepFolder = getLepFolder(project, place)?.path
-            val relativePath = place.originalFile.virtualFile.path.substringAfter(lepFolder ?: "")
+            val file = place.originalFile.virtualFile ?: return
+            val relativePath = file.path.substringAfter(lepFolder ?: "")
 
             val fields = HashMap<String, PsiParameter>()
             annotatedPsiMethods.filter { isAnnotated(it, LEP_ANNOTATION, CHECK_TYPE) }
