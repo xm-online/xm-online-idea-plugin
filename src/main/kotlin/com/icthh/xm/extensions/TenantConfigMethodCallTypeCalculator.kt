@@ -1,9 +1,9 @@
 package com.icthh.xm.extensions
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.icthh.xm.extensions.entityspec.originalFile
-import com.icthh.xm.extensions.entityspec.withCache
 import com.icthh.xm.service.getConfigRootDir
 import com.icthh.xm.service.getTenantName
 import com.icthh.xm.utils.log
@@ -25,10 +25,11 @@ import org.jetbrains.plugins.groovy.lang.typing.DefaultMethodCallTypeCalculator
 import org.jetbrains.plugins.groovy.lang.typing.GrTypeCalculator
 import org.jsonschema2pojo.*
 import org.jsonschema2pojo.rules.RuleFactory
+import org.jsonschema2pojo.util.NameHelper
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.charset.StandardCharsets.UTF_8
-import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 
 
 class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
@@ -47,6 +48,7 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
             val virtualFile = expression.originalFile.virtualFile ?: return delegate.getType(expression)
             val tenantName = virtualFile.getTenantName(expression.project)
             val source = generateClassesByTenant(expression.project, tenantName)
+
             val psiClass = JavaPsiFacade.getElementFactory(expression.project).createClassFromText("""
                 ${source}                 
             """.trimIndent(), expression)
@@ -91,7 +93,22 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
             override fun isIncludeToString() = false
             override fun isIncludeGeneratedAnnotation() = false
         }
-        val ruleFactory = RuleFactory(config, Jackson2Annotator(config), SchemaStore())
+        val ruleFactory = object: RuleFactory(config, Jackson2Annotator(config), SchemaStore()) {
+            private val counter: AtomicInteger = AtomicInteger(0);
+            override fun getNameHelper(): NameHelper {
+                return object: NameHelper(config) {
+                    override fun getPropertyName(jsonFieldName: String?, node: JsonNode?): String {
+                        if (jsonFieldName == null || jsonFieldName.isBlank()) {
+                            return " 0_${counter.incrementAndGet()}"
+                        }
+                        if (jsonFieldName.matches("^[a-zA-ZА-Яа-я_$].*".toRegex()) && jsonFieldName.matches("[0-9a-zA-ZА-Яа-я_\$]+".toRegex())) {
+                            return " " + jsonFieldName
+                        }
+                        return " 0_${counter.incrementAndGet()}"
+                    }
+                }
+            }
+        }
         val mapper = SchemaMapper(ruleFactory, SchemaGenerator())
 
         logger.info("Run generation")
@@ -117,3 +134,4 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
         return sourceCode
     }
 }
+
