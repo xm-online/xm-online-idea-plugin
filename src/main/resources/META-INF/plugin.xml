@@ -30,6 +30,7 @@
 
         <projectService serviceImplementation="com.icthh.xm.actions.settings.SettingService"/>
         <projectService serviceImplementation="com.icthh.xm.service.ExternalConfigService"/>
+        <projectService serviceImplementation="com.icthh.xm.service.TenantConfigService"/>
 
         <iconProvider implementation="com.icthh.xm.extensions.ConfigIconProvider" order="first" />
         <treeStructureProvider implementation="com.icthh.xm.extensions.TreeProvider" />
@@ -37,9 +38,7 @@
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />
         <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />
 
-<!--        <psi.referenceContributor language="Groovy" implementation="com.icthh.xm.extensions.CommonsPsiReferenceContributor" />-->
         <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />
-        <!--        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.InArgsCompletionContributor" />-->
 
         <!-- start xmentityspec.yml -->
         <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
@@ -82,8 +81,11 @@
         <membersContributor implementation="com.icthh.xm.extensions.LepContextNonCodeMembersContributor"/>
         <membersContributor implementation="com.icthh.xm.extensions.CommonsNonCodeMembersContributor"/>
         <membersContributor implementation="com.icthh.xm.extensions.InArgsNonCodeMembersContributor"/>
+        <membersContributor implementation="com.icthh.xm.extensions.TenantConfigWrongNameFields"/>
         <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrMethodCall"
                         implementationClass="com.icthh.xm.extensions.TenantConfigMethodCallTypeCalculator" />
+        <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrReferenceExpression"
+                        implementationClass="com.icthh.xm.extensions.TenantConfigPropertyTypeCalculator" />
     </extensions>
 
     <application-components>

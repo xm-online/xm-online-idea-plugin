@@ -1,44 +1,41 @@
 package com.icthh.xm.extensions
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.icthh.xm.extensions.entityspec.originalFile
-import com.icthh.xm.service.getConfigRootDir
-import com.icthh.xm.service.getTenantName
-import com.icthh.xm.utils.log
-import com.icthh.xm.utils.logger
-import com.intellij.openapi.fileEditor.impl.LoadTextUtil
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.psi.JavaPsiFacade
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiType
-import com.intellij.psi.util.PsiTypesUtil
-import com.sun.codemodel.CodeWriter
-import com.sun.codemodel.JCodeModel
-import com.sun.codemodel.JType
-import com.sun.codemodel.writer.SingleStreamCodeWriter
+import com.icthh.xm.service.*
+import com.icthh.xm.utils.getCountSubstring
+import com.icthh.xm.utils.isTrue
+import com.intellij.codeInsight.completion.*
+import com.intellij.patterns.PlatformPatterns
+import com.intellij.psi.*
+import com.intellij.psi.impl.light.LightFieldBuilder
+import com.intellij.psi.impl.source.PsiClassReferenceType
+import com.intellij.psi.scope.PsiScopeProcessor
+import com.intellij.psi.search.searches.AnnotatedMembersSearch
+import com.intellij.psi.util.ClassUtil
+import com.intellij.util.ProcessingContext
 import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrMethodCall
-import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
+import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrReferenceExpression
+import org.jetbrains.plugins.groovy.lang.psi.controlFlow.impl.ResolvedVariableDescriptor
+import org.jetbrains.plugins.groovy.lang.psi.controlFlow.impl.createDescriptor
+import org.jetbrains.plugins.groovy.lang.psi.impl.stringValue
+import org.jetbrains.plugins.groovy.lang.resolve.NonCodeMembersContributor
+import org.jetbrains.plugins.groovy.lang.resolve.sorryCannotKnowElementKind
 import org.jetbrains.plugins.groovy.lang.typing.DefaultMethodCallTypeCalculator
+import org.jetbrains.plugins.groovy.lang.typing.DefaultMethodReferenceTypeCalculator
 import org.jetbrains.plugins.groovy.lang.typing.GrTypeCalculator
-import org.jsonschema2pojo.*
-import org.jsonschema2pojo.rules.RuleFactory
-import org.jsonschema2pojo.util.NameHelper
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.nio.charset.StandardCharsets.UTF_8
-import java.util.concurrent.atomic.AtomicInteger
 
 
 class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
 
     val TENANT_CONFIG = "com.icthh.xm.commons.config.client.service.TenantConfigService"
     val GET_CONFIG = "getConfig"
-    val delegate: DefaultMethodCallTypeCalculator = DefaultMethodCallTypeCalculator()
+    val delegate = DefaultMethodCallTypeCalculator()
 
     override fun getType(expression: GrMethodCall): PsiType? {
+        val project = expression.project
+        if (project.isConfigProject()) {
+            return delegate.getType(expression)
+        }
 
         if (
             TENANT_CONFIG.equals(expression.resolveMethod()?.containingClass?.qualifiedName)
@@ -46,92 +43,99 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
             GET_CONFIG.equals(expression.callReference?.methodName)
         ) {
             val virtualFile = expression.originalFile.virtualFile ?: return delegate.getType(expression)
-            val tenantName = virtualFile.getTenantName(expression.project)
-            val source = generateClassesByTenant(expression.project, tenantName)
-
-            val psiClass = JavaPsiFacade.getElementFactory(expression.project).createClassFromText("""
-                ${source}                 
-            """.trimIndent(), expression)
-
-            val mainClass = psiClass.childrenOfType<PsiClass>().find {
-                it.name == "${tenantName.toUpperCase()}TenantConfig"
-            }
-            mainClass ?: return delegate.getType(expression)
-            return PsiTypesUtil.getClassType(mainClass)
+            val project = expression.project
+            val type = project.getTenantConfigService().getPsiTypeForExpression(virtualFile, project, expression)
+            return type ?: delegate.getType(expression)
         }
 
         return delegate.getType(expression)
     }
 
-    fun convertYamlToJson(yaml: String): String {
-        val yamlReader = ObjectMapper(YAMLFactory())
-        val obj = yamlReader.readValue(yaml, Any::class.java)
-        val jsonWriter = ObjectMapper()
-        return jsonWriter.writeValueAsString(obj)
-    }
-
-    private fun generateClassesByTenant(project: Project, tenantName: String): String {
-        val path = "${project.getConfigRootDir()}/tenants/${tenantName}/tenant-config.yml"
-        val tenantConfig = VfsUtil.findFile(File(path).toPath(), true) ?: return ""
-
-        val configJson = try {
-            val tenantConfigYml: String = LoadTextUtil.loadText(tenantConfig).toString()
-            convertYamlToJson(tenantConfigYml)
-        } catch (e: Exception) {
-            return ""
-        }
-
-        val codeModel = JCodeModel()
-        val config: GenerationConfig = object: DefaultGenerationConfig() {
-            override fun getSourceType() = SourceType.JSON
-            override fun getAnnotationStyle() = AnnotationStyle.NONE
-            override fun isIncludeAdditionalProperties() = false
-            override fun getInclusionLevel() = InclusionLevel.ALWAYS
-            override fun isIncludeGetters() = false
-            override fun isIncludeSetters() = false
-            override fun isIncludeHashcodeAndEquals() = false
-            override fun isIncludeToString() = false
-            override fun isIncludeGeneratedAnnotation() = false
-        }
-        val ruleFactory = object: RuleFactory(config, Jackson2Annotator(config), SchemaStore()) {
-            private val counter: AtomicInteger = AtomicInteger(0);
-            override fun getNameHelper(): NameHelper {
-                return object: NameHelper(config) {
-                    override fun getPropertyName(jsonFieldName: String?, node: JsonNode?): String {
-                        if (jsonFieldName == null || jsonFieldName.isBlank()) {
-                            return " 0_${counter.incrementAndGet()}"
-                        }
-                        if (jsonFieldName.matches("^[a-zA-ZА-Яа-я_$].*".toRegex()) && jsonFieldName.matches("[0-9a-zA-ZА-Яа-я_\$]+".toRegex())) {
-                            return " " + jsonFieldName
-                        }
-                        return " 0_${counter.incrementAndGet()}"
-                    }
-                }
-            }
-        }
-        val mapper = SchemaMapper(ruleFactory, SchemaGenerator())
-
-        logger.info("Run generation")
-        val type: JType = try {
-            mapper.generate(
-                codeModel,
-                "${tenantName.toUpperCase()}TenantConfig",
-                "${tenantName.toUpperCase()}.entity.lep.commons",
-                configJson
-            )
-        } catch (e: Exception) {
-            log.error(e.toString(), e)
-            return ""
-        }
-        logger.info("Generated type ${type}")
-
-        val byteArray = ByteArrayOutputStream()
-        val out: CodeWriter = SingleStreamCodeWriter(byteArray)
-        codeModel.build(out)
-        var sourceCode = String(byteArray.toByteArray(), UTF_8)
-        sourceCode = sourceCode.replace("public class", "public static class")
-        sourceCode = sourceCode.replace("----------", "//--------")
-        return sourceCode
-    }
 }
 
+class TenantConfigPropertyTypeCalculator : GrTypeCalculator<GrReferenceExpression> {
+
+    val TENANT_CONFIG = "com.icthh.xm.commons.config.client.service.TenantConfigService"
+    val GET_CONFIG = "config"
+    val delegate = DefaultMethodReferenceTypeCalculator()
+
+    override fun getType(expression: GrReferenceExpression): PsiType? {
+        val project = expression.project
+        if (project.isConfigProject()) {
+            return delegate.getType(expression)
+        }
+
+        val fieldName = expression.createDescriptor()?.getName()
+        if (fieldName == GET_CONFIG) {
+            val tenantConfigService = project.getTenantConfigService()
+            val psiType = expression.qualifier?.type
+            if (psiType is PsiClassReferenceType && psiType.reference.qualifiedName == TENANT_CONFIG) {
+                val virtualFile = expression.originalFile.virtualFile ?: return delegate.getType(expression)
+                val project = expression.project
+                val psiTypeForExpression = tenantConfigService.getPsiTypeForExpression(virtualFile, project, expression)
+                return psiTypeForExpression ?: delegate.getType(expression)
+            }
+        }
+
+        return delegate.getType(expression)
+    }
+
+}
+
+class TenantConfigPsiType(val type: PsiClassReferenceType): PsiClassReferenceType(type.reference, null) {
+    override fun isValid(): Boolean {
+        return true
+    }
+
+}
+
+class TenantConfigWrongNameFields: NonCodeMembersContributor() {
+    override fun processDynamicElements(
+        qualifierType: PsiType,
+        aClass: PsiClass?,
+        processor: PsiScopeProcessor,
+        place: PsiElement,
+        state: ResolveState
+    ) {
+        val project = place.project
+        val selected = project.getSettings().selected()
+        selected ?: return
+        if (project.isConfigProject()) {
+            return
+        }
+
+        if (!(aClass != null && aClass.getCountSubstring() > 0)) {
+            return
+        }
+
+        if (isTenantConfig(aClass)) {
+            val psiManager = PsiManager.getInstance(project)
+            val tenantConfigService = project.getTenantConfigService()
+            val virtualFile = place.originalFile.virtualFile
+            val tenantName = virtualFile.getTenantName(project)
+            val fields = tenantConfigService.getFields(tenantName.toUpperCase(), aClass.name ?: "")
+            fields.forEach {
+                inject(psiManager, "'${it.name}'", it.psiType, processor, state, it.navigationElement)
+            }
+        }
+
+    }
+
+    private fun inject(
+        psiManager: PsiManager,
+        name: String,
+        type: PsiType,
+        processor: PsiScopeProcessor,
+        state: ResolveState,
+        navigationElement: PsiElement
+    ) {
+        val param = LightFieldBuilder(psiManager, name, TenantConfigPsiType(type as PsiClassReferenceType))
+        // val param = LightFieldBuilder(name, TenantConfigPsiType(type as PsiClassReferenceType), navigationElement)
+        val newState = state.put(sorryCannotKnowElementKind, true)
+        processor.execute(param, newState)
+    }
+
+    private fun isTenantConfig(aClass: PsiClass): Boolean {
+        return aClass.name?.endsWith(TENANT_CONFIG_AUTO_GENERATE_CLASS_NAME).isTrue()
+    }
+}

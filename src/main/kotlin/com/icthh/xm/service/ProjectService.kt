@@ -41,6 +41,7 @@ import kotlin.streams.asSequence
 const val CONFIG_DIR_NAME = "/config"
 
 fun Project.getSettings() = ServiceManager.getService(this, SettingService::class.java)
+fun Project.getTenantConfigService() = ServiceManager.getService(this, TenantConfigService::class.java)
 fun Project.getExternalConfigService() = ServiceManager.getService(this, ExternalConfigService::class.java)
 fun Project?.isConfigProject(): Boolean {
     return this != null && isConfigRoot(this.basePath)
