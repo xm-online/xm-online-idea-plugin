@@ -3,7 +3,6 @@ package com.icthh.xm.extensions
 import com.icthh.xm.extensions.entityspec.translateToLepConvention
 import com.intellij.ide.util.gotoByName.DefaultFileNavigationContributor
 import com.intellij.navigation.ChooseByNameContributorEx
-import com.intellij.navigation.ChooseByNameContributorEx2
 import com.intellij.navigation.NavigationItem
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.Processor
@@ -11,11 +10,11 @@ import com.intellij.util.indexing.FindSymbolParameters
 import com.intellij.util.indexing.IdFilter
 
 
-open class LepChooseByNameContributor: ChooseByNameContributorEx2 {
+open class LepChooseByNameContributor: ChooseByNameContributorEx {
 
     val delegate: ChooseByNameContributorEx = DefaultFileNavigationContributor()
 
-    override fun processNames(processor: Processor<in String>, parameters: FindSymbolParameters) {
+    fun processNames(processor: Processor<in String>, parameters: FindSymbolParameters) {
         delegate.processNames({ name ->
             if (name.endsWith(".groovy")) {
                 val transliterated = replaceDots(replaceDollars(name))
@@ -60,7 +59,7 @@ open class LepChooseByNameContributor: ChooseByNameContributorEx2 {
     }
 
     private fun newParametersWith(parameters: FindSymbolParameters, pattern: String, name: String) =
-        FindSymbolParameters(pattern, name, parameters.searchScope)
+        FindSymbolParameters(pattern, name, parameters.searchScope, null)
 
     private fun transliterate(symbol: String) = translateToLepConvention(symbol)
 

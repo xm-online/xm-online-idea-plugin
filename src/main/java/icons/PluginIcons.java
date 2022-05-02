@@ -17,7 +17,7 @@ public interface PluginIcons {
   Icon SETTINGS = getIcon("/icons/settings.svg");
 
   public static Icon getIcon(String path) {
-    return IconLoader.getIcon(path, PluginIcons.class.getClassLoader());
+    return IconLoader.getIcon(path, PluginIcons.class) /*, PluginIcons.class.getClassLoader())*/;
   }
 
 }
