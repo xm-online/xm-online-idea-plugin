@@ -1,6 +1,6 @@
 <idea-plugin>
-    <id>com.icthh.xm.configuration</id>
-    <name>Support development using XME.digital</name>
+    <id>com.icthh.xm</id>
+    <name>Support Development Using XME.Digital</name>
     <vendor email="serhii.senko@xm-online.com" url="https://www.xme.digital/">XME.digital</vendor>
 
     <description><![CDATA[

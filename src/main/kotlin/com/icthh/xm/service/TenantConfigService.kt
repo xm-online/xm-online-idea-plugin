@@ -3,6 +3,7 @@ package com.icthh.xm.service
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.icthh.xm.utils.childrenOfType
 import com.icthh.xm.utils.log
 import com.icthh.xm.utils.logger
 import com.intellij.ide.highlighter.JavaFileType
@@ -18,7 +19,6 @@ import com.sun.codemodel.JCodeModel
 import com.sun.codemodel.JPackage
 import com.sun.codemodel.JType
 import com.sun.codemodel.writer.SingleStreamCodeWriter
-import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import org.jsonschema2pojo.*
 import org.jsonschema2pojo.rules.RuleFactory
 import org.jsonschema2pojo.util.NameHelper

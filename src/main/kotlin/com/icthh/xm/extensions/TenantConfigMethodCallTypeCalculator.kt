@@ -111,7 +111,7 @@ class TenantConfigWrongNameFields: NonCodeMembersContributor() {
         if (isTenantConfig(aClass)) {
             val psiManager = PsiManager.getInstance(project)
             val tenantConfigService = project.getTenantConfigService()
-            val virtualFile = place.originalFile.virtualFile
+            val virtualFile = place.originalFile.virtualFile ?: return
             val tenantName = virtualFile.getTenantName(project)
             val fields = tenantConfigService.getFields(tenantName.toUpperCase(), aClass.name ?: "")
             fields.forEach {

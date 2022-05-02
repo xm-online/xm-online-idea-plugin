@@ -27,7 +27,6 @@ import com.jetbrains.jsonSchema.impl.JsonSchemaObject
 import git4idea.util.GitFileUtils
 import org.apache.commons.io.FileUtils
 import org.apache.commons.text.similarity.LevenshteinDistance
-import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import org.jetbrains.yaml.YAMLElementGenerator
 import org.jetbrains.yaml.psi.*
 import org.jetbrains.yaml.psi.impl.YAMLScalarImpl

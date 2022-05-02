@@ -15,6 +15,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiTreeUtil
 import org.apache.commons.lang3.time.StopWatch
 import java.io.File
 import java.io.InputStream
@@ -30,7 +31,7 @@ val loggers = ConcurrentHashMap<Class<Any>, Logger>()
 val loggerFactory: (Class<Any>) -> Logger = { Logger.getInstance(it) }
 val Any.log: Logger get() = loggers.computeIfAbsent(this.javaClass, loggerFactory)
 val Any.logger get() = java.util.logging.Logger.getLogger(this.javaClass.name)
-val YAML_MAPPER = ObjectMapper(YAMLFactory()).registerModule(KotlinModule())
+val YAML_MAPPER = ObjectMapper(YAMLFactory()).registerModule(KotlinModule.Builder().build())
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
 fun InputStream.readTextAndClose(charset: Charset = Charsets.UTF_8): String {
@@ -123,3 +124,6 @@ fun PsiClass.getCountSubstring(): Int {
 
 inline fun <reified T : PsiElement> psiElement() = PlatformPatterns.psiElement(T::class.java)
 
+inline fun <reified T : PsiElement> PsiElement.childrenOfType(): List<T> {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, T::class.java)
+}

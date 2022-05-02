@@ -2,6 +2,7 @@ package com.icthh.xm.extensions
 
 import com.icthh.xm.extensions.entityspec.*
 import com.icthh.xm.service.toPsiFile
+import com.icthh.xm.utils.childrenOfType
 import com.icthh.xm.utils.keyTextMatches
 import com.icthh.xm.utils.psiElement
 import com.icthh.xm.utils.registerProvider
@@ -11,7 +12,6 @@ import com.intellij.patterns.PlatformPatterns.psiFile
 import com.intellij.psi.*
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.ProcessingContext
-import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import org.jetbrains.yaml.psi.*
 import java.io.File
 
