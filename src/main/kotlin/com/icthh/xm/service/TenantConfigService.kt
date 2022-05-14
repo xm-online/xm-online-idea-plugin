@@ -37,7 +37,7 @@ class TenantConfigService {
     data class FieldHolder(
         val name: String,
         val psiType: PsiType,
-        val navigationElement: PsiElement
+        val navigationElement: PsiField
     )
     data class TenantTypeCache(
         val content: String,
@@ -96,6 +96,7 @@ class TenantConfigService {
                     //field.delete()
                     if (fieldName != null) {
                         val manager: PsiManager = field.getManager()
+                        // TODO replace by reference contributor
                         field.nameIdentifier.replace(LightIdentifier(manager, "${fieldName}"))
                         //field.modifierList?.setModifierProperty("public", false)
                         //field.modifierList?.setModifierProperty("private", true)

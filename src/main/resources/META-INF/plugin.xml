@@ -67,6 +67,10 @@
         <psi.referenceContributor implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecReferenceContributor" />
         <!-- end xmentityspec.yml -->
 
+        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.HideInternalFieldsCompletionContributor"
+                                order="first"/>
+        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.UnhideInternalFieldsCompletionContributor"
+                                order="last"/>
 
         <psi.referenceContributor implementation="com.icthh.xm.extensions.HandlerReferenceContributor" />
     </extensions>

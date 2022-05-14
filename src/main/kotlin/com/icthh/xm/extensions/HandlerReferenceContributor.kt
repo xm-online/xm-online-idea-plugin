@@ -6,14 +6,12 @@ import com.icthh.xm.utils.childrenOfType
 import com.icthh.xm.utils.keyTextMatches
 import com.icthh.xm.utils.psiElement
 import com.icthh.xm.utils.registerProvider
-import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.patterns.PatternCondition
 import com.intellij.patterns.PlatformPatterns.psiFile
 import com.intellij.psi.*
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.ProcessingContext
 import org.jetbrains.yaml.psi.*
-import java.io.File
 
 class HandlerReferenceContributor : PsiReferenceContributor() {
     override fun registerReferenceProviders(registrar: PsiReferenceRegistrar) {

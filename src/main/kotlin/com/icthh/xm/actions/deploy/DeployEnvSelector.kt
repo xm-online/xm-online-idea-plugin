@@ -1,6 +1,7 @@
 package com.icthh.xm.actions.deploy
 
 import com.icthh.xm.actions.settings.EnvironmentSettings
+import com.icthh.xm.actions.settings.NULL_ENV
 import com.icthh.xm.service.getSettings
 import com.icthh.xm.service.updateEnv
 import com.icthh.xm.service.updateSupported
@@ -27,8 +28,8 @@ class DeployEnvSelector : ComboBoxAction(), DumbAware {
         val elements = e.project?.getSettings()?.envs ?: emptyList()
         envs.addAll(elements)
         component?.updateUI()
-        selectedItem = e.project?.getSettings()?.selected() ?: return
-        presentation.setText(selectedItem?.name)
+        selectedItem = e.project?.getSettings()?.selected()
+        presentation.setText(selectedItem?.name ?: "No env")
     }
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -61,6 +62,7 @@ class DeployEnvSelector : ComboBoxAction(), DumbAware {
         for (env in project.getSettings().envs) {
             group.add(EnvironmentSettingsAction(env))
         }
+        group.add(EnvironmentSettingsAction(NULL_ENV))
         return group
     }
 

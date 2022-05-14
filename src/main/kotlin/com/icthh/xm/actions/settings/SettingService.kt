@@ -23,7 +23,12 @@ class SettingService: PersistentStateComponent<SettingService> {
         XmlSerializerUtil.copyBean(state, this)
     }
 
-    fun selected() = envs.find { it.id == selectedEnv }
+    fun selected(): EnvironmentSettings? {
+        if (NULL_ENV.id == selectedEnv) {
+            return NULL_ENV
+        }
+        return envs.find { it.id == selectedEnv }
+    }
 
     fun select(settings: EnvironmentSettings?) {
         selectedEnv = settings?.id
@@ -32,6 +37,12 @@ class SettingService: PersistentStateComponent<SettingService> {
 
 enum class UpdateMode(val isGitMode: Boolean) {
     INCREMENTAL(false), FROM_START(false), GIT_LOCAL_CHANGES(true), GIT_BRANCH_DIFFERENCE(true)
+}
+
+
+public val NULL_ENV = EnvironmentSettings().let {
+    it.name = "No env"
+    it
 }
 
 class EnvironmentSettings {
