@@ -3,6 +3,7 @@ package com.icthh.xm.actions.deploy
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.settings.NULL_ENV
 import com.icthh.xm.service.getSettings
+import com.icthh.xm.service.isConfigProject
 import com.icthh.xm.service.updateEnv
 import com.icthh.xm.service.updateSupported
 import com.icthh.xm.utils.logger
@@ -62,7 +63,9 @@ class DeployEnvSelector : ComboBoxAction(), DumbAware {
         for (env in project.getSettings().envs) {
             group.add(EnvironmentSettingsAction(env))
         }
-        group.add(EnvironmentSettingsAction(NULL_ENV))
+        if (!project.isConfigProject()) {
+            group.add(EnvironmentSettingsAction(NULL_ENV))
+        }
         return group
     }
 
