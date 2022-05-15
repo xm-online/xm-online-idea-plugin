@@ -18,10 +18,12 @@ import com.intellij.psi.impl.source.PsiClassReferenceType
 import com.intellij.psi.impl.source.PsiImmediateClassType
 import com.intellij.psi.scope.PsiScopeProcessor
 import com.intellij.util.ProcessingContext
+import org.jetbrains.plugins.groovy.lang.psi.GrQualifiedReference
 import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrMethodCall
 import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrReferenceExpression
 import org.jetbrains.plugins.groovy.lang.psi.controlFlow.impl.ResolvedVariableDescriptor
 import org.jetbrains.plugins.groovy.lang.psi.controlFlow.impl.createDescriptor
+import org.jetbrains.plugins.groovy.lang.psi.impl.statements.expressions.GrReferenceExpressionImpl
 import org.jetbrains.plugins.groovy.lang.psi.impl.synthetic.GrLightField
 import org.jetbrains.plugins.groovy.lang.resolve.NonCodeMembersContributor
 import org.jetbrains.plugins.groovy.lang.resolve.sorryCannotKnowElementKind
@@ -29,6 +31,7 @@ import org.jetbrains.plugins.groovy.lang.typing.DefaultMethodCallTypeCalculator
 import org.jetbrains.plugins.groovy.lang.typing.DefaultMethodReferenceTypeCalculator
 import org.jetbrains.plugins.groovy.lang.typing.GrTypeCalculator
 
+val TENANT_CONFIG_EXPRESSION = "lepContext.services.tenantConfigService"
 
 class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
 
@@ -37,16 +40,7 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
     val delegate = DefaultMethodCallTypeCalculator()
 
     override fun getType(expression: GrMethodCall): PsiType? {
-        val project = expression.project
-        if (project.isConfigProject()) {
-            return delegate.getType(expression)
-        }
-
-        if (
-            TENANT_CONFIG.equals(expression.resolveMethod()?.containingClass?.qualifiedName)
-            &&
-            GET_CONFIG.equals(expression.callReference?.methodName)
-        ) {
+        if (isTenantConfig(expression)) {
             val virtualFile = expression.originalFile.virtualFile ?: return delegate.getType(expression)
             val project = expression.project
             val type = project.getTenantConfigService().getPsiTypeForExpression(virtualFile, project, expression)
@@ -54,6 +48,16 @@ class TenantConfigMethodCallTypeCalculator : GrTypeCalculator<GrMethodCall> {
         }
 
         return delegate.getType(expression)
+    }
+
+    private fun isTenantConfig(expression: GrMethodCall): Boolean {
+        val methodName = GET_CONFIG.equals(expression.callReference?.methodName)
+        val isTenantConfigType = TENANT_CONFIG.equals(expression.resolveMethod()?.containingClass?.qualifiedName)
+
+        val invokedExpression = expression.invokedExpression as? GrReferenceExpression
+        val isTenantConfigLepExpression = invokedExpression?.getQualifierExpression()?.getUserData(LEP_EXPRESSION)?.lepContextPath == TENANT_CONFIG_EXPRESSION
+
+        return methodName && (isTenantConfigType || isTenantConfigLepExpression)
     }
 
 }
@@ -66,17 +70,11 @@ class TenantConfigPropertyTypeCalculator : GrTypeCalculator<GrReferenceExpressio
 
     override fun getType(expression: GrReferenceExpression): PsiType? {
         val project = expression.project
-        if (project.isConfigProject()) {
-            return delegate.getType(expression)
-        }
-
         val fieldName = expression.createDescriptor()?.getName()
         if (fieldName == GET_CONFIG) {
             val tenantConfigService = project.getTenantConfigService()
-            val psiType = expression.qualifier?.type
-            if (psiType is PsiClassReferenceType && psiType.reference.qualifiedName == TENANT_CONFIG) {
+            if (isTenantConfig(expression)) {
                 val virtualFile = expression.originalFile.virtualFile ?: return delegate.getType(expression)
-                val project = expression.project
                 val psiTypeForExpression = tenantConfigService.getPsiTypeForExpression(virtualFile, project, expression)
                 return psiTypeForExpression ?: delegate.getType(expression)
             }
@@ -85,13 +83,20 @@ class TenantConfigPropertyTypeCalculator : GrTypeCalculator<GrReferenceExpressio
         return delegate.getType(expression)
     }
 
+    private fun isTenantConfig(expression: GrReferenceExpression): Boolean {
+        val qualifier = expression.qualifier
+        val psiType = qualifier?.type
+        val isTenantConfigExpression = qualifier?.getUserData(LEP_EXPRESSION)?.lepContextPath == TENANT_CONFIG_EXPRESSION
+        val isTenantType = psiType is PsiClassReferenceType && psiType.reference.qualifiedName == TENANT_CONFIG
+        return isTenantConfigExpression || isTenantType
+    }
+
 }
 
 class TenantConfigPsiType(val type: PsiClassReferenceType): PsiClassReferenceType(type.reference, null) {
     override fun isValid(): Boolean {
         return true
     }
-
 }
 
 class TenantConfigWrongNameFields: NonCodeMembersContributor() {
@@ -105,9 +110,6 @@ class TenantConfigWrongNameFields: NonCodeMembersContributor() {
         val project = place.project
         val selected = project.getSettings().selected()
         selected ?: return
-        if (project.isConfigProject()) {
-            return
-        }
 
         if (!(aClass != null && aClass.getCountSubstring() > 0)) {
             return
@@ -172,15 +174,7 @@ open class HideInternalFieldsCompletionContributor: CompletionContributor() {
             return
         }
 
-        val referenceDescriptor = reference.createDescriptor()
-        if (referenceDescriptor !is ResolvedVariableDescriptor) {
-            return
-        }
-
-        val type = referenceDescriptor.variable.typeGroovy
-        if (type !is PsiClassType) {
-            return
-        }
+        val type = getType(reference) ?: return
 
         if (!type.name.endsWith(TENANT_CONFIG_AUTO_GENERATE_CLASS_NAME).isTrue()) {
             return
@@ -193,6 +187,17 @@ open class HideInternalFieldsCompletionContributor: CompletionContributor() {
         val fields = tenantConfigService.getFields(tenantName.uppercase(), type.name ?: "")
 
         fields.forEach(action)
+    }
+
+    private fun getType(reference: GrReferenceExpression): PsiClassType? {
+        val referenceDescriptor = reference.createDescriptor() as? ResolvedVariableDescriptor
+        val type = referenceDescriptor?.variable?.typeGroovy
+        if (type is PsiClassType) {
+            return type
+        }
+
+        val field = reference.resolve() as? PsiField
+        return field?.type as? PsiClassType
     }
 
 }

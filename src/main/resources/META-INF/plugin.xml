@@ -90,6 +90,8 @@
                         implementationClass="com.icthh.xm.extensions.TenantConfigMethodCallTypeCalculator" />
         <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrReferenceExpression"
                         implementationClass="com.icthh.xm.extensions.TenantConfigPropertyTypeCalculator" />
+        <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrReferenceExpression"
+                        implementationClass="com.icthh.xm.extensions.LepContextTypeCalculator" />
     </extensions>
 
     <application-components>
