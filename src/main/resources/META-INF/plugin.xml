@@ -71,6 +71,12 @@
                                 order="first"/>
         <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.UnhideInternalFieldsCompletionContributor"
                                 order="last"/>
+        <localInspection language="JAVA" bundle="messages.XmEntitySpecification"
+                         shortName="CreateLepFile"
+                         key="inspections.create.lep"
+                         groupKey="inspections.group.name"
+                         enabledByDefault="true"
+                         level="INFO" implementationClass="com.icthh.xm.extensions.LepAnnotationTip" />
 
         <psi.referenceContributor implementation="com.icthh.xm.extensions.HandlerReferenceContributor" />
     </extensions>

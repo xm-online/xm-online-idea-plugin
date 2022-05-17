@@ -31,7 +31,7 @@ import kotlin.streams.toList
 
 open class TenantRoleService(val tenant: String, val project: Project, val writeAction: (() -> Unit) -> Unit = { it.invoke() }) {
 
-    private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule())
+    private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule.Builder().build())
 
     fun getRoles(): MutableMap<String, Role> {
         var configPath = ROLES_PATH.replace("{tenantName}", tenant)

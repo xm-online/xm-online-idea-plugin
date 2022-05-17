@@ -12,7 +12,7 @@ import java.util.*
 
 class PermissionMapper {
 
-    private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule())
+    private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule.Builder().build())
 
     fun permissionsToYml(permissions: Collection<Permission>): String? {
         try {

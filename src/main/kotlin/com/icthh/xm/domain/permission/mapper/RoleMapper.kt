@@ -11,7 +11,7 @@ import java.util.Collections.emptyMap
 
 class RoleMapper {
 
-    private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule())
+    private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule.Builder().build())
 
     fun rolesToYml(roles: Collection<Role>): String? {
         try {

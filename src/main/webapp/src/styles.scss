@@ -16,7 +16,7 @@ $light-theme: mat-light-theme((
   @include angular-material-theme($light-theme);
 }
 
-$primary: mat-palette($mat-purple, 700, 500, 800);
+$primary: mat-palette($mat-light-green, 700, 500, 800);
 $accent:  mat-palette($mat-green, A200, A100, A400);
 
 $dark-theme: mat-dark-theme((
@@ -43,6 +43,7 @@ $dark-theme: mat-dark-theme((
     color: white;
   }
 
+  color: white;
   background-color: #424242;
 }
 

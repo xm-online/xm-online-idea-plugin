@@ -11,7 +11,7 @@ import java.util.*
 
 class PrivilegeMapper {
 
-        private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule())
+        private val mapper = ObjectMapper(YAMLFactory()).registerModule(KotlinModule.Builder().build())
             .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
 
         fun privilegesToYml(privileges: Collection<Privilege>): String? {

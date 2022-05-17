@@ -574,7 +574,7 @@ private fun PsiElement.getFunctionDirectory(): String {
     return "${getRootFolder()}/lep/function/"
 }
 
-private fun PsiElement.getRootFolder(): String {
+fun PsiElement.getRootFolder(): String {
     val project = this.project
     val tenantName = this.originalFile.getTenantName(project)
     val path = "${project.basePath}/config/tenants/${tenantName}/entity"

@@ -27,6 +27,7 @@ import { MatDialogModule } from "@angular/material/dialog";
 import { Callback } from "./callback";
 import { OverlayContainer } from "@angular/cdk/overlay";
 import { EntityDiagramComponent } from './entity-diagram/entity-diagram.component';
+import { CreateLepDialogComponent } from './create-lep-dialog/create-lep-dialog.component';
 
 const routes: Routes = [
   { path: 'settings', component: SettingsComponent },
@@ -34,6 +35,7 @@ const routes: Routes = [
   { path: 'role-management', component: RoleManagementComponent },
   { path: 'role-matrix', component: RoleMatrixComponent },
   { path: 'entity-diagram', component: EntityDiagramComponent },
+  { path: 'create-lep-dialog', component: CreateLepDialogComponent },
 ];
 
 @NgModule({
@@ -45,7 +47,8 @@ const routes: Routes = [
     RoleMatrixComponent,
     EditConditionDialogComponent,
     SelectCheckAllComponent,
-    EntityDiagramComponent
+    EntityDiagramComponent,
+    CreateLepDialogComponent
   ],
   imports: [
     BrowserModule,

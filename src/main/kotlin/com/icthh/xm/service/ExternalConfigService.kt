@@ -32,7 +32,7 @@ class ExternalConfigService {
 
     val objectMapper = ObjectMapper()
         .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
-        .registerModule(KotlinModule())
+        .registerModule(KotlinModule.Builder().build())
 
     fun getConfigFile(project: Project, env: EnvironmentSettings, path: String, version: String? = env.version): String {
         return getConfigFileIfExists(project, env, path, version) ?: throw NotFoundException()

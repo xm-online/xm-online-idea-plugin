@@ -1,0 +1,26 @@
+<div class="create-lep">
+    <div>
+        {{context.lepName}}$$
+        <mat-form-field class="full-width">
+            <mat-label>Lep key</mat-label>
+            <input type="text" matInput [(ngModel)]="lepKey" (ngModelChange)="onUpdate()" #lepKeyInput="matInput">
+        </mat-form-field>
+        <span *ngIf="context.isInterface">$$tenant</span>
+        <span *ngIf="!context.isInterface">$$around</span>
+        .groovy
+    </div>
+    <div>
+        <mat-form-field appearance="fill" class="full-width tenant-select">
+            <mat-label>Tenant</mat-label>
+            <mat-select [(ngModel)]="tenant" (ngModelChange)="onUpdate()" #selectionModel="ngModel" class="full-width">
+                <mat-option *ngFor="let tenant of context.tenants" [value]="tenant">{{tenant}}</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+    <div>
+        <mat-label>With code snippet </mat-label>
+        <mat-checkbox [(ngModel)]="generateCodeSnipped"
+                      (ngModelChange)="onUpdate()">
+        </mat-checkbox>
+    </div>
+</div>
