@@ -29,7 +29,7 @@ public class ViewServer {
     public static Server embeddedServer;
     private static Integer serverPort = 54321;
     private static AtomicBoolean isInited = new AtomicBoolean(false);
-    public static boolean isDev = true;// Boolean.parseBoolean(System.getenv("IS_DEV_PLUGIN_RUN"));
+    public static boolean isDev = false;// Boolean.parseBoolean(System.getenv("IS_DEV_PLUGIN_RUN"));
 
     public static String getServerUrl() {
         if (isDev) {

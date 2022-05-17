@@ -149,7 +149,7 @@ class CreateLepDialog(project: Project, val context: LepDialogContext): WebDialo
     }
 
     override fun getPreferredFocusedComponent(): JComponent? {
-        return null
+        return createCenterPanel()
     }
 
 }
