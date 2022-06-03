@@ -5,3 +5,9 @@
 .tenant-select {
     min-width: 500px;
 }
+
+.lep-key-wrapper {
+    height: 50px;
+    display: flex;
+    align-items: center;
+}

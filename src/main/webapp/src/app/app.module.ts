@@ -28,6 +28,7 @@ import { Callback } from "./callback";
 import { OverlayContainer } from "@angular/cdk/overlay";
 import { EntityDiagramComponent } from './entity-diagram/entity-diagram.component';
 import { CreateLepDialogComponent } from './create-lep-dialog/create-lep-dialog.component';
+import { AutofocusDirective } from './create-lep-dialog/autofocus.directive';
 
 const routes: Routes = [
   { path: 'settings', component: SettingsComponent },
@@ -40,6 +41,7 @@ const routes: Routes = [
 
 @NgModule({
   declarations: [
+    AutofocusDirective,
     AppComponent,
     SettingsComponent,
     FileListDialogComponent,

@@ -194,14 +194,14 @@ fun Project.getRepository(onlyProject: Boolean = false): GitRepository? {
         return repo
     }
     if (repo == null) {
-        doPseudoAsync {
-            repo = repositoryManager.getRepositoryForRoot(root)
+        repo = doPseudoAsync {
+            repositoryManager.getRepositoryForRoot(root)
         }
     }
     if (repo == null && root != null) {
-        repositoryManager.addExternalRepository(root, GitRepositoryImpl.createInstance(root, this, this, true))
-        doPseudoAsync {
-            repo = repositoryManager.getRepositoryForRoot(root)
+        repositoryManager.addExternalRepository(root, GitRepositoryImpl.createInstance(root, this, this))
+        repo = doPseudoAsync {
+            repositoryManager.getRepositoryForRoot(root)
         }
     }
     return repo

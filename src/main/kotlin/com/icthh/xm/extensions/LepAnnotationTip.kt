@@ -4,8 +4,11 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.icthh.xm.actions.BrowserCallback
 import com.icthh.xm.actions.WebDialog
-import com.icthh.xm.actions.settings.EnvironmentSettings
-import com.icthh.xm.service.*
+import com.icthh.xm.extensions.entityspec.translateToLepConvention
+import com.icthh.xm.service.getApplicationName
+import com.icthh.xm.service.getRepository
+import com.icthh.xm.service.getSettings
+import com.icthh.xm.service.toPsiFile
 import com.icthh.xm.utils.logger
 import com.intellij.codeInspection.*
 import com.intellij.openapi.application.ApplicationManager
@@ -22,7 +25,6 @@ import git4idea.util.GitFileUtils
 import org.jetbrains.plugins.groovy.lang.psi.impl.stringValue
 import java.awt.Dimension
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
 import javax.swing.JComponent
 
 private const val LOGIC_EXTENSION_POINT = "com.icthh.xm.commons.lep.LogicExtensionPoint"
@@ -41,7 +43,7 @@ class LepAnnotationTip : LocalInspectionTool() {
                 val annotation = list.context as PsiAnnotationImpl
                 if (annotation.qualifiedName == LOGIC_EXTENSION_POINT) {
                     val params = list.attributes.map { it.name to it.value?.text }.toMap()
-                    val lepName = params["value"]?.removeSurrounding("\"", "\"")
+                    val lepName = (params["value"] ?: params[null])?.removeSurrounding("\"", "\"")
                     val hasResolver = params["resolver"] != null
                     if (lepName == null) {
                         return
@@ -54,30 +56,34 @@ class LepAnnotationTip : LocalInspectionTool() {
 
                     val project = annotation.project
                     val selected = project.getSettings().selected() ?: return
-                    val basePath = project.basePath ?: return
+                    var basePath = project.basePath ?: return
                     if (selected.selectedTenants.isEmpty()) {
                         return
                     }
 
+                    basePath = project.getSettings().selected()?.basePath ?: basePath
+
                     val description = "Create lep file"
                     holder.registerProblem(annotation, description,
                         ProblemHighlightType.INFORMATION, object : LocalQuickFix {
-                        override fun getFamilyName() = description
+                            override fun getFamilyName() = description
 
-                        override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
-                            createLepFile(
-                                project,
-                                basePath,
-                                group,
-                                LepDialogContext(
-                                    lepName,
-                                    hasResolver,
-                                    selected.selectedTenants,
-                                    containingClass.isInterface
+                            override fun startInWriteAction() = false
+
+                            override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+                                createLepFile(
+                                    project,
+                                    basePath,
+                                    group,
+                                    LepDialogContext(
+                                        lepName,
+                                        hasResolver,
+                                        selected.selectedTenants,
+                                        containingClass.isInterface
+                                    )
                                 )
-                            )
-                        }
-                    })
+                            }
+                        })
                 }
             }
         }
@@ -96,20 +102,43 @@ class LepAnnotationTip : LocalInspectionTool() {
             ApplicationManager.getApplication().runWriteAction {
                 val data = fileListDialog.data
                 logger.info(">> ${data}")
-                //createFile(basePath, group, context.lepName, project, "return null")
+
+                val lepPath = buildLepPath(basePath, group, data, project)
+                val lepKey = data.lepKey?.let{ translateToLepConvention(it) }
+                val fileName = buildFileName(context, lepKey)
+                createFile(lepPath, fileName, project, "return null")
             }
         }
+
     }
 
-    private fun createFile(
-        directory: String,
-        group: String?,
-        name: String,
-        project: Project,
-        body: String
-    ) {
-        File(directory + group).mkdirs()
-        val file = File(directory + name)
+    private fun buildFileName(context: LepDialogContext, lepKey: String?): String {
+        val suffix = if (context.isInterface) {
+            "tenant.groovy"
+        } else {
+            "around.groovy"
+        }
+
+        val fileName = if (context.hasResolver) {
+            "${context.lepName}$$${lepKey}$$${suffix}"
+        } else {
+            "${context.lepName}$$${suffix}"
+        }
+        return fileName
+    }
+
+    private fun buildLepPath(basePath: String?, group: String?, data: LepDialogState, project: Project): String {
+        val groupName = group?.replace(".", "/")
+        var lepPath = "${basePath}/config/tenants/${data.tenant.uppercase()}/${project.getApplicationName()}/lep/"
+        if (!groupName.isNullOrBlank()) {
+            lepPath = lepPath + "${groupName}/"
+        }
+        return lepPath
+    }
+
+    private fun createFile(lepPath: String, fileName: String, project: Project, body: String) {
+        File(lepPath).mkdirs()
+        val file = File(lepPath + fileName)
         if (!file.exists()) {
             file.createNewFile()
         }
@@ -118,8 +147,8 @@ class LepAnnotationTip : LocalInspectionTool() {
         val psiFile = virtualFile.toPsiFile(project)
         psiFile?.navigate(true)
 
-        val repository = project.getRepository() ?: return
         ApplicationManager.getApplication().executeOnPooledThread {
+            val repository = project.getRepository() ?: return@executeOnPooledThread
             GitFileUtils.addPaths(project, repository.root, listOf(VcsUtil.getFilePath(virtualFile)))
         }
     }
@@ -140,6 +169,7 @@ class CreateLepDialog(project: Project, val context: LepDialogContext): WebDialo
             BrowserCallback("componentReady") { body, pipe ->
                 logger.info("component ready")
                 pipe.post("initData", mapper.writeValueAsString(context))
+                jCefWebPanelWrapper.browserComponent?.requestFocus()
             },
             BrowserCallback("onUpdate") { body, pipe ->
                 logger.info("on update")
@@ -149,13 +179,13 @@ class CreateLepDialog(project: Project, val context: LepDialogContext): WebDialo
     }
 
     override fun getPreferredFocusedComponent(): JComponent? {
-        return createCenterPanel()
+        return jCefWebPanelWrapper.browserComponent
     }
 
 }
 
 data class LepDialogState (
-    val lepKey: String,
+    val lepKey: String?,
     val tenant: String,
     val generateCodeSnipped: Boolean
 )

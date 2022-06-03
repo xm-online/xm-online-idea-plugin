@@ -1,9 +1,9 @@
 <div class="create-lep">
-    <div>
-        {{context.lepName}}$$
-        <mat-form-field class="full-width">
+    <div class="lep-key-wrapper">
+        {{context.lepName}}<span *ngIf="context.hasResolver">$$</span>
+        <mat-form-field class="full-width" *ngIf="context.hasResolver">
             <mat-label>Lep key</mat-label>
-            <input type="text" matInput [(ngModel)]="lepKey" (ngModelChange)="onUpdate()" #lepKeyInput="matInput">
+            <input type="text" [(ngModel)]="lepKey" (ngModelChange)="onUpdate()" #lepKeyInput matInput matInputAutofocus>
         </mat-form-field>
         <span *ngIf="context.isInterface">$$tenant</span>
         <span *ngIf="!context.isInterface">$$around</span>

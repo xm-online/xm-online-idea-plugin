@@ -87,6 +87,7 @@ class JCefWebPanelWrapper(
      */
     val uiThreadAnchor = JLabel(".");
     val pipeId: String = UUID.randomUUID().toString()
+    var browserComponent: JComponent? = null
 
     init {
         ViewServer.startServer()
@@ -105,7 +106,7 @@ class JCefWebPanelWrapper(
 
         val panel = JPanel(BorderLayout())
         panel.preferredSize = dimension
-
+        browserComponent = browser.component
         panel.add(browser.component, BorderLayout.CENTER);
         panel.add(uiThreadAnchor, BorderLayout.SOUTH)
         Disposer.register(this.disposable, browser)
@@ -142,8 +143,8 @@ class BrowserPipe(private val browser: JBCefBrowser, pipeId: String, viewName: S
         callbacks.forEach { addBrowserEvents(it.name) }
         val theme = if (UIUtil.isUnderDarcula()) "dark-theme" else "light-theme"
         val initCallback = """
-            const event = new Event("callbackReady");
-            window.dispatchEvent(event);
+            const eventCallbackReady = new Event("callbackReady");
+            window.dispatchEvent(eventCallbackReady);
             window.callbackReady = true;
             document.querySelector("body").classList.add('${theme}');            
         """.trimIndent()

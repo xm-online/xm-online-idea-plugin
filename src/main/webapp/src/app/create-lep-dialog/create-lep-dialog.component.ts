@@ -1,7 +1,7 @@
-import { AfterViewInit, Component, NgZone, OnInit, ViewChild } from '@angular/core';
-import { MessagePipeService } from "../message-pipe.service";
-import { Callback } from "../callback";
-import { ActivatedRoute } from "@angular/router";
+import { AfterViewInit, Component, NgZone, ViewChild, ViewChildren } from '@angular/core';
+import { MessagePipeService } from '../message-pipe.service';
+import { Callback } from '../callback';
+import { ActivatedRoute } from '@angular/router';
 import { MatInput } from '@angular/material/input';
 
 @Component({
@@ -11,33 +11,40 @@ import { MatInput } from '@angular/material/input';
 })
 export class CreateLepDialogComponent extends Callback implements AfterViewInit {
 
-  @ViewChild('lepKeyInput') lepKeyInput: MatInput;
+  @ViewChildren(MatInput) lepKeyInput;
 
-  context: LepDialog = {}
+  context: LepDialog = {};
 
   lepKey: string;
   tenant: string;
-  generateCodeSnipped: boolean = true;
+  generateCodeSnipped = true;
 
-  constructor(protected messagePipe: MessagePipeService, route: ActivatedRoute) {
+  constructor(protected messagePipe: MessagePipeService, route: ActivatedRoute, private zone: NgZone) {
     super(messagePipe, route);
   }
 
   ngAfterViewInit(): void {
-    this.lepKeyInput.focus();
+
   }
 
   callbackReady() {
     this.messagePipe.subscribe('initData', (res: LepDialog) => {
       console.info('initData', res);
       this.initData(res);
-      this.lepKeyInput.focus();
     });
   }
 
   private initData(res: LepDialog) {
     this.context = res;
     this.tenant = this.context.tenants[0];
+
+    setTimeout(() => {
+      this.zone.run(() => {
+        console.log(this.lepKeyInput.first);
+        this.lepKeyInput.first.focus();
+        this.onUpdate();
+      });
+    }, 100);
   }
 
   onUpdate() {

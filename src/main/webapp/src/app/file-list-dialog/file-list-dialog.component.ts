@@ -24,6 +24,7 @@ export class FileListDialogComponent extends Callback {
     });
     this.messagePipe.subscribe('updateFile', (res: FileChange) => {
       console.info('updateFile', res);
+      console.info('changes', this.changes);
       this.changes.filter(it => it.fileName === res.fileName)
           .forEach(it => {
             Object.keys(res).forEach(key => {
@@ -44,11 +45,11 @@ export class FileListDialogComponent extends Callback {
       if (it.editedInThisIteration && !this.isForceUpdate && !it.ignoredFile) {
         it.sortOrder = 1;
       } else if (!it.ignoredFile) {
-        it.sortOrder = 2
+        it.sortOrder = 2;
       } else {
         it.sortOrder = 3;
       }
-    })
+    });
     this.changes = this.changes.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
@@ -81,11 +82,11 @@ interface FileChange {
   fileName: string;
   path: string;
   editedInThisIteration?: boolean;
-  newFile?: boolean;
+  isNewFile?: boolean;
   changesFile?: boolean;
   ignoredFile?: boolean;
   toDelete?: boolean;
-  conflict?: boolean;
+  isConflict?: boolean;
 
   sortOrder: number;
 }
