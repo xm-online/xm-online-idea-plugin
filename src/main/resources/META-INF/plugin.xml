@@ -123,6 +123,7 @@
         <group id="mainSettingsGroup" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup" popup="true" compact="false">
             <add-to-group group-id="MainMenu" anchor="after" relative-to-action="HelpMenu" />
             <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSettingAction" text="Setting"/>
+            <action id="linkToUpdate" class="com.icthh.xm.actions.settings.LinkToUpdate" text="Check Updates"/>
         </group>
 
         <action id="deployToEnvSelector" class="com.icthh.xm.actions.deploy.DeployEnvSelector"
