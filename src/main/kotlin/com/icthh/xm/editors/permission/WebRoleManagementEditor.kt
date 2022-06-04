@@ -87,7 +87,7 @@ class WebRoleManagementEditor(val currentProject: Project, val currentFile: Virt
         pipe: BrowserPipe
     ) {
         connection.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
-            override fun after(events: List<VFileEvent?>) {
+            override fun after(events: MutableList<out VFileEvent>) {
                 events.forEach {
                     it ?: return@forEach
 

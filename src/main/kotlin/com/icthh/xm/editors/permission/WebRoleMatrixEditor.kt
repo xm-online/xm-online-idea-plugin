@@ -81,7 +81,7 @@ class WebRoleMatrixEditor(val currentProject: Project, val currentFile: VirtualF
         pipe: BrowserPipe
     ) {
         connection.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
-            override fun after(events: List<VFileEvent?>) {
+            override fun after(events: MutableList<out VFileEvent>) {
                 events.forEach {
                     it ?: return@forEach
 

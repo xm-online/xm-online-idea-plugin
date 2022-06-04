@@ -127,3 +127,10 @@ inline fun <reified T : PsiElement> psiElement() = PlatformPatterns.psiElement(T
 inline fun <reified T : PsiElement> PsiElement.childrenOfType(): List<T> {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, T::class.java)
 }
+
+fun String?.ifNullOrBlank(value: String) = if (this.isNullOrBlank()) {
+    value
+} else {
+    this
+}
+

@@ -4,19 +4,21 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.icthh.xm.actions.BrowserCallback
 import com.icthh.xm.actions.WebDialog
+import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.extensions.entityspec.translateToLepConvention
 import com.icthh.xm.service.getApplicationName
 import com.icthh.xm.service.getRepository
 import com.icthh.xm.service.getSettings
 import com.icthh.xm.service.toPsiFile
+import com.icthh.xm.utils.ifNullOrBlank
 import com.icthh.xm.utils.logger
 import com.intellij.codeInspection.*
+import com.intellij.lang.jvm.JvmParameter
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.psi.JavaElementVisitor
-import com.intellij.psi.PsiAnnotationParameterList
-import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.*
+import com.intellij.psi.impl.source.PsiClassReferenceType
 import com.intellij.psi.impl.source.PsiMethodImpl
 import com.intellij.psi.impl.source.tree.java.PsiAnnotationImpl
 import com.intellij.ui.jcef.JBCefBrowser
@@ -61,7 +63,7 @@ class LepAnnotationTip : LocalInspectionTool() {
                         return
                     }
 
-                    basePath = project.getSettings().selected()?.basePath ?: basePath
+                    basePath = selected.basePath ?: basePath
 
                     val description = "Create lep file"
                     holder.registerProblem(annotation, description,
@@ -71,8 +73,10 @@ class LepAnnotationTip : LocalInspectionTool() {
                             override fun startInWriteAction() = false
 
                             override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+                                logger.info("holder ${holder}, list ${list}")
                                 createLepFile(
                                     project,
+                                    selected,
                                     basePath,
                                     group,
                                     LepDialogContext(
@@ -80,7 +84,8 @@ class LepAnnotationTip : LocalInspectionTool() {
                                         hasResolver,
                                         selected.selectedTenants,
                                         containingClass.isInterface
-                                    )
+                                    ),
+                                    list
                                 )
                             }
                         })
@@ -89,11 +94,15 @@ class LepAnnotationTip : LocalInspectionTool() {
         }
     }
 
+    private fun JvmParameter.toType() = (type as PsiClassReferenceType).name
+
     private fun createLepFile(
         project: Project,
+        selected: EnvironmentSettings,
         basePath: String,
         group: String?,
-        context: LepDialogContext
+        context: LepDialogContext,
+        list: PsiAnnotationParameterList
     ) {
 
         val fileListDialog = CreateLepDialog(project, context)
@@ -103,13 +112,44 @@ class LepAnnotationTip : LocalInspectionTool() {
                 val data = fileListDialog.data
                 logger.info(">> ${data}")
 
-                val lepPath = buildLepPath(basePath, group, data, project)
+                val lepPath = buildLepPath(group, data, project, selected)
                 val lepKey = data.lepKey?.let{ translateToLepConvention(it) }
                 val fileName = buildFileName(context, lepKey)
-                createFile(lepPath, fileName, project, "return null")
+                createFile("${basePath}/config/tenants/", lepPath, fileName, project, lepBody(list, lepPath))
             }
         }
 
+    }
+
+    private fun lepBody(list: PsiAnnotationParameterList, lepPath: String): String {
+        val imports = HashSet<String>()
+
+        val context: PsiAnnotation = list.context as PsiAnnotation
+        val method: PsiMethod = context.context?.context as PsiMethod
+        method.parameters.map { it.type }.filterIsInstance<PsiClassReferenceType>().forEach {
+            imports.add(it.reference.qualifiedName)
+        }
+
+        val returnType = method.returnType as PsiClassReferenceType
+        imports.add(returnType.reference.qualifiedName)
+
+        val args = method.parameters.map { "lepContext.inArgs.${it.name}" }.joinToString(", ")
+        val methodArgs = method.parameters.map { "${it.toType()} ${it.name}" }.joinToString(", ")
+        val body = """
+            package ${lepPath.replace("/", ".").trimEnd('.')}
+
+            #imports#
+
+            return ${method.name}($args)
+
+            ${returnType.name} ${method.name}(${methodArgs}) {
+                // TODO Put you code here
+                return null
+            }
+
+        """.trimIndent()
+        val importsString = imports.map { "import $it" }.joinToString("\n")
+        return body.replace("#imports#", importsString)
     }
 
     private fun buildFileName(context: LepDialogContext, lepKey: String?): String {
@@ -127,30 +167,32 @@ class LepAnnotationTip : LocalInspectionTool() {
         return fileName
     }
 
-    private fun buildLepPath(basePath: String?, group: String?, data: LepDialogState, project: Project): String {
+    private fun buildLepPath(group: String?, data: LepDialogState, project: Project, settings: EnvironmentSettings): String {
         val groupName = group?.replace(".", "/")
-        var lepPath = "${basePath}/config/tenants/${data.tenant.uppercase()}/${project.getApplicationName()}/lep/"
+        val tenant = data.tenant.ifNullOrBlank(settings.selectedTenants.find { true } ?: "XM")
+        var lepPath = "${tenant}/${project.getApplicationName()}/lep/"
         if (!groupName.isNullOrBlank()) {
             lepPath = lepPath + "${groupName}/"
         }
         return lepPath
     }
 
-    private fun createFile(lepPath: String, fileName: String, project: Project, body: String) {
+    private fun createFile(basePath: String, lepPath: String, fileName: String, project: Project, body: String) {
         File(lepPath).mkdirs()
-        val file = File(lepPath + fileName)
+        val file = File(basePath + lepPath + fileName)
         if (!file.exists()) {
             file.createNewFile()
+            file.writeText(body)
+            val virtualFile = VfsUtil.findFileByIoFile(file, true) ?: return
+            ApplicationManager.getApplication().executeOnPooledThread {
+                val repository = project.getRepository() ?: return@executeOnPooledThread
+                GitFileUtils.addPaths(project, repository.root, listOf(VcsUtil.getFilePath(virtualFile)))
+            }
         }
-        file.writeText(body)
-        val virtualFile = VfsUtil.findFileByIoFile(file, true) ?: return
-        val psiFile = virtualFile.toPsiFile(project)
-        psiFile?.navigate(true)
 
-        ApplicationManager.getApplication().executeOnPooledThread {
-            val repository = project.getRepository() ?: return@executeOnPooledThread
-            GitFileUtils.addPaths(project, repository.root, listOf(VcsUtil.getFilePath(virtualFile)))
-        }
+        val linkToFile = VfsUtil.findFileByIoFile(File("${project.basePath}/src/main/lep/${lepPath}${fileName}"), true) ?: return
+        val psiFile = linkToFile.toPsiFile(project)
+        psiFile?.navigate(true)
     }
 
 }
