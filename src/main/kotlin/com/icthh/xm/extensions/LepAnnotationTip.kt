@@ -111,17 +111,22 @@ class LepAnnotationTip : LocalInspectionTool() {
             ApplicationManager.getApplication().runWriteAction {
                 val data = fileListDialog.data
                 logger.info(">> ${data}")
-
-                val lepPath = buildLepPath(group, data, project, selected)
+                val tenant = data.tenant.ifNullOrBlank(selected.selectedTenants.find { true } ?: "XM")
+                val lepPath = buildLepPath(group, tenant, project)
                 val lepKey = data.lepKey?.let{ translateToLepConvention(it) }
                 val fileName = buildFileName(context, lepKey)
-                createFile("${basePath}/config/tenants/", lepPath, fileName, project, lepBody(list, lepPath))
+                createFile("${basePath}/config/tenants/",
+                    lepPath,
+                    fileName,
+                    project,
+                    lepBody(list, lepPath, tenant)
+                )
             }
         }
 
     }
 
-    private fun lepBody(list: PsiAnnotationParameterList, lepPath: String): String {
+    private fun lepBody(list: PsiAnnotationParameterList, lepPath: String, tenant: String): String {
         val imports = HashSet<String>()
 
         val context: PsiAnnotation = list.context as PsiAnnotation
@@ -167,9 +172,8 @@ class LepAnnotationTip : LocalInspectionTool() {
         return fileName
     }
 
-    private fun buildLepPath(group: String?, data: LepDialogState, project: Project, settings: EnvironmentSettings): String {
+    private fun buildLepPath(group: String?, tenant: String, project: Project): String {
         val groupName = group?.replace(".", "/")
-        val tenant = data.tenant.ifNullOrBlank(settings.selectedTenants.find { true } ?: "XM")
         var lepPath = "${tenant}/${project.getApplicationName()}/lep/"
         if (!groupName.isNullOrBlank()) {
             lepPath = lepPath + "${groupName}/"

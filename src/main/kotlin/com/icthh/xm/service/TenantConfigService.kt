@@ -162,6 +162,11 @@ class TenantConfigService {
                         val uniqueClassName = super.getUniqueClassName(nodeName, node, _package)
                         return uniqueClassName + TENANT_CONFIG_AUTO_GENERATE_CLASS_NAME
                     }
+
+                    override fun capitalizeTrailingWords(name: String): String {
+                        val value = super.capitalizeTrailingWords(name)
+                        return value.ifEmpty { "_${counter.incrementAndGet()}" }
+                    }
                 }
             }
         }
