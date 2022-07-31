@@ -6,14 +6,20 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.icthh.xm.actions.settings.EnvironmentSettings
 import com.icthh.xm.actions.shared.showNotification
-import com.icthh.xm.utils.log
-import com.icthh.xm.utils.readTextAndClose
 import com.icthh.xm.utils.templateOrEmpty
 import com.intellij.notification.NotificationType.ERROR
 import com.intellij.openapi.project.Project
+import httpGetResponse
+import httpGetString
+import okhttp3.FormBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.internal.EMPTY_REQUEST
 import org.apache.http.HttpHeaders.AUTHORIZATION
 import org.apache.http.HttpHeaders.CONTENT_TYPE
-import org.apache.http.client.fluent.Request.*
 import org.apache.http.client.methods.RequestBuilder
 import org.apache.http.entity.ContentType.*
 import org.apache.http.entity.StringEntity
@@ -42,22 +48,18 @@ class ExternalConfigService {
         val baseUrl = env.xmUrl
         val accessToken = getToken(env)
         val url = baseUrl + "/config/api/config/tenants${path}?${version.templateOrEmpty{"version=${it}"}}"
-        val response = Get(url)
-            .addHeader(AUTHORIZATION, "bearer $accessToken")
-            .execute()
+        url.httpGetResponse(mapOf(AUTHORIZATION to "Bearer $accessToken")).use {response ->
 
-        return response.handleResponse {
-            val returnResponse = response.returnResponse()
-            if (returnResponse.statusLine.statusCode == 404) {
-                return@handleResponse null
+            if (response.code == 404) {
+                return null
             }
-            if (returnResponse.statusLine.statusCode != 200) {
+            if (response.code != 200) {
                 project.showNotification("Get configuration", "Error get configurations", ERROR) {
-                    "${returnResponse.statusLine.statusCode} ${returnResponse.statusLine.reasonPhrase} Url: $url"
+                    "${response.code} ${response.message} Url: $url"
                 }
-                throw RuntimeException(returnResponse.statusLine.reasonPhrase)
+                throw RuntimeException(response.message)
             }
-            returnResponse.entity.content.readTextAndClose()
+            return response.body?.byteString()?.utf8()
         }
     }
 
@@ -74,31 +76,41 @@ class ExternalConfigService {
 
     fun fetchToken(env: EnvironmentSettings): TokenResponse {
         val clientToken = "${env.clientId}:${env.clientPassword}".toByteArray()
-        val content = Post(env.xmUrl + "/uaa/oauth/token")
-            .bodyForm(
-                "grant_type" to "password",
-                "username" to env.xmSuperAdminLogin,
-                "password" to env.xmSuperAdminPassword
-            )
-            .addHeader(AUTHORIZATION, "Basic ${Base64.getEncoder().encodeToString(clientToken)}")
-            .addHeader(CONTENT_TYPE, APPLICATION_FORM_URLENCODED.toString()).execute().returnContent().asString()
-
-        return objectMapper.readValue<TokenResponse>(content)
+        val formBody: RequestBody = FormBody.Builder()
+            .addEncoded("grant_type", "password")
+            .addEncoded("username", env.xmSuperAdminLogin)
+            .addEncoded("password", env.xmSuperAdminPassword)
+            .build()
+        OkHttpClient().newCall(
+            Request.Builder()
+                .url(env.xmUrl + "/uaa/oauth/token")
+                .post(formBody)
+                .addHeader(AUTHORIZATION, "Basic ${Base64.getEncoder().encodeToString(clientToken)}")
+                .addHeader(CONTENT_TYPE, APPLICATION_FORM_URLENCODED.toString())
+                .build()
+        ).execute().use {
+            return objectMapper.readValue<TokenResponse>(it.body?.byteString()?.utf8() ?: "")
+        }
     }
 
-    infix fun String.to(value: String) = BasicNameValuePair(this, value)
+    infix fun String.to1(value: String) = BasicNameValuePair(this, value)
 
     fun refresh(env: EnvironmentSettings) {
-        Post(env.xmUrl + "/config/api/profile/refresh")
-            .addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
-            .execute().returnResponse()
+        OkHttpClient().newCall(
+            Request.Builder()
+                .url(env.xmUrl + "/config/api/profile/refresh")
+                .post(EMPTY_REQUEST)
+                .addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
+                .addHeader(CONTENT_TYPE, APPLICATION_JSON.toString())
+                .build()
+        ).execute().use {
+            it.body?.byteString()?.utf8()
+        }
     }
 
     fun getCurrentVersion(env: EnvironmentSettings): String {
         val accessToken = getToken(env)
-        return Get(env.xmUrl + "/config/api/version")
-            .addHeader(AUTHORIZATION, "bearer $accessToken")
-            .execute().returnContent().asString()
+        return (env.xmUrl + "/config/api/version").httpGetString(mapOf(AUTHORIZATION to "bearer $accessToken")) ?: "-"
     }
 
     fun updateInMemory(project: Project, env: EnvironmentSettings, files: Map<String, InputStream?>) {
@@ -151,17 +163,24 @@ class ExternalConfigService {
     fun updateFileInMemory(project: Project, env: EnvironmentSettings, path: String, content: String) {
         val baseUrl = env.xmUrl
 
-        val response = Put(baseUrl + "/config/api/inmemory${path}")
-            .addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
-            .bodyString(content, TEXT_PLAIN)
-            .execute().returnResponse()
+        val body: RequestBody = content.toRequestBody(
+            TEXT_PLAIN.toString().toMediaTypeOrNull()
+        )
 
-        if (response.statusLine.statusCode != 200) {
-            project.showNotification("Refresh", "Error update configurations", ERROR) {
-                "${response.statusLine.statusCode} ${response.statusLine.reasonPhrase}"
+        val request: Request = Request.Builder()
+            .url(baseUrl + "/config/api/inmemory${path}")
+            .addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
+            .post(body)
+            .build()
+        OkHttpClient().newCall(request).execute().use {  response ->
+            if (response.code != 200) {
+                project.showNotification("Refresh", "Error update configurations", ERROR) {
+                    "${response.code} ${response.message}"
+                }
+                throw RuntimeException("Error update configuration")
             }
-            throw RuntimeException("Error update configuration")
         }
+
     }
 }
 

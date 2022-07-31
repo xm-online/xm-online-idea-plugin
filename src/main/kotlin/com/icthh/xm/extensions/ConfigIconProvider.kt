@@ -10,9 +10,10 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.util.PlatformIcons
+import httpGet
 import net.sf.image4j.codec.ico.ICODecoder
-import org.apache.commons.imaging.Imaging
-import org.apache.http.client.fluent.Request.Get
+import okhttp3.OkHttpClient
+import org.apache.tools.ant.taskdefs.Get
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -96,9 +97,8 @@ class ConfigIconProvider: IconProvider() {
         imagesCache: MutableMap<String, Icon>
     ) {
         try {
-            val stream = Get(data).execute()?.returnContent()?.asStream()
-            stream ?: return
-            val imageContent = stream.readBytes()
+            val imageContent = data.httpGet()
+            imageContent ?: return
             val image = ImageIO.read(ByteArrayInputStream(imageContent))
             val icon = if (image == null) {
                 val icons = ICODecoder.read(ByteArrayInputStream(imageContent))
