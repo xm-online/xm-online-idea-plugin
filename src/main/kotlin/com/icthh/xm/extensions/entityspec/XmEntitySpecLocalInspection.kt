@@ -39,9 +39,6 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.ArrayList
 import kotlin.reflect.KProperty1
-import com.intellij.codeInspection.InspectionManager
-
-
 
 
 const val TWO_DOLLARS = "${"$"}${"$"}"
@@ -61,6 +58,12 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
             )
             moveToSeparateFileTip(element, holder)
             checkEntityKeyDuplication(element, holder)
+        }
+        addLocalInspection(entitySpecField("key", block = "definitions")) { element, holder ->
+            checkDefinitionsKeyDuplication(element, holder)
+        }
+        addLocalInspection(entitySpecField("key", block = "forms")) { element, holder ->
+            checkFormsKeyDuplication(element, holder)
         }
         addLocalInspection(entitySectionPlace("functions", "key")) { element, holder ->
             functionKeyCheck(element, holder)
@@ -376,6 +379,30 @@ class XmEntitySpecLocalInspection: AbstractXmEntitySpecLocalInspection() {
         val count = entityKeys.groupingBy { it }.eachCount().get(entityKey) ?: 0
         if (count > 1) {
             holder.registerProblem(element, "Duplicate entity key ${entityKey}", ERROR)
+        }
+    }
+
+    private fun checkDefinitionsKeyDuplication(
+        element: LeafPsiElement,
+        holder: ProblemsHolder
+    ) {
+        val entityKey = element.text.trim()
+        val entityKeys = getAllDefinitionsKeys(element)
+        val count = entityKeys.groupingBy { it }.eachCount().get(entityKey) ?: 0
+        if (count > 1) {
+            holder.registerProblem(element, "Duplicate definition key ${entityKey}", ERROR)
+        }
+    }
+
+    private fun checkFormsKeyDuplication(
+        element: LeafPsiElement,
+        holder: ProblemsHolder
+    ) {
+        val entityKey = element.text.trim()
+        val entityKeys = getAllFormsKeys(element)
+        val count = entityKeys.groupingBy { it }.eachCount().get(entityKey) ?: 0
+        if (count > 1) {
+            holder.registerProblem(element, "Duplicate form key ${entityKey}", ERROR)
         }
     }
 

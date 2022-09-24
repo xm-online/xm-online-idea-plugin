@@ -44,6 +44,9 @@
         <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
                                 order="first"
         />
+        <completion.contributor language="JSON" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
+                                order="first"
+        />
         <json.catalog.exclusion implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecSchemaExclusion" />
 
         <multiHostInjector implementation="com.icthh.xm.extensions.entityspec.InputFromSpecJsonLanguageInjector" />

@@ -21,7 +21,7 @@ inline fun <reified T: PsiElement> psiElement(
     innerPattern: PsiDsl<T>.() -> Unit = { PsiDsl(psiElement(T::class.java)) }
 ): Capture<out T> {
     val capture = psiElement(T::class.java)
-    val platformPatternsDsl = PsiDsl(capture)
+    val platformPatternsDsl = PsiDsl(capture) as PsiDsl<T>
     innerPattern.invoke(platformPatternsDsl)
     return platformPatternsDsl.toResult()
 }

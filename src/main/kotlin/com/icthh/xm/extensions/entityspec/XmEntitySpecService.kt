@@ -4,7 +4,7 @@ import com.icthh.xm.extensions.entityspec.XmEntitySpecInfo.Companion.NULL_OBJECT
 import com.icthh.xm.service.getTenantName
 import com.icthh.xm.service.toPsiFile
 import com.icthh.xm.utils.*
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.injected.editor.VirtualFileWindow
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
@@ -24,7 +24,6 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.ArrayList
 import kotlin.collections.HashSet
-import kotlin.reflect.KProperty1
 
 val IS_ENTITY_SPEC: Key<Boolean> = Key.create("IS_ENTITY_SPEC")
 val ORIGINAL_FILE: Key<PsiFile> = Key.create("ORIGINAL_FILE")
@@ -59,10 +58,22 @@ fun PsiFile?.isEntitySpecification(): Boolean {
         if (isEntitySpecDir && isYamlFile) {
             return@computeIfAbsent true
         }
-        val isEntityDir = this.containingDirectory?.name?.equals("entity") ?: return@computeIfAbsent false
+
+        val file = this.containerFile()
+        val isEntityDir = file.containingDirectory?.name?.equals("entity") ?: return@computeIfAbsent false
         val isEntitySpecFile = "xmentityspec.yml".equals(name)
         return@computeIfAbsent isEntityDir && isEntitySpecFile
     }
+}
+
+fun PsiFile.containerFile(): PsiFile {
+    val virtualFile = this.virtualFile
+    val file = if (virtualFile is VirtualFileWindow) {
+        virtualFile.delegate.toPsiFile(this.project)?.originalFile!!
+    } else {
+        this
+    }
+    return file
 }
 
 fun PsiElement?.isEntitySpecification(): Boolean = this?.let {
@@ -168,12 +179,13 @@ fun calendarEventScalarFieldPlace(
 
 fun entitySectionPlace(
     featureKey: String,
-    attributeName: String
+    attributeName: String,
+    block: String = "types"
 ) = psiElement<PsiElement> {
     withPsiParent<YAMLScalar> {
         withPsiParent<YAMLKeyValue>(attributeName) {
             toKeyValue(featureKey) {
-                toKeyValue("types")
+                toKeyValue(block)
             }
         }
     }
@@ -182,35 +194,70 @@ fun entitySectionPlace(
 
 fun entityScalarSectionPlace(
     featureKey: String,
-    attributeName: String
+    attributeName: String,
+    block: String = "types"
 ) = psiElement<YAMLScalar> {
     withPsiParent<YAMLKeyValue>(attributeName) {
         toKeyValue(featureKey) {
-            toKeyValue("types")
+            toKeyValue(block)
         }
     }
     entitySpec()
 }
 
 fun entitySpecField(
-    fieldName: String
+    fieldName: String,
+    block: String = "types"
 ) = psiElement<PsiElement> {
     withPsiParent<YAMLScalar> {
         withPsiParent<YAMLKeyValue>(fieldName) {
-            toKeyValue("types")
+            toKeyValue(block)
         }
+    }
+}
+
+fun entitySpecScalarField(
+    fieldName: String,
+    block: String = "types"
+) = psiElement<YAMLScalar> {
+    withPsiParent<YAMLKeyValue>(fieldName) {
+        toKeyValue(block)
     }
 }
 
 
 fun getAllEntitiesKeys(project: Project,
                        originalFile: PsiFile): List<String> {
-    return project.xmEntitySpecService.getEntitiesKeys(originalFile).map { it.valueText }
+    return project.xmEntitySpecService.getEntitiesKeys(originalFile.containerFile()).map { it.valueText }
 }
+
+fun getAllDefinitionsKeys(project: Project,
+                       originalFile: PsiFile): List<String> {
+    return getAllDefinitionsKeyPsi(project, originalFile).map { it.valueText }
+}
+
+fun getAllDefinitionsKeyPsi(
+    project: Project,
+    originalFile: PsiFile
+) = project.xmEntitySpecService.getDefinitionsKeys(originalFile.containerFile())
+
+fun getAllFormsKeys(project: Project,
+                    originalFile: PsiFile): List<String> {
+    return getAllFormsKeyPsi(project, originalFile).map { it.valueText }
+}
+
+fun getAllFormsKeyPsi(
+    project: Project,
+    originalFile: PsiFile
+) = project.xmEntitySpecService.getFormsKeys(originalFile.containerFile())
 
 fun getEntityKeys(element: PsiElement) = element.project.xmEntitySpecService.getEntitiesKeys(element.originalFile)
 
 fun getAllEntityKeys(element: PsiElement) = getAllEntitiesKeys(element.project, element.originalFile)
+
+fun getAllDefinitionsKeys(element: PsiElement) = getAllDefinitionsKeys(element.project, element.originalFile)
+
+fun getAllFormsKeys(element: PsiElement) = getAllFormsKeys(element.project, element.originalFile)
 
 fun YAMLSequenceItem.getStateKeys(): List<String> {
     val stateKeys = stateKeysPsi().map { it.valueText }
@@ -290,6 +337,20 @@ class XmEntitySpecService(val project: Project) {
         return result.keys
     }
 
+    fun getDefinitionsKeys(
+        originalFile: PsiFile
+    ): List<YAMLKeyValue> {
+        val result = getEntitySpec(originalFile)
+        return result.definitionKeys
+    }
+
+    fun getFormsKeys(
+        originalFile: PsiFile
+    ): List<YAMLKeyValue> {
+        val result = getEntitySpec(originalFile)
+        return result.formKeys
+    }
+
     fun getEntitySpec(originalFile: PsiFile): XmEntitySpecInfo {
         start("getEntitiesSpec")
         val tenant = originalFile.getTenantName(project)
@@ -361,7 +422,10 @@ class XmEntitySpecService(val project: Project) {
         try {
             return XmEntitySpecInfo(
                 getTenantName(this.project),
-                getFileXmEntityKeys(),
+                getFileKeys("types"),
+                getFileKeys("definitions"),
+                getFileKeys("forms"),
+
                 getAllKeys("functions", "key"),
                 getAllFunctionKeysWithEntityId(),
                 getAllEventsKeys(),
@@ -379,12 +443,14 @@ class XmEntitySpecService(val project: Project) {
         }
     }
 
-    private fun PsiFile.getFileXmEntityKeys(): List<YAMLKeyValue> {
+    private fun PsiFile.getFileKeys(block: String): List<YAMLKeyValue> {
         val file = originalFile
         file.virtualFile.refresh(true, false)
         project.logger.info("\n\n\n UPDATE ${file.name} cache \n\n\n")
         return runReadAction {
-            file.getEntityDeclarations().getKeys()
+            val keys = file.getEntityDeclarations(block).getKeys()
+            logger.info("KEYS_LIST ${block} -> ${keys.map { it.valueText }}")
+            keys
         }
     }
 
@@ -397,10 +463,10 @@ class XmEntitySpecService(val project: Project) {
         return psiFile?.toXmEntitySpecInfo() ?: NULL_OBJECT
     }
 
-    private fun PsiFile.getEntityDeclarations(): YAMLSequence? = this
+    private fun PsiFile.getEntityDeclarations(block: String): YAMLSequence? = this
         .getChildOfType<YAMLDocument>()
         .getChildOfType<YAMLMapping>()
-        .getChildOfType<YAMLKeyValue>()
+        .getChildrenOfType<YAMLKeyValue>().find { it.keyTextMatches(block) }
         .getChildOfType<YAMLSequence>()
 
 
@@ -408,7 +474,7 @@ class XmEntitySpecService(val project: Project) {
         sectionName: String,
         fieldName: String
     ): List<YAMLKeyValue> {
-        return getEntityDeclarations().mapToFields(sectionName)
+        return getEntityDeclarations("types").mapToFields(sectionName)
             .map{ it.getChildOfType<YAMLSequence>().mapToFields(fieldName) }.flatten()
     }
 
@@ -420,7 +486,7 @@ class XmEntitySpecService(val project: Project) {
     }
 
     private fun PsiFile.getAllFunctionKeysWithEntityId(): Set<String> {
-        return getEntityDeclarations().mapToFields("functions")
+        return getEntityDeclarations("types").mapToFields("functions")
             .map{
                 it.findChildrenOfType<YAMLMapping>().map{
                     if (it.getKeyValueByKey("withEntityId")?.valueText.toBoolean()) {
@@ -450,6 +516,10 @@ class XmEntitySpecService(val project: Project) {
 data class XmEntitySpecInfo(
     val tenantName: String,
     val keys: List<YAMLKeyValue>,
+
+    val definitionKeys: List<YAMLKeyValue>,
+    val formKeys: List<YAMLKeyValue>,
+
     val functionKeys: List<String>,
     val functionKeysWithEntityId: Set<String>,
     val eventsKeys: List<String>,
@@ -459,11 +529,12 @@ data class XmEntitySpecInfo(
     val locationsKeys: List<String>,
     val tagsKeys: List<String>,
     val commentsKeys: List<String>,
-    val ratingsKeys: List<String>
+    val ratingsKeys: List<String>,
 ) {
     companion object {
-        val NULL_OBJECT = XmEntitySpecInfo("NULL", emptyList(), emptyList(), emptySet(), emptyList(),
-            emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+        val NULL_OBJECT = XmEntitySpecInfo("NULL", emptyList(), emptyList(), emptyList(), emptyList(),
+            emptySet(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(),
+            emptyList())
     }
 
 }
@@ -471,6 +542,10 @@ data class XmEntitySpecInfo(
 class XmEntitySpecInfoBuilder(
     val tenantName: String,
     val keys: MutableList<YAMLKeyValue> = ArrayList(),
+
+    val definitionKeys: MutableList<YAMLKeyValue> = ArrayList(),
+    val formKeys: MutableList<YAMLKeyValue> = ArrayList(),
+
     val functionKeys: MutableList<String> = ArrayList(),
     val functionKeysWithEntityId: MutableSet<String> = HashSet(),
     val eventsKeys: MutableList<String> = ArrayList(),
@@ -484,6 +559,9 @@ class XmEntitySpecInfoBuilder(
 ) {
     fun add(it: XmEntitySpecInfo) {
         keys.addAll(it.keys)
+        definitionKeys.addAll(it.definitionKeys)
+        formKeys.addAll(it.formKeys)
+
         functionKeys.addAll(it.functionKeys)
         functionKeysWithEntityId.addAll(it.functionKeysWithEntityId)
         eventsKeys.addAll(it.eventsKeys)
@@ -495,8 +573,9 @@ class XmEntitySpecInfoBuilder(
         commentsKeys.addAll(it.commentsKeys)
         ratingsKeys.addAll(it.ratingsKeys)
     }
-    fun toXmEntitySpecInfo() = XmEntitySpecInfo(tenantName, keys, functionKeys, functionKeysWithEntityId, eventsKeys, linksKeys, attachmentsKeys,
-        calendarsKeys, locationsKeys, tagsKeys, commentsKeys, ratingsKeys)
+    fun toXmEntitySpecInfo() = XmEntitySpecInfo(tenantName, keys, definitionKeys, formKeys, functionKeys,
+        functionKeysWithEntityId, eventsKeys, linksKeys, attachmentsKeys, calendarsKeys, locationsKeys, tagsKeys,
+        commentsKeys, ratingsKeys)
 }
 
 fun VirtualFile?.isEntitySpecification(): Boolean {

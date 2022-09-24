@@ -48,6 +48,9 @@
         "removeDefaultPermissions" : {
           "type" : "boolean"
         },
+        "maxPasswordAttempts" : {
+          "type" : "integer"
+        },
         "idp" : {
           "type" : "object",
           "id" : "urn:jsonschema:com:icthh:xm:uaa:domain:properties:TenantProperties:Security:Idp",

@@ -138,6 +138,9 @@
                 "dynamicPrivilegeKey" : {
                   "type" : "string"
                 },
+                "path" : {
+                  "type" : "string"
+                },
                 "saveFunctionContext" : {
                   "type" : "boolean"
                 },
@@ -186,6 +189,13 @@
                 },
                 "size" : {
                   "type" : "string"
+                },
+                "storeType" : {
+                  "type" : "string",
+                  "enum" : [ "DB", "S3" ]
+                },
+                "expireLinkTimeInMillis" : {
+                  "type" : "integer"
                 }
               }
             }
@@ -414,6 +424,9 @@
           "dataFormInheritance" : {
             "type" : "boolean"
           },
+          "disablePersistentReferenceProcessingOnSave" : {
+            "type" : "boolean"
+          },
           "indexAfterSaveEnabled" : {
             "type" : "boolean"
           },
@@ -444,6 +457,44 @@
             "items" : {
               "type" : "string"
             }
+          }
+        }
+      }
+    },
+    "definitions" : {
+      "type" : "array",
+      "items" : {
+        "type" : "object",
+        "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:DefinitionSpec",
+        "additionalProperties" : false,
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "ref" : {
+            "type" : "string"
+          },
+          "value" : {
+            "type" : "string"
+          }
+        }
+      }
+    },
+    "forms" : {
+      "type" : "array",
+      "items" : {
+        "type" : "object",
+        "id" : "urn:jsonschema:com:icthh:xm:ms:entity:domain:spec:FormSpec",
+        "additionalProperties" : false,
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "ref" : {
+            "type" : "string"
+          },
+          "value" : {
+            "type" : "string"
           }
         }
       }

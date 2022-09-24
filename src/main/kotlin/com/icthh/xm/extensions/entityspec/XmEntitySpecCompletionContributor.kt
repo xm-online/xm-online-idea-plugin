@@ -4,25 +4,65 @@ import com.icthh.xm.extensions.entityspec.IconProvider.iconsSet
 import com.icthh.xm.utils.*
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
-import com.intellij.codeInsight.completion.CompletionProvider
 import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.completion.CompletionType.BASIC
+import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
+import com.intellij.json.psi.JsonProperty
+import com.intellij.json.psi.JsonReferenceExpression
+import com.intellij.json.psi.JsonStringLiteral
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.patterns.PlatformPatterns.psiElement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import com.intellij.util.ProcessingContext
+import com.intellij.psi.util.contextOfType
+import com.intellij.psi.util.parentOfType
 import com.jetbrains.jsonSchema.impl.JsonCachedValues
 import com.jetbrains.jsonSchema.impl.JsonSchemaCompletionContributor
 import com.jetbrains.jsonSchema.impl.JsonSchemaObject
-import org.jetbrains.yaml.psi.*
+import org.jetbrains.yaml.psi.YAMLKeyValue
+import org.jetbrains.yaml.psi.YAMLScalar
+import org.jetbrains.yaml.psi.YAMLSequence
+import org.jetbrains.yaml.psi.YAMLSequenceItem
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.io.path.absolutePathString
+import kotlin.streams.toList
 
 class XmEntitySpecCompletionContributor() : CompletionContributor() {
 
     val jsonSchema = AtomicReference<JsonSchemaObject>()
     init {
+
+        extendWithStop(BASIC,
+            psiElement(PsiElement::class.java).withParent(
+                psiElement(JsonStringLiteral::class.java).withParent(
+                    psiElement(JsonProperty::class.java).withName("\$ref")
+                )
+            )
+        ) {
+            refVariants(it).map { LookupElementBuilder.create(it) }
+        }
+
+        extendWithStop(BASIC,
+            psiElement(PsiElement::class.java).withParent(
+                psiElement(JsonReferenceExpression::class.java).withParent(
+                    psiElement(JsonProperty::class.java).withName("\$ref")
+                )
+            )
+        ) {
+            refVariants(it).map { "\"${it}\"" }.map { LookupElementBuilder.create(it) }
+        }
+
+        extendWithStop(BASIC, entitySpecField("ref", "definitions")) {
+            fileVariants(it, "definitions")
+        }
+
+        extendWithStop(BASIC, entitySpecField("ref", "forms")) {
+            fileVariants(it, "forms")
+        }
 
         extendWithStop(BASIC, psiElement<PsiElement> {
             withPsiParent<YAMLScalar> {
@@ -31,7 +71,7 @@ class XmEntitySpecCompletionContributor() : CompletionContributor() {
             entitySpec()
         }) { icons(it) }
 
-        entityFeatureAttribute("links", "typeKey") { it: CompletionParameters ->
+        entityFeatureAttribute("links", "typeKey") {
             getAllEntitiesKeys(it.position.project, it.originalFile).map { LookupElementBuilder.create(it) }
         }
 
@@ -51,6 +91,30 @@ class XmEntitySpecCompletionContributor() : CompletionContributor() {
         }
 
         nextStateKey()
+    }
+
+    private fun refVariants(it: CompletionParameters): List<String> {
+        val datas = setOf("dataSpec", "inputSpec", "contextDataSpec")
+        val forms = setOf("dataForm", "inputForm", "contextDataForm")
+        val fieldName = it.position.contextOfType(YAMLKeyValue::class)
+        val block = fieldName?.parentOfType<YAMLKeyValue>()
+        if (forms.contains(fieldName?.keyText) || block.keyTextMatches("forms")) {
+            return getAllFormsKeys(it.position).map { "#/xmEntityForm/${it}" }
+        }
+        if (datas.contains(fieldName?.keyText) || block.keyTextMatches("definitions")) {
+            return getAllDefinitionsKeys(it.position).map { "#/xmEntityDefinition/${it}" }
+        }
+        return listOf()
+    }
+
+    private fun fileVariants(it: CompletionParameters, folder: String): List<LookupElementBuilder> {
+        val project = it.position.project
+        val tenantName = it.originalFile.getTenantName(project)
+        val path = "/config/tenants/${tenantName}/entity/xmentityspec/$folder"
+        val variants = Files.walk(Paths.get("${project.basePath}/$path")).filter(Files::isRegularFile).map {
+            "xmentityspec/$folder${it.absolutePathString().substringAfter(path)}"
+        }.filter { it.endsWith(".json") }.toList()
+        return variants.map { LookupElementBuilder.create(it) }
     }
 
     override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {

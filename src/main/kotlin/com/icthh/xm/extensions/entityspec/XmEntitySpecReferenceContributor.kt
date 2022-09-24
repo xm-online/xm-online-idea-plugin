@@ -2,12 +2,21 @@ package com.icthh.xm.extensions.entityspec
 
 import com.icthh.xm.service.toPsiFile
 import com.icthh.xm.utils.*
+import com.intellij.json.psi.JsonProperty
+import com.intellij.json.psi.JsonStringLiteral
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.patterns.PlatformPatterns
+import com.intellij.patterns.PlatformPatterns.psiElement
 import com.intellij.psi.*
 import com.intellij.psi.PsiReference.EMPTY_ARRAY
+import com.intellij.psi.util.contextOfType
+import com.intellij.psi.util.parentOfType
+import okio.Path.Companion.toPath
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLScalar
 import org.jetbrains.yaml.psi.YAMLSequence
 import org.jetbrains.yaml.psi.YAMLSequenceItem
+import java.nio.file.Path
 
 
 class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
@@ -37,6 +46,55 @@ class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
             element.withCache {
                 entityTypeKeyReferences(element)
             }
+        }
+
+        registrar.registerProvider(entitySpecScalarField("ref", "definitions")) {element, _ ->
+            createReference(element)
+        }
+
+        registrar.registerProvider(entitySpecScalarField("ref", "forms")) {element, _ ->
+            createReference(element)
+        }
+
+        registrar.registerProvider(
+            psiElement(JsonStringLiteral::class.java).withParent(
+                psiElement(JsonProperty::class.java).withName("\$ref")
+            )
+        ) { element, _ ->
+            refReferences(element)
+        }
+    }
+
+    private fun refReferences(element: PsiElement): Array<PsiReference> {
+        val formRefPrefix = "#/xmEntityForm/"
+        val definitionRefPrefix = "#/xmEntityDefinition/"
+        val value = (element.parent as JsonProperty).value
+        val reference = value?.text?.trim('"') ?: ""
+        if (reference.startsWith(definitionRefPrefix)) {
+            val key = reference.substringAfter(definitionRefPrefix)
+            val target = getAllDefinitionsKeyPsi(element.project, element.originalFile).find { it.valueText == key }
+            if (target != null && value != null) {
+                return arrayOf(toPsiReference(element, target))
+            }
+        }
+        if (reference.startsWith(formRefPrefix)) {
+            val key = reference.substringAfter(formRefPrefix)
+            val target = getAllFormsKeyPsi(element.project, element.originalFile).find { it.valueText == key }
+            if (target != null && value != null) {
+                return arrayOf(toPsiReference(element, target))
+            }
+        }
+
+        return emptyArray()
+    }
+
+    private fun createReference(element: PsiElement): Array<PsiReference> {
+        val path = Path.of(element.getRootFolder() + "/" + element.firstChild.text.trim())
+        val virtualFile = VfsUtil.findFile(path, false)
+        return if (virtualFile != null) {
+            arrayOf(toPsiReference(element, virtualFile.toPsiFile(element.project)!!))
+        } else {
+            emptyArray()
         }
     }
 

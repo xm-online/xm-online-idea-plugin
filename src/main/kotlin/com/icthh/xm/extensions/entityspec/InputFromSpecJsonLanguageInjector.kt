@@ -51,7 +51,7 @@ class InputFromSpecJsonLanguageInjector : MultiHostInjector {
     }
 
     private fun isSpecs(element: YAMLKeyValue): Boolean {
-        val jsonFields = listOf("dataSpec", "dataForm", "inputSpec", "inputForm")
+        val jsonFields = listOf("dataSpec", "dataForm", "inputSpec", "inputForm", "contextDataSpec", "contextDataForm", "value")
         return jsonFields.firstOrNull { element.keyTextMatches(it) } != null
     }
 
