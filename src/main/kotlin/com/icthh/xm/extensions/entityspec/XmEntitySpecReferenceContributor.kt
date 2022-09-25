@@ -91,11 +91,13 @@ class XmEntitySpecReferenceContributor: PsiReferenceContributor() {
     private fun createReference(element: PsiElement): Array<PsiReference> {
         val path = Path.of(element.getRootFolder() + "/" + element.firstChild.text.trim())
         val virtualFile = VfsUtil.findFile(path, false)
-        return if (virtualFile != null) {
-            arrayOf(toPsiReference(element, virtualFile.toPsiFile(element.project)!!))
-        } else {
-            emptyArray()
+        if (virtualFile != null) {
+            val psiFile = virtualFile.toPsiFile(element.project)
+            if (psiFile != null) {
+                return arrayOf(toPsiReference(element, psiFile))
+            }
         }
+        return emptyArray()
     }
 
     private fun referenceToState(element: PsiElement): Array<PsiReference> {
