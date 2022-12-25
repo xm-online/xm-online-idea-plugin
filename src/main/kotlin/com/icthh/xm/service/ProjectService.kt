@@ -95,8 +95,10 @@ fun Project.updateEnv() {
     doAsync{
         doUpdateSymlinkToLep()
         try {
-            this.getTenants().forEach {
-                this.xmEntitySpecService.computeTenantEntityInfo(it)
+            ApplicationManager.getApplication().runReadAction {
+                this.getTenants().forEach {
+                    this.xmEntitySpecService.computeTenantEntityInfo(it)
+                }
             }
         } catch (e: Throwable) {
             log.error("Error {}", e)
@@ -225,9 +227,7 @@ fun Project.saveCurrentFileStates() {
     }
     settings.editedFiles = editedFiles
     ApplicationManager.getApplication().invokeLater {
-        ApplicationManager.getApplication().runWriteAction {
-            save()
-        }
+        save()
     }
 }
 
