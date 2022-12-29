@@ -72,10 +72,8 @@ class WebRoleManagementEditor(val currentProject: Project, val currentFile: Virt
                     lastWriteTime = System.currentTimeMillis()
                     logger.info("permission updated")
                     getApplication().invokeLater {
-                        getApplication().runWriteAction {
-                            lastWriteTime = System.currentTimeMillis()
-                            project.save()
-                        }
+                        lastWriteTime = System.currentTimeMillis()
+                        project.save()
                     }
                 }
             }

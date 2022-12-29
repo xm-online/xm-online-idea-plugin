@@ -95,9 +95,7 @@ class TrackChanges() : AnAction() {
                 }
             } finally {
                 getApplication().invokeLater {
-                    getApplication().runWriteAction {
-                        project.save()
-                    }
+                    project.save()
                 }
             }
         }

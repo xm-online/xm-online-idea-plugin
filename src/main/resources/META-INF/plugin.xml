@@ -121,6 +121,7 @@
             <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode" />
             <separator/>
             <action id="refreshCurrentFile" class="com.icthh.xm.actions.deploy.DeployCurrentFile" text="Update current file in memory"/>
+            <action id="generate" class="com.icthh.xm.actions.GenerateAction" text="Generate declarations" />
         </group>
 
         <group id="mainSettingsGroup" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup" popup="true" compact="false">
@@ -155,8 +156,6 @@
                 text="Settings" icon="PluginIcons.SETTINGS">
             <add-to-group group-id="MainToolBar" anchor="last"/>
         </action>
-
-
 
     </actions>
 </idea-plugin>

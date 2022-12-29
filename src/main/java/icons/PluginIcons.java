@@ -15,6 +15,7 @@ public interface PluginIcons {
   Icon WARNING = getIcon("/icons/warning.svg");
   Icon REFRESH = getIcon("/icons/refresh.svg");
   Icon SETTINGS = getIcon("/icons/settings.svg");
+  Icon GENERATE = getIcon("/icons/generate.svg");
 
   public static Icon getIcon(String path) {
     return IconLoader.getIcon(path, PluginIcons.class) /*, PluginIcons.class.getClassLoader())*/;

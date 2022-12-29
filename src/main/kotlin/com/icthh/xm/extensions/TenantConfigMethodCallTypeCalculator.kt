@@ -169,12 +169,15 @@ open class HideInternalFieldsCompletionContributor: CompletionContributor() {
         parameters: CompletionParameters,
         action: (TenantConfigService.FieldHolder) -> Unit
     ) {
+
         val reference = parameters.position.prevSibling?.prevSibling
-        if (reference !is GrReferenceExpression) {
+        val type = if (reference is GrReferenceExpression) {
+            getType(reference) ?: return
+        } else if (reference is GrMethodCall) {
+            getType(reference) ?: return
+        } else {
             return
         }
-
-        val type = getType(reference) ?: return
 
         if (!type.name.endsWith(TENANT_CONFIG_AUTO_GENERATE_CLASS_NAME).isTrue()) {
             return
@@ -189,11 +192,20 @@ open class HideInternalFieldsCompletionContributor: CompletionContributor() {
         fields.forEach(action)
     }
 
+    private fun getType(methodCall: GrMethodCall): PsiClassType? {
+        return methodCall.nominalType as? PsiClassType
+    }
+
     private fun getType(reference: GrReferenceExpression): PsiClassType? {
         val referenceDescriptor = reference.createDescriptor() as? ResolvedVariableDescriptor
         val type = referenceDescriptor?.variable?.typeGroovy
         if (type is PsiClassType) {
             return type
+        }
+
+        val elementType = (reference.element as? GrReferenceExpressionImpl)?.type
+        if (elementType is PsiClassType) {
+            return elementType
         }
 
         val field = reference.resolve() as? PsiField

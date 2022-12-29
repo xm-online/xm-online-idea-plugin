@@ -66,10 +66,8 @@ class WebRoleMatrixEditor(val currentProject: Project, val currentFile: VirtualF
                     lastWriteTime = System.currentTimeMillis()
                     log.info("permission updated")
                     getApplication().invokeLater {
-                        getApplication().runWriteAction {
-                            lastWriteTime = System.currentTimeMillis()
-                            project.save()
-                        }
+                        lastWriteTime = System.currentTimeMillis()
+                        project.save()
                     }
                 }
             }
