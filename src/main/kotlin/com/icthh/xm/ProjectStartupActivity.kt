@@ -9,7 +9,9 @@ import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.log
 import com.icthh.xm.utils.logger
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.project.Project
+//import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.startup.StartupActivity
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener

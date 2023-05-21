@@ -105,15 +105,10 @@
                         implementationClass="com.icthh.xm.extensions.LepContextTypeCalculator" />
     </extensions>
 
-    <application-components>
-        <component>
-            <implementation-class>com.icthh.xm.ConfigurationApp</implementation-class>
-        </component>
-    </application-components>
-
     <project-components>
         <component>
-            <implementation-class>com.icthh.xm.ConfigurationProjectApp</implementation-class>
+            <implementation-class>com.icthh.xm.MainPluginServiceImpl</implementation-class>
+            <interface-class>com.icthh.xm.MainPluginService</interface-class>
         </component>
     </project-components>
 

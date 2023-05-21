@@ -88,7 +88,7 @@ dependencies {
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.13.1")
 
     implementation("org.apache.commons:commons-lang3:3.11")
-    implementation("org.apache.commons:commons-text:1.8")
+    implementation("org.apache.commons:commons-text:1.10.0")
 
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
 
