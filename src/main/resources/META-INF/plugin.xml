@@ -67,7 +67,7 @@
 
         <colorProvider implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecElementColorProvider" />
         <codeInsight.lineMarkerProvider language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntityIconLineMarkerProvider" />
-        <psi.referenceContributor implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecReferenceContributor" />
+        <psi.referenceContributor language="yaml" implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecReferenceContributor" />
         <!-- end xmentityspec.yml -->
 
         <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.HideInternalFieldsCompletionContributor"
@@ -81,7 +81,9 @@
                          enabledByDefault="true"
                          level="INFO" implementationClass="com.icthh.xm.extensions.LepAnnotationTip" />
 
-        <psi.referenceContributor implementation="com.icthh.xm.extensions.HandlerReferenceContributor" />
+        <psi.referenceContributor language="yaml" implementation="com.icthh.xm.extensions.HandlerReferenceContributor" />
+
+        <iconMapper mappingFile="XmeIconMappings.json"/>
     </extensions>
 
     <extensions defaultExtensionNs="JavaScript">
@@ -121,11 +123,15 @@
             <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode" />
             <separator/>
             <action id="refreshCurrentFile" class="com.icthh.xm.actions.deploy.DeployCurrentFile" text="Update current file in memory"/>
+            <separator/>
+            <separator/>
+            <separator/>
             <action id="generate" class="com.icthh.xm.actions.GenerateAction" text="Generate declarations" />
         </group>
 
         <group id="mainSettingsGroup" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup" popup="true" compact="false">
             <add-to-group group-id="MainMenu" anchor="after" relative-to-action="HelpMenu" />
+            <action id="refreshChanges" class="com.icthh.xm.actions.deploy.RefreshChanges" text="Refresh configs" />
             <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSettingAction" text="Setting"/>
             <action id="linkToUpdate" class="com.icthh.xm.actions.settings.LinkToUpdate" text="Check Updates"/>
         </group>
@@ -138,24 +144,10 @@
                 text="Deploy" icon="PluginIcons.DEPLOY">
             <add-to-group group-id="MainToolBar" anchor="last"/>
         </action>
-        <action id="trackChanges" class="com.icthh.xm.actions.deploy.TrackChanges"
-                text="Track changes" icon="PluginIcons.TRACK_CHANGES">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
-        </action>
-        <action id="stopTrackChanges" class="com.icthh.xm.actions.deploy.StopTrackChanges"
-                text="Stop track changes" icon="PluginIcons.STOP_TRACK_CHANGES">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
-        </action>
-
-        <action id="refreshChanges" class="com.icthh.xm.actions.deploy.RefreshChanges"
-                text="Refresh configs" icon="PluginIcons.REFRESH">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
-        </action>
-
         <action id="settings" class="com.icthh.xm.actions.settings.MainSettingAction"
                 text="Settings" icon="PluginIcons.SETTINGS">
             <add-to-group group-id="MainToolBar" anchor="last"/>
         </action>
-
     </actions>
+
 </idea-plugin>

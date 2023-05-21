@@ -2,11 +2,13 @@ package com.icthh.xm.actions
 
 import com.icthh.xm.extensions.entityspec.getAllEntitiesKeys
 import com.icthh.xm.extensions.entityspec.getTenantName
+import com.icthh.xm.extensions.entityspec.isEntitySpecification
 import com.icthh.xm.extensions.entityspec.translateToLepConvention
 import com.icthh.xm.service.*
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -30,9 +32,8 @@ class GenerateAction : AnAction() {
             "    public static String ${translateToLepConvention(it)} = \"${it}\";\n";
         }.joinToString("")
 
-        val xmEntityDeclarationFile = "class EntityTypeKeys {\n${entitiesKeys}}\n"
-
         val tenantName = file.getTenantName(project)
+        val xmEntityDeclarationFile = "package ${tenantName}.entity.lep.commons.generated\n\n\nclass EntityTypeKeys {\n${entitiesKeys}}\n"
         val path = "${project.basePath}/config/tenants/${tenantName}/entity/lep/commons/generated"
 
         ApplicationManager.getApplication().runWriteAction {
@@ -52,6 +53,7 @@ class GenerateAction : AnAction() {
         anActionEvent.updateSupported() ?: return
         val project = anActionEvent.project
         val settings = project?.getSettings()?.selected()
-        anActionEvent.presentation.isEnabled = project != null && settings != null
+        val vFile = anActionEvent.getData(PlatformDataKeys.VIRTUAL_FILE)
+        anActionEvent.presentation.isEnabled = project != null && settings != null && vFile.isEntitySpecification()
     }
 }

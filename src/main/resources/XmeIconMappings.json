@@ -1,0 +1,11 @@
+{
+  "icons": {
+    "deploy.svg": "icons/deploy.svg",
+    "generate.svg": "icons/generate.svg",
+    "refresh.svg": "icons/refresh.svg",
+    "settings.svg": "icons/settings.svg",
+    "stop-track-changes.svg": "icons/stop-track-changes.svg",
+    "track-changes.svg": "icons/track-changes.svg",
+    "warning.svg": "icons/warning.svg"
+  }
+}

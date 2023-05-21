@@ -8,6 +8,7 @@ import com.icthh.xm.service.getTenants
 import com.icthh.xm.utils.isTrue
 import com.icthh.xm.utils.log
 import com.icthh.xm.utils.logger
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -28,7 +29,9 @@ class ProjectStartupActivity: StartupActivity {
                         && it.file.isEntitySpecification()
                     ) {
                         try {
-                            updateEntitySpec(it)
+                            ApplicationManager.getApplication().runReadAction {
+                                updateEntitySpec(it)
+                            }
                         } catch (e: Throwable) {
                             log.error("Error {}", e)
                             throw e
@@ -53,8 +56,10 @@ class ProjectStartupActivity: StartupActivity {
             }
         })
         try {
-            project.getTenants().forEach {
-                project.xmEntitySpecService.computeTenantEntityInfo(it)
+            ApplicationManager.getApplication().runReadAction {
+                project.getTenants().forEach {
+                    project.xmEntitySpecService.computeTenantEntityInfo(it)
+                }
             }
         } catch (e: Throwable) {
             log.error("Error {}", e)

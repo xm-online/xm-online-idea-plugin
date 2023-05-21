@@ -38,9 +38,9 @@ fun Project.showMessage(messageType: MessageType, htmlText: () -> String) {
 
         val statusBar = WindowManager.getInstance().getStatusBar(this)
 
-        var component = statusBar.component
+        //var component = statusBar.component
 
-        component = WindowManager.getInstance().getFrame(this)?.jMenuBar
+        val component = WindowManager.getInstance().getFrame(this)?.jMenuBar!!
 
         JBPopupFactory.getInstance()
             .createHtmlTextBalloonBuilder(htmlText.invoke(), messageType, null)
