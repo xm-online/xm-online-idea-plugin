@@ -40,6 +40,7 @@ public class ViewServer {
 
     public static void startServer() throws Exception {
         if (isInited.compareAndSet(false, true)) {
+            LOGGER.info("\n\n\nStart server for ui dialogs...\n\n\n");
 
             ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
 

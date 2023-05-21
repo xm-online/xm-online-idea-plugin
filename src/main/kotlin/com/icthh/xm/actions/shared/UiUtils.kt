@@ -13,6 +13,7 @@ import com.intellij.openapi.ui.popup.Balloon.Position.*
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.awt.RelativePoint.*
+import javax.swing.JComponent
 import javax.swing.event.HyperlinkEvent
 
 
