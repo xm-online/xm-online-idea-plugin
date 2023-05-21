@@ -131,7 +131,7 @@
 
         <group id="mainSettingsGroup" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup" popup="true" compact="false">
             <add-to-group group-id="MainMenu" anchor="after" relative-to-action="HelpMenu" />
-            <action id="refreshChanges" class="com.icthh.xm.actions.deploy.RefreshChanges" text="Refresh configs" />
+            <action id="refreshConfigs" class="com.icthh.xm.actions.deploy.RefreshConfigs" text="Refresh configuration" />
             <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSettingAction" text="Setting"/>
             <action id="linkToUpdate" class="com.icthh.xm.actions.settings.LinkToUpdate" text="Check Updates"/>
         </group>
