@@ -1,9 +1,12 @@
-import {Component, OnInit} from '@angular/core';
+import { Component } from '@angular/core';
 import { UUID } from "angular2-uuid";
 import { MatSelectionListChange } from "@angular/material/list";
 import { MessagePipeService } from "../message-pipe.service";
 import { Callback } from "../callback";
 import { ActivatedRoute } from "@angular/router";
+import { ENTER } from '@angular/cdk/keycodes';
+import { MatChipInputEvent } from '@angular/material/chips';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 
 @Component({
   selector: 'app-settings',
@@ -12,6 +15,7 @@ import { ActivatedRoute } from "@angular/router";
 })
 export class SettingsComponent extends Callback {
 
+  enter = ENTER;
   envs: EnvironmentSettings[] = [];
   environment: EnvironmentSettings;
 
@@ -19,10 +23,15 @@ export class SettingsComponent extends Callback {
   updateModes = [];
   branches = [];
   tenants: string[] = [];
+  features: Feature[] = [];
   isConfigProject = false;
   projectType = 'UNKNOWN'
+  filteredBranches = [];
+  filteredTenant: string[] = [];
+  filteredFeature: Feature[] = [];
 
   connectionResult = null;
+
 
   constructor(protected messagePipe: MessagePipeService, route: ActivatedRoute) {
     super(messagePipe, route);
@@ -51,6 +60,9 @@ export class SettingsComponent extends Callback {
     this.messagePipe.subscribe('setTenants', (res) => {
       console.info('setTenants', res);
       this.tenants = res.tenants;
+      this.features = res.features;
+      this.filterTenants()
+      this.filterFeatures();
     });
   }
 
@@ -73,6 +85,7 @@ export class SettingsComponent extends Callback {
     }
     this.isConfigProject = res.isConfigProject;
     this.projectType = res.projectType;
+    this.filterTenants()
   }
 
   addEnv() {
@@ -101,7 +114,6 @@ export class SettingsComponent extends Callback {
       clientId: 'webapp',
       clientPassword: 'webapp',
       updateMode: 'GIT_LOCAL_CHANGES',
-      branchName: 'HEAD',
       isConfigProject: this.isConfigProject,
       basePath: basePath
     };
@@ -126,6 +138,7 @@ export class SettingsComponent extends Callback {
   }
 
   onUpdate() {
+    this.envs.forEach(it => it.branchName = it.branchName || 'HEAD');
     this.connectionResult = null;
     this.messagePipe.post('envsUpdated', this.envs);
     this.refreshTenantsList();
@@ -147,6 +160,92 @@ export class SettingsComponent extends Callback {
       id: env.id
     });
   }
+
+  filterBranches(env: EnvironmentSettings, value: string) {
+    env.selectedTenants = env.selectedTenants || [];
+    this.filteredBranches = this.branches
+        .filter(it => !value || value === env.branchName || it.toLowerCase().includes(value.toLowerCase()))
+        .filter(it => env.selectedTenants.filter(tenant => it == tenant).length == 0);
+  }
+
+  removeTenant(environment: EnvironmentSettings, tenantInput: HTMLInputElement, tenant: string) {
+    environment.selectedTenants = environment.selectedTenants || [];
+    environment.selectedTenants = environment.selectedTenants.filter(it => it != tenant);
+    tenantInput.value = '';
+    this.filterTenants(tenantInput.value)
+    this.onUpdate();
+  }
+
+  addTenant(environment: EnvironmentSettings, tenantInput: HTMLInputElement, $event: MatChipInputEvent) {
+    const value = $event.value;
+    if ((value || '').trim() && !this.existsTenant(environment, value)) {
+      environment.selectedTenants = environment.selectedTenants || [];
+      environment.selectedTenants.push(value.trim());
+    }
+    tenantInput.value = '';
+    this.filterTenants(tenantInput.value)
+    this.onUpdate();
+  }
+
+  private existsTenant(environment: EnvironmentSettings, value: string) {
+    environment.selectedTenants = environment.selectedTenants || [];
+    return environment.selectedTenants.filter(it => it == value.trim()).length > 0;
+  }
+
+  private existsFeature(environment: EnvironmentSettings, value: Feature) {
+    environment.selectedFeatures = environment.selectedFeatures || [];
+    return environment.selectedFeatures.filter(it => it.name == value.name && it.version == value.version).length > 0;
+  }
+
+  selectedTenant(tenantInput: HTMLInputElement, $event: MatAutocompleteSelectedEvent) {
+    if (!this.existsTenant(this.environment, $event.option.viewValue)) {
+      this.environment.selectedTenants = this.environment.selectedTenants || [];
+      this.environment.selectedTenants.push($event.option.viewValue);
+    }
+    $event.option.deselect();
+    tenantInput.value = '';
+    this.filterTenants()
+    this.onUpdate();
+  }
+
+  filterTenants(value: string = '') {
+    this.tenants = this.tenants || [];
+    this.filteredTenant = value ? this.tenants.filter(it => it.toLowerCase().includes(value.toLowerCase()))
+            .filter(it => this.existsTenant(this.environment, it) == false)
+        : this.tenants?.filter(it => this.existsTenant(this.environment, it) == false) || [];
+  }
+
+  removeFeature(environment: EnvironmentSettings, featureInput: HTMLInputElement, feature: Feature) {
+    environment.selectedFeatures = environment.selectedFeatures || [];
+    environment.selectedFeatures = environment.selectedFeatures.filter(it => it != feature);
+    featureInput.value = '';
+    this.filterFeatures()
+    this.onUpdate();
+  }
+
+  filterFeatures(value: string = '') {
+    this.features = this.features || [];
+    this.filteredFeature = value ? this.features.filter(it => (`${it.name}/${it.version}`)
+            .toLowerCase()
+            .includes(value.toLowerCase() || ''))
+        .filter(it => this.existsFeature(this.environment, it) == false)
+        : this.features?.filter(it => this.existsFeature(this.environment, it) == false) || [];
+  }
+
+  selectedFeature(featureInput: HTMLInputElement, $event: MatAutocompleteSelectedEvent) {
+    this.environment.selectedFeatures = this.environment.selectedFeatures || [];
+    this.environment.selectedFeatures = this.environment.selectedFeatures.filter(it => it.name != $event.option.value.name);
+    this.environment.selectedFeatures.push($event.option.value);
+    featureInput.value = '';
+    $event.option.deselect();
+    this.filterFeatures();
+    this.onUpdate();
+  }
+}
+
+interface Feature {
+  name: string;
+  version: string;
 }
 
 interface EnvironmentSettings {
@@ -163,4 +262,5 @@ interface EnvironmentSettings {
   isConfigProject?: boolean;
   basePath?: string;
   selectedTenants?: string[];
+  selectedFeatures?: Feature[];
 }

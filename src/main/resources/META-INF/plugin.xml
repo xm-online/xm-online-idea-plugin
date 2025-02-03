@@ -1,161 +1,157 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.icthh.xm</id>
-    <name>Support Development Using XME.Digital</name>
-    <vendor email="serhii.senko@xm-online.com" url="https://www.xme.digital/">XME.digital</vendor>
-
-    <description><![CDATA[
-     This plugin add button for deploy and refresh LEP files to XM^online im memory without commit to GIT.
-     Add UI permission editor, and full support of entity specification.
-    ]]></description>
+    <id>com.icthh.xm.xmeplugin</id>
+    <!--suppress PluginXmlCapitalization become it`s brand name  -->
+    <name>XME.digital</name>
+    <vendor>sergeysenja1992</vendor>
+    <idea-version since-build="242"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.vcs</depends>
     <depends>org.intellij.intelliLang</depends>
-    <depends>Git4Idea</depends>
     <depends>org.intellij.groovy</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
 
-    <!--    <extensions defaultExtensionNs="org.intellij.intelliLang">-->
-    <!--        <injectionConfig config="javaInjections.xml"/>-->
-    <!--    </extensions>-->
+    <resource-bundle>messages.MessagesBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
 
-        <gotoFileContributor implementation="com.icthh.xm.extensions.LepChooseByNameContributor" />
+        <!-- start search lep files by typeKey (replace . to $ and - to _), and search tenant folders by domain -->
+        <gotoFileContributor implementation="com.icthh.xm.xmeplugin.extensions.LepChooseByNameContributor" />
 
-        <postStartupActivity implementation="com.icthh.xm.ProjectStartupActivity" />
+        <!-- xmentityspec start -->
+        <!-- Listen update xmentityspec and invalidate spec info in memory -->
+<!--        <projectActivity implementation="com.icthh.xm.xmeplugin.XmEntityFileChangeListener" />-->
 
-        <jcef.appRequiredArgumentsProvider implementation="com.icthh.xm.actions.GpuDisabler"/>
+        <!-- Add color icons to xmentityspec "color" fields, and allow to use color picker -->
+        <colorProvider implementation="com.icthh.xm.xmeplugin.extensions.xmentityspec.XmEntitySpecElementColorProvider" />
+        <!-- Add icon preview marker to xmentityspec icons fields -->
+        <codeInsight.lineMarkerProvider language="yaml" implementationClass="com.icthh.xm.xmeplugin.extensions.xmentityspec.XmEntityIconLineMarkerProvider" />
+        <!-- Inject json syntax highlight to dataSpec/dataFrom/inputSpec/inputForm etc -->
+        <multiHostInjector implementation="com.icthh.xm.xmeplugin.extensions.xmentityspec.InputFromSpecJsonLanguageInjector" />
+        <!-- xmentityspec end -->
 
-        <projectService serviceImplementation="com.icthh.xm.actions.settings.SettingService"/>
-        <projectService serviceImplementation="com.icthh.xm.service.ExternalConfigService"/>
-        <projectService serviceImplementation="com.icthh.xm.service.TenantConfigService"/>
+        <toolWindow factoryClass="com.icthh.xm.xmeplugin.toolWindow.MyToolWindowFactory" id="XmeToolWindow" anchor="right">
+        </toolWindow>
 
-        <iconProvider implementation="com.icthh.xm.extensions.ConfigIconProvider" order="first" />
-        <treeStructureProvider implementation="com.icthh.xm.extensions.TreeProvider" />
+        <!-- On project tree use logo or favicon as folder icon of tenant folder -->
+        <iconProvider implementation="com.icthh.xm.xmeplugin.extensions.ConfigIconProvider" order="first" />
+        <!-- On project tree on tenant folders show domain and parent tenant near folder(tenant) name -->
+        <treeStructureProvider implementation="com.icthh.xm.xmeplugin.extensions.TreeProvider" />
 
-        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleMatrixProvider" />
-        <fileEditorProvider implementation="com.icthh.xm.editors.permission.RoleManagementProvider" />
+        <notificationGroup id="XME.digital" displayType="BALLOON" isLogByDefault="true" />
 
-        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.CommonsCompletionContributor" />
+        <!-- lepContext.commons autocomplete when lep opened outside microservice context -->
+        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.xmeplugin.extensions.CommonsCompletionContributor" />
 
-        <!-- start xmentityspec.yml -->
-        <completion.contributor language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
-                                order="first"
-        />
-        <completion.contributor language="JSON" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecCompletionContributor"
-                                order="first"
-        />
-        <json.catalog.exclusion implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecSchemaExclusion" />
-
-        <multiHostInjector implementation="com.icthh.xm.extensions.entityspec.InputFromSpecJsonLanguageInjector" />
-
-        <localInspection language="yaml" bundle="messages.YAMLBundle"
-                         shortName="XmEntityValidation"
-                         key="inspections.schema.validation.name"
-                         groupKey="inspections.group.name"
-                         enabledByDefault="true"
-                         level="ERROR" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecLocalInspection" />
-        <localInspection language="yaml" bundle="messages.YAMLBundle"
-                         shortName="XmEntitySchemaValidation"
-                         key="inspections.schema.validation.name"
-                         groupKey="inspections.group.name"
-                         enabledByDefault="true"
-                         level="ERROR" implementationClass="com.icthh.xm.extensions.entityspec.XmEntitySpecSchemaInspection" />
-
-
-        <colorProvider implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecElementColorProvider" />
-        <codeInsight.lineMarkerProvider language="yaml" implementationClass="com.icthh.xm.extensions.entityspec.XmEntityIconLineMarkerProvider" />
-        <psi.referenceContributor implementation="com.icthh.xm.extensions.entityspec.XmEntitySpecReferenceContributor" />
-        <!-- end xmentityspec.yml -->
-
-        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.HideInternalFieldsCompletionContributor"
+        <!--
+        If we have in tenant-config.yml fields like "entity-function", to use it in groovy we need to wrap it to single quotes.
+        Next two contributor need to hide original entity-function fields without single quotes during completion.
+        But we need to keep it field visible (unhide) to support completion for subfields of this field.
+         -->
+        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.xmeplugin.extensions.HideInternalFieldsCompletionContributor"
                                 order="first"/>
-        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.extensions.UnhideInternalFieldsCompletionContributor"
+        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.xmeplugin.extensions.UnhideInternalFieldsCompletionContributor"
                                 order="last"/>
-        <localInspection language="JAVA" bundle="messages.XmEntitySpecification"
-                         shortName="CreateLepFile"
-                         key="inspections.create.lep"
+
+        <!-- Reference from scheduler typeKey to file handler -->
+        <psi.referenceContributor implementation="com.icthh.xm.xmeplugin.extensions.HandlerReferenceContributor"
+                                  language="yaml"/>
+
+
+        <!-- хз для чогось треба, але не пам'ятаю для чого -->
+        <json.catalog.exclusion implementation="com.icthh.xm.xmeplugin.extensions.xmentityspec.XmEntitySpecSchemaExclusion" />
+
+        <!-- xmentityspec inspections -->
+        <localInspection language="yaml" implementationClass="com.icthh.xm.xmeplugin.yaml.exts.YamlSpecLocalInspection"
+                         bundle="messages.MessagesBundle"
+                         shortName="XmEntitySpecValidation"
+                         key="inspections.entity.validation.name"
                          groupKey="inspections.group.name"
                          enabledByDefault="true"
-                         level="INFO" implementationClass="com.icthh.xm.extensions.LepAnnotationTip" />
+        />
 
-        <psi.referenceContributor implementation="com.icthh.xm.extensions.HandlerReferenceContributor" />
+        <!-- read xme-plugin.yml -->
+        <postStartupActivity implementation="com.icthh.xm.xmeplugin.yaml.ReadConfigFileStartupActivity"/>
+        <!-- listen files added/deleted/moved to keep actual file list for each spec-s -->
+        <vfs.asyncListener implementation="com.icthh.xm.xmeplugin.yaml.YamlAsyncFileListener"/>
+        <psi.referenceContributor implementation="com.icthh.xm.xmeplugin.yaml.exts.YamlReferenceContributor" language="yaml"/>
     </extensions>
-
-    <extensions defaultExtensionNs="JavaScript">
-        <JsonSchema.ProviderFactory implementation="com.icthh.xm.extensions.file.Metrics" />
-        <JsonSchema.ProviderFactory implementation="com.icthh.xm.extensions.file.Tasks" />
-        <JsonSchema.ProviderFactory implementation="com.icthh.xm.extensions.file.Uaa" />
-    </extensions>
-
-    <extensions defaultExtensionNs="org.intellij.groovy">
-        <membersContributor implementation="com.icthh.xm.extensions.LepContextNonCodeMembersContributor"/>
-        <membersContributor implementation="com.icthh.xm.extensions.CommonsNonCodeMembersContributor"/>
-        <membersContributor implementation="com.icthh.xm.extensions.InArgsNonCodeMembersContributor"/>
-        <membersContributor implementation="com.icthh.xm.extensions.TenantConfigWrongNameFields"/>
-        <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrMethodCall"
-                        implementationClass="com.icthh.xm.extensions.TenantConfigMethodCallTypeCalculator" />
-        <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrReferenceExpression"
-                        implementationClass="com.icthh.xm.extensions.TenantConfigPropertyTypeCalculator" />
-        <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrReferenceExpression"
-                        implementationClass="com.icthh.xm.extensions.LepContextTypeCalculator" />
-    </extensions>
-
-    <application-components>
-        <component>
-            <implementation-class>com.icthh.xm.ConfigurationApp</implementation-class>
-        </component>
-    </application-components>
-
-    <project-components>
-        <component>
-            <implementation-class>com.icthh.xm.ConfigurationProjectApp</implementation-class>
-        </component>
-    </project-components>
 
     <actions>
 
         <group id="editorPopupMenu">
             <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode" />
             <separator/>
-            <action id="refreshCurrentFile" class="com.icthh.xm.actions.deploy.DeployCurrentFile" text="Update current file in memory"/>
-            <action id="generate" class="com.icthh.xm.actions.GenerateAction" text="Generate declarations" />
+            <action id="refreshCurrentFile" class="com.icthh.xm.xmeplugin.actions.DeployCurrentFile" text="Update current file in memory"/>
+            <action id="generate" class="com.icthh.xm.xmeplugin.actions.GenerateAction" text="Generate entity typeKey constants" />
         </group>
 
-        <group id="mainSettingsGroup" text="XM^online" class="com.icthh.xm.actions.settings.XmMenuGroup" popup="true" compact="false">
-            <add-to-group group-id="MainMenu" anchor="after" relative-to-action="HelpMenu" />
-            <action id="mainSettings" class="com.icthh.xm.actions.settings.MainSettingAction" text="Setting"/>
-            <action id="linkToUpdate" class="com.icthh.xm.actions.settings.LinkToUpdate" text="Check Updates"/>
-        </group>
-
-        <action id="deployToEnvSelector" class="com.icthh.xm.actions.deploy.DeployEnvSelector"
-                text="Deploy envs">
-            <add-to-group group-id="MainToolBar" anchor="before" relative-to-action="deployToEnv"/>
+        <action id="deployToEnvSelectorOldUi" class="com.icthh.xm.xmeplugin.actions.DeployEnvSelector"
+                text="Deploy Envs">
+            <add-to-group group-id="NavBarToolBar" anchor="before" relative-to-action="MainSettingActionOldUiToolbar"/>
         </action>
-        <action id="deployToEnv" class="com.icthh.xm.actions.deploy.DeployToEnv"
-                text="Deploy" icon="PluginIcons.DEPLOY">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
+        <action
+                id="MainSettingActionOldUiToolbar"
+                class="com.icthh.xm.xmeplugin.actions.settings.MainSettingAction"
+                text="Settings"
+                icon="icons/settings.svg">
+            <add-to-group group-id="NavBarToolBar" anchor="first">
+            </add-to-group>
         </action>
-        <action id="trackChanges" class="com.icthh.xm.actions.deploy.TrackChanges"
-                text="Track changes" icon="PluginIcons.TRACK_CHANGES">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
+        <action id="deployToEnvOldUi" class="com.icthh.xm.xmeplugin.actions.DeployToEnv"
+                text="Deploy Envs"
+                icon="icons/deploy.svg"
+        >
+            <add-to-group group-id="NavBarToolBar" anchor="after" relative-to-action="MainSettingActionOldUiToolbar"/>
         </action>
-        <action id="stopTrackChanges" class="com.icthh.xm.actions.deploy.StopTrackChanges"
-                text="Stop track changes" icon="PluginIcons.STOP_TRACK_CHANGES">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
+        <!-- -->
+        <action id="deployToEnvSelectorNewUi" class="com.icthh.xm.xmeplugin.actions.DeployEnvSelector"
+                text="Deploy Envs">
+            <add-to-group group-id="MainToolbarLeft" anchor="before" relative-to-action="MainSettingActionNewUiToolbar"/>
         </action>
-
-        <action id="refreshChanges" class="com.icthh.xm.actions.deploy.RefreshChanges"
-                text="Refresh configs" icon="PluginIcons.REFRESH">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
+        <action
+                id="MainSettingActionNewUiToolbar"
+                class="com.icthh.xm.xmeplugin.actions.settings.MainSettingAction"
+                text="Settings"
+                icon="icons/settings.svg">
+            <add-to-group group-id="MainToolbarLeft" anchor="last">
+            </add-to-group>
         </action>
-
-        <action id="settings" class="com.icthh.xm.actions.settings.MainSettingAction"
-                text="Settings" icon="PluginIcons.SETTINGS">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
+        <action id="deployToEnvNewUi" class="com.icthh.xm.xmeplugin.actions.DeployToEnv"
+                text="Deploy Envs"
+                icon="icons/deploy.svg">
+            <add-to-group group-id="MainToolbarLeft" anchor="after" relative-to-action="MainSettingActionNewUiToolbar"/>
         </action>
-
     </actions>
+
+
+    <extensions defaultExtensionNs="org.intellij.groovy">
+        <!-- search in classpath class with name LepContext and use it for autocomplete lepContext field -->
+        <membersContributor implementation="com.icthh.xm.xmeplugin.extensions.LepContextNonCodeMembersContributor"/>
+
+        <!-- lepContext.commons autocomplete when lep opened inside microservice context -->
+        <membersContributor implementation="com.icthh.xm.xmeplugin.extensions.CommonsNonCodeMembersContributor"/>
+
+        <!-- lepContext.inArgs autocomplete when lep opened inside microservice context -->
+        <membersContributor implementation="com.icthh.xm.xmeplugin.extensions.InArgsNonCodeMembersContributor"/>
+
+        <!--
+        If we have in tenant-config.yml fields like "entity-function", to support autocomplete for this fields we need
+        inject it wrapper in single quotes as synthetic property to groovy psi tree.
+        -->
+        <membersContributor implementation="com.icthh.xm.xmeplugin.extensions.TenantConfigWrongNameFields"/>
+
+        <!-- Autocomplete for tenant-config.yml fields when we called getConfig method -->
+        <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrMethodCall"
+                        implementationClass="com.icthh.xm.xmeplugin.extensions.TenantConfigMethodCallTypeCalculator" />
+        <!-- Main autocomplete for tenant-config.yml fields (and handle when we used .config) -->
+        <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrReferenceExpression"
+                        implementationClass="com.icthh.xm.xmeplugin.extensions.TenantConfigPropertyTypeCalculator" />
+        <!-- In type calculator we can get only current field name. To get full expression started from lepContext
+        we need to accumulate it in user data of psi element. -->
+        <typeCalculator forClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.GrReferenceExpression"
+                        implementationClass="com.icthh.xm.xmeplugin.extensions.LepContextTypeCalculator" />
+    </extensions>
 </idea-plugin>

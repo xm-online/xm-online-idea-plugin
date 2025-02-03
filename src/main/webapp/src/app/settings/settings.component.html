@@ -38,10 +38,56 @@
                         </button>
                     </div>
                     <mat-form-field class="full-width" *ngIf="!isConfigProject">
-                        <mat-label>Tenants list</mat-label>
-                        <mat-select multiple [(ngModel)]="environment.selectedTenants" (ngModelChange)="onUpdate()">
-                            <mat-option *ngFor="let tenant of tenants" [value]="tenant">{{tenant}}</mat-option>
-                        </mat-select>
+                        <mat-chip-grid #chipGrid aria-label="Tenants list">
+                            @for (tenant of environment.selectedTenants; track $index) {
+                                <mat-chip-row (removed)="removeTenant(environment, tenantInput, tenant)">
+                                    {{tenant}}
+                                    <button matChipRemove>
+                                        <mat-icon>cancel</mat-icon>
+                                    </button>
+                                </mat-chip-row>
+                            }
+                        </mat-chip-grid>
+                        <input
+                                name="tenantSearch"
+                                placeholder="Enter tenant name"
+                                #tenantInput
+                                (input)="filterTenants(tenantInput.value)"
+                                [matChipInputFor]="chipGrid"
+                                [matAutocomplete]="auto"
+                                [matChipInputSeparatorKeyCodes]="[enter]"
+                                (matChipInputTokenEnd)="addTenant(environment, tenantInput, $event)"
+                        />
+                        <mat-autocomplete #auto="matAutocomplete" requireSelection="true" (optionSelected)="selectedTenant(tenantInput, $event)">
+                            @for (tenant of filteredTenant; track tenant) {
+                                <mat-option [value]="tenant">{{tenant}}</mat-option>
+                            }
+                        </mat-autocomplete>
+                    </mat-form-field>
+                    <mat-form-field class="full-width" *ngIf="!isConfigProject && features && features.length > 0">
+                        <mat-chip-grid #chipGridFeatures aria-label="Features list">
+                            @for (feature of environment.selectedFeatures; track $index) {
+                                <mat-chip-row (removed)="removeFeature(environment, featureInput, feature)">
+                                    {{feature.name}}/{{feature.version}}
+                                    <button matChipRemove>
+                                        <mat-icon>cancel</mat-icon>
+                                    </button>
+                                </mat-chip-row>
+                            }
+                        </mat-chip-grid>
+                        <input
+                                name="featureSearch"
+                                placeholder="Enter feature name"
+                                #featureInput
+                                (input)="filterFeatures(featureInput.value)"
+                                [matChipInputFor]="chipGridFeatures"
+                                [matAutocomplete]="autoFeatures"
+                        />
+                        <mat-autocomplete #autoFeatures="matAutocomplete" requireSelection="true" (optionSelected)="selectedFeature(featureInput, $event)">
+                            @for (feature of filteredFeature; track feature) {
+                                <mat-option [value]="feature">{{feature.name}}/{{feature.version}}</mat-option>
+                            }
+                        </mat-autocomplete>
                     </mat-form-field>
                     <mat-form-field class="full-width">
                         <mat-label>Xm base url (example: http://xm-online.com)</mat-label>
@@ -75,15 +121,21 @@
                         </mat-select>
                     </mat-form-field>
 
-                    <mat-checkbox [(ngModel)]="environment.startTrackChangesOnEdit" *ngIf="!updateModesMap[environment.updateMode]" (ngModelChange)="onUpdate()">
-                        Start track changes on edit
-                    </mat-checkbox>
-
                     <mat-form-field class="full-width"  *ngIf="environment.updateMode === 'GIT_BRANCH_DIFFERENCE'">
                         <mat-label>Target branch name</mat-label>
-                        <mat-select [(ngModel)]="environment.branchName" (ngModelChange)="onUpdate()">
-                            <mat-option *ngFor="let branch of branches" [value]="branch">{{branch}}</mat-option>
-                        </mat-select>
+                        <input #branchName
+                               type="text"
+                               placeholder="HEAD"
+                               matInput
+                               [(ngModel)]="environment.branchName" (ngModelChange)="onUpdate()"
+                               [matAutocomplete]="branchAuto"
+                               (input)="filterBranches(environment, branchName.value)"
+                               (focus)="filterBranches(environment, branchName.value)">
+                        <mat-autocomplete requireSelection="true" #branchAuto="matAutocomplete">
+                            @for (option of filteredBranches; track option) {
+                                <mat-option [value]="option">{{option}}</mat-option>
+                            }
+                        </mat-autocomplete>
                     </mat-form-field>
 
                     <div class="horizontalLayout">

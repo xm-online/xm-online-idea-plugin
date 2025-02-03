@@ -95,5 +95,8 @@
       }
     }
   },
-  "defaultProject": "xmeplugin"
+  "defaultProject": "xmeplugin",
+  "cli": {
+    "analytics": false
+  }
 }
