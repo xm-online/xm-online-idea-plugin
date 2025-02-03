@@ -4,6 +4,7 @@
     <!--suppress PluginXmlCapitalization become it`s brand name  -->
     <name>XME.digital</name>
     <vendor>sergeysenja1992</vendor>
+    <idea-version since-build="242"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.platform</depends>
