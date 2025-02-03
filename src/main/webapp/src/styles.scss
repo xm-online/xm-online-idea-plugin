@@ -1,35 +1,51 @@
-@import '~@angular/material/theming';
+@use '@angular/material' as mat;
 
-@include mat-core();
+// Core Material styles
+@include mat.core();
 
-$primary: mat-palette($mat-deep-purple);
-$accent:  mat-palette($mat-amber, A200, A100, A400);
+// Define palettes
+$primary-light: mat.m2-define-palette(mat.$m2-deep-purple-palette);
+$accent-light: mat.m2-define-palette(mat.$m2-amber-palette, A200, A100, A400);
 
-$light-theme: mat-light-theme((
-  color: (
-    primary: $primary,
-    accent: $accent,
-  )
-));
-
-.light-theme {
-  @include angular-material-theme($light-theme);
-}
-
-$primary: mat-palette($mat-light-green, 700, 500, 800);
-$accent:  mat-palette($mat-green, A200, A100, A400);
-
-$dark-theme: mat-dark-theme((
+// Light theme
+$light-theme: mat.m2-define-light-theme((
         color: (
-                primary: $primary,
-                accent: $accent,
+                primary: $primary-light,
+                accent: $accent-light,
         )
 ));
 
+// Apply light theme
+.light-theme {
+  @include mat.all-component-themes($light-theme);
+
+  a {
+    color: #6C707E;
+  }
+}
+
+//$primary-dark: mat.m2-define-palette(mat.$m2-light-green-palette, 800, 600, 900);
+$primary-dark: mat.m2-define-palette(mat.$m2-grey-palette);
+$accent-dark: mat.m2-define-palette(mat.$m2-grey-palette, 800, 900, A400);
+
+// Dark theme
+$dark-theme: mat.m2-define-dark-theme((
+        color: (
+                primary: $primary-dark,
+                accent: $accent-dark,
+        )
+));
+
+// Apply dark theme
 .dark-theme {
-  @include angular-material-theme($dark-theme);
+  @include mat.all-component-themes($dark-theme);
+
+  a {
+    color: #CED0D6;
+  }
+
   .mat-list-base .mat-list-item {
-    background: #424242;
+    background: #2D2F32;
     color: white;
     border-color: white;
     border-bottom-style: solid;
@@ -38,36 +54,50 @@ $dark-theme: mat-dark-theme((
   .mat-list-base .mat-list-item.mat-list-single-selected-option {
     background: #636363;
   }
+
   .envList {
-    background: #424242;
+    background: #2D2F32;
     color: white;
   }
 
+  .toolbarCard {
+    background-color: #2D2F32!important;
+  }
+
+  .mat-mdc-card {
+    background-color: #2D2F32!important;
+  }
+
   color: white;
-  background-color: #424242;
+  background-color: #2D2F32;
 }
 
-/* Global Styles */
+// Global Styles
 h1 {
   color: #369;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 250%;
 }
+
 h2, h3 {
   color: #444;
   font-family: Arial, Helvetica, sans-serif;
   font-weight: lighter;
 }
+
 body {
   margin: 2em;
 }
-body, input[text], button {
+
+body, input[type="text"], button {
   color: #333;
   font-family: Cambria, Georgia;
 }
+
 a {
   cursor: pointer;
 }
+
 button {
   font-family: Arial;
   background-color: #eee;
@@ -76,16 +106,14 @@ button {
   border-radius: 4px;
   cursor: pointer;
 }
-button:hover {
-  background-color: #cfd8dc;
-}
+
 button:disabled {
   background-color: #eee;
   color: #aaa;
   cursor: auto;
 }
 
-/* Navigation link styles */
+// Navigation link styles
 nav a {
   padding: 5px 10px;
   text-decoration: none;
@@ -95,21 +123,43 @@ nav a {
   background-color: #eee;
   border-radius: 4px;
 }
-nav a:visited, a:link {
+
+nav a:visited, nav a:link {
   color: #607D8B;
 }
+
 nav a:hover {
   color: #039be5;
   background-color: #CFD8DC;
 }
+
 nav a.active {
   color: #039be5;
 }
 
-/* everywhere else */
+// Global reset
 * {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+.mdc-list-item__end {
+  display: none;
+}
+
+.mat-mdc-card-content:last-child {
+  padding-bottom: 4px!important;
+}
+.mat-mdc-card-content:first-child {
+   padding-top: 4px!important;
+}
+
+

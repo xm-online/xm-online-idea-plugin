@@ -1,3 +1,9 @@
+.gradle
+.idea
+.intellijPlatform
+.qodana
+build
+
 ######################
 # Project Specific
 ######################
@@ -6,8 +12,6 @@
 /src/test/javascript/PhantomJS*/
 /src/main/resources/.h2.server.properties
 gradle-local.properties
-.idea
-/src/main/webapp/.idea/
 ######################
 # Node
 ######################
@@ -114,7 +118,6 @@ Desktop.ini
 # Directories
 ######################
 /bin/
-/deploy/
 /out/
 ######################
 # Logs
@@ -144,8 +147,10 @@ Desktop.ini
 # ESLint
 ######################
 .eslintcache
-src/main/webapp/dist
-src/main/webapp/node_modules
+
 src/main/lep-sandbox
-src/test/groovy/com/icthh/xm/lep/tenant
-src/test/resources/lep/custom
+src/main/lep/
+src/test/lep/
+
+src/main/webapp/.angular/
+src/main/webapp/node_modules/

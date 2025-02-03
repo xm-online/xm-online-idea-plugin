@@ -29,6 +29,8 @@ import { OverlayContainer } from "@angular/cdk/overlay";
 import { EntityDiagramComponent } from './entity-diagram/entity-diagram.component';
 import { CreateLepDialogComponent } from './create-lep-dialog/create-lep-dialog.component';
 import { AutofocusDirective } from './create-lep-dialog/autofocus.directive';
+import { MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
+import { MatChipGrid, MatChipInput, MatChipRemove, MatChipRow } from '@angular/material/chips';
 
 const routes: Routes = [
   { path: 'settings', component: SettingsComponent },
@@ -52,26 +54,32 @@ const routes: Routes = [
     EntityDiagramComponent,
     CreateLepDialogComponent
   ],
-  imports: [
-    BrowserModule,
-    AppRoutingModule,
-    RouterModule.forRoot(routes, {useHash: true}),
-    BrowserAnimationsModule,
-    MatGridListModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatListModule,
-    MatInputModule,
-    MatSelectModule,
-    MatCheckboxModule,
-    DragDropModule,
-    MatTableModule,
-    MatPaginatorModule,
-    FormsModule,
-    MatDialogModule,
-    MatSortModule
-  ],
+    imports: [
+        BrowserModule,
+        AppRoutingModule,
+        RouterModule.forRoot(routes, {useHash: true}),
+        BrowserAnimationsModule,
+        MatGridListModule,
+        MatCardModule,
+        MatButtonModule,
+        MatIconModule,
+        MatListModule,
+        MatInputModule,
+        MatSelectModule,
+        MatCheckboxModule,
+        DragDropModule,
+        MatTableModule,
+        MatPaginatorModule,
+        FormsModule,
+        MatDialogModule,
+        MatSortModule,
+        MatAutocomplete,
+        MatAutocompleteTrigger,
+        MatChipGrid,
+        MatChipRow,
+        MatChipInput,
+        MatChipRemove
+    ],
   exports: [RouterModule],
   providers: [],
   bootstrap: [AppComponent]

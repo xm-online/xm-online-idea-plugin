@@ -46,7 +46,7 @@
 }
 
 .settingsBody {
-    padding: 30px;
+    padding: 5px 30px;
 }
 
 .toolbarButton {
@@ -72,5 +72,6 @@
 }
 
 .pathButton {
-    height: 40px;
+    height: 57px;
+    margin-left: 2px;
 }

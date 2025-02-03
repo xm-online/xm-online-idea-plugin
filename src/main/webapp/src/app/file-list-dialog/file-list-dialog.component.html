@@ -3,13 +3,15 @@
         <mat-list-item *ngFor="let change of changes">
             <div class="changeItem">
                 <ng-container *ngIf="!change.ignoredFile || isForceUpdate">
-                    <a href="javascript:void(0);" (click)="navigate(change)">{{change.fileName}}</a>
+                    <a href="javascript:void(0);" class="updated-file-link primary-text" (click)="navigate(change)">{{change.fileName}}</a>
                     <span class="space"></span>
                     <span *ngIf="change.isConflict" ><mat-icon class="file-icon">warning</mat-icon> File changed</span>
                     <mat-icon *ngIf="change.isNewFile" class="file-icon">fiber_new</mat-icon>
                     <mat-icon *ngIf="change.editedInThisIteration" class="file-icon">edit</mat-icon>
                     <mat-icon *ngIf="change.toDelete" class="file-icon">delete</mat-icon>
-                    <a href="javascript:void(0);" class="ignore-link" (click)="ignore(change)"> ignore changes </a>
+                    <ng-container *ngIf="!isForceUpdate">
+                        <a href="javascript:void(0);" class="ignore-link" (click)="ignore(change)"> ignore changes </a>
+                    </ng-container>
                 </ng-container>
                 <ng-container *ngIf="change.ignoredFile && !isForceUpdate">
                     <span class="strikeFileName">{{change.fileName}}</span>
