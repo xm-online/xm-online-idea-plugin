@@ -3,9 +3,11 @@ package com.icthh.xm.xmeplugin.services
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.icthh.xm.xmeplugin.utils.childrenOfType
 import com.icthh.xm.xmeplugin.utils.getConfigRootDir
 import com.icthh.xm.xmeplugin.utils.log
+import com.icthh.xm.xmeplugin.yaml.YamlUtils
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.components.Service
@@ -31,7 +33,6 @@ import org.jsonschema2pojo.util.NameHelper
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.charset.StandardCharsets
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.collections.ArrayList
@@ -156,17 +157,7 @@ class TenantConfigService {
             override fun getNameHelper(): NameHelper {
                 return object: NameHelper(config) {
                     override fun getPropertyName(jsonFieldName: String?, node: JsonNode?): String {
-                        if (jsonFieldName == null || jsonFieldName.isBlank()) {
-                            val varname = "$HIDDEN_FIELDS_FOR_XM_PLUGIN${counter.incrementAndGet()}"
-                            nameMap.put(varname, jsonFieldName ?: "")
-                            return " $varname"
-                        }
-                        if (jsonFieldName.matches("^[a-zA-ZА-Яа-я_$].*".toRegex()) && jsonFieldName.matches("[0-9a-zA-ZА-Яа-я_\$]+".toRegex())) {
-                            return " " + jsonFieldName
-                        }
-                        val varname = "$HIDDEN_FIELDS_FOR_XM_PLUGIN${counter.incrementAndGet()}"
-                        nameMap.put(varname, jsonFieldName)
-                        return " $varname"
+                        return " " + filterPropertyName(jsonFieldName, nameMap)
                     }
 
                     override fun getUniqueClassName(nodeName: String?, node: JsonNode?, _package: JPackage?): String {
@@ -185,11 +176,12 @@ class TenantConfigService {
 
         log.info("Run generation")
         val type: JType = try {
+            val filterJson = filterJson(configJson, nameMap)
             mapper.generate(
                 codeModel,
                 "${tenantName.uppercase()}TenantConfig",
                 "${tenantName.uppercase()}.entity.lep.commons",
-                configJson
+                filterJson
             )
         } catch (e: Exception) {
             log.error(e.toString(), e)
@@ -204,6 +196,30 @@ class TenantConfigService {
         sourceCode = sourceCode.replace("public class", "public static class")
         sourceCode = sourceCode.replace("----------", "//--------")
         return sourceCode
+    }
+
+    private fun filterJson(json: String, fieldMap: MutableMap<String, String>): String {
+        val mapper = ObjectMapper()
+        val node = mapper.readValue<Map<*,*>>(json)
+        val filteredNode = YamlUtils.transformJson(node) { filterPropertyName(it, fieldMap) }
+        return mapper.writeValueAsString(filteredNode)
+    }
+
+    private fun filterPropertyName(
+        jsonFieldName: String?,
+        nameMap: MutableMap<String, String>
+    ): String {
+        if (jsonFieldName.isNullOrBlank()) {
+            val varname = "$HIDDEN_FIELDS_FOR_XM_PLUGIN${counter.incrementAndGet()}"
+            nameMap.put(varname, jsonFieldName ?: "")
+            return varname
+        }
+        if (jsonFieldName.matches("^[a-zA-ZА-Яа-я_$].*".toRegex()) && jsonFieldName.matches("[0-9a-zA-ZА-Яа-я_\$]+".toRegex())) {
+            return jsonFieldName
+        }
+        val varname = "$HIDDEN_FIELDS_FOR_XM_PLUGIN${counter.incrementAndGet()}"
+        nameMap.put(varname, jsonFieldName)
+        return varname
     }
 
     private fun readContent(project: Project, tenantName: String): String {
