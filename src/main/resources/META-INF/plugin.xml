@@ -47,13 +47,11 @@
 
         <!--
         If we have in tenant-config.yml fields like "entity-function", to use it in groovy we need to wrap it to single quotes.
-        Next two contributor need to hide original entity-function fields without single quotes during completion.
-        But we need to keep it field visible (unhide) to support completion for subfields of this field.
+        Next contributor need to hide original entity-function fields without single quotes during completion.
          -->
-        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.xmeplugin.extensions.HideInternalFieldsCompletionContributor"
+        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.xmeplugin.extensions.HideTenantConfigFieldsCompletionContributor"
                                 order="first"/>
-        <completion.contributor language="Groovy" implementationClass="com.icthh.xm.xmeplugin.extensions.UnhideInternalFieldsCompletionContributor"
-                                order="last"/>
+        <gotoDeclarationHandler implementation="com.icthh.xm.xmeplugin.extensions.TenantConfigGotoDeclarationHandler" />
 
         <!-- Reference from scheduler typeKey to file handler -->
         <psi.referenceContributor implementation="com.icthh.xm.xmeplugin.extensions.HandlerReferenceContributor"

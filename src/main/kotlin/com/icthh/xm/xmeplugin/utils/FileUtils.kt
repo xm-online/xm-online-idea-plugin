@@ -1,18 +1,14 @@
-import com.icthh.xm.xmeplugin.extensions.xmentityspec.getEntityRootFolder
 import com.icthh.xm.xmeplugin.utils.*
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS
-import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker.MODIFICATION_COUNT
+import com.jetbrains.rd.util.ConcurrentHashMap
 import java.io.File
 import java.io.InputStream
 import java.nio.charset.Charset
@@ -149,21 +145,39 @@ fun VirtualFile.isConfigFile(project: Project): Boolean {
     return this.path.startsWith(project.getConfigRootDir()) || this.path.startsWith(project.getLinkedConfigRootDir())
 }
 
+val keyCache = ConcurrentHashMap<String, Key<*>>()
+fun <T> VirtualFile.savedToUsedData(key: String, operation: VirtualFile.() -> T): T {
+    val key: Key<T> = keyCache.getOrPut(key) { Key.create<T>(key) } as Key<T>
+    val userData = getUserData(key)
+    if (userData == null) {
+        val result = operation()
+        putUserData(key, result)
+        return result
+    }
+    return userData
+}
+
 private fun VirtualFile.getPathRelatedTo(
     project: Project,
     root: String = ""
 ): String {
-    var vFile = this;
+    return this.savedToUsedData("getPathRelatedTo + ${this.path}") {
 
-    while (vFile.parent != null && !vFile.parent.path.equals(project.getLinkedConfigRootDir() + root) && !vFile.parent.path.equals(project.getConfigRootDir() + root)) {
-        vFile = vFile.parent
+        var vFile = this;
+
+        while (vFile.parent != null && !vFile.parent.path.equals(project.getLinkedConfigRootDir() + root) && !vFile.parent.path.equals(
+                project.getConfigRootDir() + root
+            )
+        ) {
+            vFile = vFile.parent
+        }
+
+        if (!project.isConfigProject() && vFile.parent != null && !vFile.parent.path.equals(project.getConfigRootDir() + root)) {
+            vFile = vFile.parent
+        }
+
+        return@savedToUsedData this.path.substring(vFile.path.length)
     }
-
-    if (!project.isConfigProject() && vFile.parent != null && !vFile.parent.path.equals(project.getConfigRootDir() + root)) {
-        vFile = vFile.parent
-    }
-
-    return this.path.substring(vFile.path.length)
 }
 
 @Synchronized

@@ -46,7 +46,7 @@ class XmePluginSpecService(val project: Project) {
     }
 
     fun parsePattern(pattern: String): ElementPattern<out PsiElement> {
-        return patterns.computeIfAbsent(pattern) { it.toPsiPattern() }
+        return patterns.computeIfAbsent(pattern) { it.toPsiPattern(true) }
     }
 
     private fun loadAllFiles() {

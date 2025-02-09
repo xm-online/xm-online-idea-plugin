@@ -123,7 +123,7 @@ class YamlReferenceContributor : PsiReferenceContributor() {
                     element.project.xmePluginSpecService.parsePattern(it)
                 }.flatMap {
                     element.project.xmePluginSpecService.getFiles(tenantName, spec.key).flatMap { file ->
-                        findElement(file, it)
+                        findElement(file, it) // TODO transform dsl to path expression [now operation too slow]
                     }
                 }.map {
                     PsiReferenceImpl(refSource, it)
