@@ -22,7 +22,12 @@ const val CONFIG_DIR_NAME = "/config"
 fun Project.getSettings() = this.service<SettingService>()
 
 fun Project?.isConfigProject(): Boolean {
-    return this != null && isConfigRoot(this.basePath)
+    val userData = this?.getUserData(IS_XME_CONFIG_PROJECT)
+    if (userData != null) {
+        return userData
+    }
+    this?.putUserData(IS_XME_CONFIG_PROJECT, isConfigRoot(this.basePath))
+    return this?.getUserData(IS_XME_CONFIG_PROJECT) ?: false
 }
 
 private fun toConfigFolder(basePath: String?) = basePath + CONFIG_DIR_NAME
@@ -46,13 +51,23 @@ fun Project.getLinkedConfigRootDir() = if (isConfigProject()) {
 fun Project.root() =
     VfsUtil.findFile(File(this.getConfigRootDir()).toPath(), true)?.parent
 
-fun Project?.isSupportProject() = this != null && (isConfigProject() || isXmeMicroservice())
+fun Project?.isSupportProject(): Boolean {
+    val userData = this?.getUserData(IS_XME_PROJECT)
+    if (userData != null) {
+        return userData
+    }
+    this?.putUserData(IS_XME_PROJECT, isConfigProject() || isXmeMicroservice())
+    return this?.getUserData(IS_XME_PROJECT) ?: false
+}
+
 fun AnActionEvent.updateSupported(): Boolean? {
     presentation.isVisible = project?.isSupportProject() ?: false
     return if (presentation.isVisible) true else null
 }
 
 
+val IS_XME_CONFIG_PROJECT = Key<Boolean>("IS_XME_CONFIG_PROJECT")
+val IS_XME_PROJECT = Key<Boolean>("IS_XME_PROJECT")
 val PROJECT_CONFIG = Key<ProjectConfig>("XME_PROJECT_CONFIG")
 data class Bootstrap(val spring: SpringConfig?)
 data class SpringConfig(val application: ApplicationConfig?)

@@ -28,9 +28,13 @@ fun key(key: String) = YamlPatternToken.Key(key)
 fun condition(key: String, expectedValue: String) = YamlPatternToken.Condition(key, expectedValue)
 fun value(text: String) = YamlPatternToken.ValueText(text)
 
-fun yamlPattern(debugString: String, vararg keys: YamlPatternToken): ElementPattern<out PsiElement> {
+fun yamlPattern(debugString: String, userScalar: Boolean, vararg keys: YamlPatternToken): ElementPattern<out PsiElement> {
     val pattern = buildPattern(debugString, keys.reversed().iterator()) {
-        psiElement<YAMLScalar>()
+        if (userScalar) {
+            psiElement<YAMLScalar>()
+        } else {
+            psiElement<PsiElement>()
+        }
     }
     return pattern
 }
@@ -100,8 +104,8 @@ private fun buildPattern(
     return pattern
 }
 
-fun String.toPsiPattern(): ElementPattern<out PsiElement> {
-    return yamlPattern(this, *parseDsl(this).toTypedArray())
+fun String.toPsiPattern(userScalar: Boolean): ElementPattern<out PsiElement> {
+    return yamlPattern(this, userScalar, *parseDsl(this).toTypedArray())
 }
 
 fun parseDsl(dsl: String): List<YamlPatternToken> {

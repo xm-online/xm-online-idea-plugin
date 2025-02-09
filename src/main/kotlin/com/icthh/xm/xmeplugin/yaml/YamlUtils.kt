@@ -21,6 +21,19 @@ object YamlUtils {
         return result
     }
 
+    fun transformJson(node: Any?, filterPropertyName: (String) -> String): Any? = when (node) {
+        is Map<*, *> -> {
+            node.entries.associate { (key, value) ->
+                val newKey = if (key is String) filterPropertyName(key) else key
+                newKey to transformJson(value, filterPropertyName)
+            }
+        }
+        is List<*> -> {
+            node.map { transformJson(it, filterPropertyName) }
+        }
+        else -> node
+    }
+
     fun deepMerge(
         file1: String, map1: Map<*, *>,
         file2: String, map2: Map<*, *>,
