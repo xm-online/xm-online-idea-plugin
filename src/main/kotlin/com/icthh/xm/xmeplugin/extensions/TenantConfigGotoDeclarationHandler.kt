@@ -2,10 +2,7 @@ package com.icthh.xm.xmeplugin.extensions
 
 import com.icthh.xm.xmeplugin.services.TENANT_CONFIG_FIELD
 import com.icthh.xm.xmeplugin.services.TENANT_CONFIG_FIELD_PATH
-import com.icthh.xm.xmeplugin.utils.getConfigRootDir
-import com.icthh.xm.xmeplugin.utils.isSupportProject
-import com.icthh.xm.xmeplugin.utils.isTrue
-import com.icthh.xm.xmeplugin.utils.toPsiFile
+import com.icthh.xm.xmeplugin.utils.*
 import com.icthh.xm.xmeplugin.yaml.findElement
 import com.icthh.xm.xmeplugin.yaml.toPsiPattern
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
@@ -14,6 +11,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.PsiElement
 import getTenantName
+import org.jetbrains.yaml.psi.YAMLDocument
 import java.io.File
 
 class TenantConfigGotoDeclarationHandler : GotoDeclarationHandler {
@@ -32,10 +30,13 @@ class TenantConfigGotoDeclarationHandler : GotoDeclarationHandler {
 
         val yamlPath = sourceElement.getUserData(TENANT_CONFIG_FIELD_PATH)
         if (yamlPath != null) {
-            return yamlPath.map { it.trimStart('.').toPsiPattern(false) }
-                .flatMap { findElement(tenantConfigFile, it) }
-                .ifEmpty { listOf(tenantConfigFile) }
-                .toTypedArray()
+            return yamlPath.map {
+                it.trimStart('.').toPsiPattern(false)
+            }.flatMap {
+                findElement(tenantConfigFile, it)
+            }.ifEmpty {
+                listOf(tenantConfigFile)
+            }.toTypedArray()
         }
 
         return arrayOf(tenantConfigFile)

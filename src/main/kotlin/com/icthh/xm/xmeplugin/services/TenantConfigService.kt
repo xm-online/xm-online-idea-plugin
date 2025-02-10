@@ -16,7 +16,6 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.impl.light.LightIdentifier
-import com.intellij.psi.impl.source.PsiClassReferenceType
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiTypesUtil
@@ -29,15 +28,16 @@ import getTenantName
 import org.jetbrains.plugins.groovy.intentions.style.inference.resolve
 import org.jetbrains.plugins.groovy.lang.resolve.processors.inference.type
 import org.jsonschema2pojo.*
+import org.jsonschema2pojo.rules.ObjectRule
+import org.jsonschema2pojo.rules.Rule
 import org.jsonschema2pojo.rules.RuleFactory
 import org.jsonschema2pojo.util.NameHelper
+import org.jsonschema2pojo.util.ParcelableHelper
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
 const val TENANT_CONFIG_AUTO_GENERATE_CLASS_NAME = "_PluginTenantConfigAutocomplete";
 const val HIDDEN_FIELDS_FOR_XM_PLUGIN = "_hidden_for_plugin_"
@@ -155,7 +155,7 @@ class TenantConfigService {
 
     private fun setPathYamlFields(type: PsiClass, path: String = "") {
         type.fields.forEach { field ->
-            field.putUserData(TENANT_CONFIG_FIELD_PATH, mutableListOf())
+            field.putUserData(TENANT_CONFIG_FIELD_PATH, field.getUserData(TENANT_CONFIG_FIELD_PATH) ?: mutableListOf())
             if (field.type is PsiClassType) {
                 val psiClassType = field.type as PsiClassType
                 val psiClass = psiClassType.resolve()
@@ -211,9 +211,10 @@ class TenantConfigService {
                         return " " + filterPropertyName(jsonFieldName, nameMap)
                     }
 
-                    override fun getUniqueClassName(nodeName: String?, node: JsonNode?, _package: JPackage?): String {
-                        val uniqueClassName = super.getUniqueClassName(nodeName, node, _package)
-                        return uniqueClassName + TENANT_CONFIG_AUTO_GENERATE_CLASS_NAME
+                    override fun getUniqueClassName(nodeName: String?, node: JsonNode?, jPackage: JPackage?): String {
+                        val uniqueClassName = super.getUniqueClassName(nodeName, node, jPackage)
+                        val part = if (uniqueClassName == "${tenantName}TenantConfig") "" else "_${counter.incrementAndGet()}_"
+                        return uniqueClassName + part + TENANT_CONFIG_AUTO_GENERATE_CLASS_NAME
                     }
 
                     override fun capitalizeTrailingWords(name: String): String {
@@ -246,6 +247,7 @@ class TenantConfigService {
         var sourceCode = String(byteArray.toByteArray(), StandardCharsets.UTF_8)
         sourceCode = sourceCode.replace("public class", "public static class")
         sourceCode = sourceCode.replace("----------", "//--------")
+
         return sourceCode
     }
 

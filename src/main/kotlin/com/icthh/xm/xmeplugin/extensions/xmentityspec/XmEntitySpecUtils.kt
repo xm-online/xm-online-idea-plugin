@@ -35,21 +35,29 @@ fun VirtualFile?.isEntitySpecification(): Boolean {
     return entitySpec
 }
 
-fun PsiFile.getEntityInfo(): XmEntitySpecInfo {
+fun PsiFile.getEntityInfo(): XmEntitySpecInfo? {
     val containingFile = this.containingFile
     val tenantName = containingFile.getTenantName()
     val entityFiles = this.project.computeEntityFiles(tenantName)
     val key = "entityInfoByFile-${entityFiles.values.map { it.name }.joinToString("-")}"
-    return this.project.withMultipleFilesCache(key, entityFiles.values) {
-        log.info("Computing entity info for tenant $tenantName")
-        entityFiles.map {
-            val value = it.value
-            value.withCache("entityInfo-${tenantName}-${value.name}") {
-                value.computeXmEntitySpecInfo(tenantName)
-            }
-        }.joinEntitySpecInfo(tenantName)
+    try {
+        val entitySpec = this.project.withMultipleFilesCache(key, entityFiles.values) {
+            log.info("Computing entity info for tenant $tenantName")
+            entityFiles.map {
+                val value = it.value
+                value.withCache("entityInfo-${tenantName}-${value.name}") {
+                    value.computeXmEntitySpecInfo(tenantName)
+                }
+            }.joinEntitySpecInfo(tenantName)
+        }
+        this.project.putUserData(LAST_ENTITY_SPEC, entitySpec)
+    } catch (e: Exception) {
+        log.warn("Error while computing entity info for tenant $tenantName", e)
     }
+    return this.project.getUserData(LAST_ENTITY_SPEC)
 }
+val LAST_ENTITY_SPEC = Key.create<XmEntitySpecInfo>("LAST_ENTITY_SPEC")
+
 
 data class XmEntitySpecInfo(val keys: MutableList<String> = mutableListOf())
 

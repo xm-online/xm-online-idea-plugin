@@ -24,9 +24,9 @@ class GenerateAction : AnAction() {
         }
 
         val psiFile = entitySpec.toPsiFile(project) ?: return
-        val entitiesKeys = psiFile.getEntityInfo().keys.toSet().toList().map {
+        val entitiesKeys = psiFile.getEntityInfo()?.keys?.toSet()?.toList()?.map {
             "    public static String ${translateToLepConvention(it)} = \"${it}\";\n"
-        }.sorted().joinToString("")
+        }?.sorted()?.joinToString("") ?: ""
 
         val xmEntityDeclarationFile = "class EntityTypeKeys {\n${entitiesKeys}}\n"
         val tenantName = entitySpec.getTenantName(project)

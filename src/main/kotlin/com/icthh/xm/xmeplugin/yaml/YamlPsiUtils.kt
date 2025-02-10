@@ -10,17 +10,14 @@ import com.intellij.psi.search.PsiElementProcessor
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
 import org.apache.commons.lang3.StringUtils
-import org.jetbrains.yaml.psi.YAMLKeyValue
-import org.jetbrains.yaml.psi.YAMLMapping
-import org.jetbrains.yaml.psi.YAMLScalar
-import org.jetbrains.yaml.psi.YAMLSequence
-import org.jetbrains.yaml.psi.YAMLSequenceItem
+import org.jetbrains.yaml.psi.*
 
 sealed class YamlPatternToken {
     data class Key(val key: String) : YamlPatternToken()
     data object Array : YamlPatternToken()
     data class Condition(val key: String, val expectedValue: String) : YamlPatternToken()
     data class ValueText(val text: String) : YamlPatternToken()
+    data object Root : YamlPatternToken()
 }
 
 val array = YamlPatternToken.Array
@@ -28,7 +25,7 @@ fun key(key: String) = YamlPatternToken.Key(key)
 fun condition(key: String, expectedValue: String) = YamlPatternToken.Condition(key, expectedValue)
 fun value(text: String) = YamlPatternToken.ValueText(text)
 
-fun yamlPattern(debugString: String, userScalar: Boolean, vararg keys: YamlPatternToken): ElementPattern<out PsiElement> {
+fun yamlPattern(debugString: String, userScalar: Boolean, keys: MutableList<YamlPatternToken>): PsiElementPattern.Capture<out PsiElement> {
     val pattern = buildPattern(debugString, keys.reversed().iterator()) {
         if (userScalar) {
             psiElement<YAMLScalar>()
@@ -100,15 +97,21 @@ private fun buildPattern(
                 current.invoke().withText(command.text)
             }
         }
+
+        YamlPatternToken.Root -> current.invoke().withParent(
+            psiElement<YAMLDocument>()
+        )
     }
     return pattern
 }
 
-fun String.toPsiPattern(userScalar: Boolean): ElementPattern<out PsiElement> {
-    return yamlPattern(this, userScalar, *parseDsl(this).toTypedArray())
+fun String.toPsiPattern(userScalar: Boolean): PsiElementPattern.Capture<out PsiElement> {
+    val keys = mutableListOf<YamlPatternToken>(YamlPatternToken.Root)
+    keys.addAll(parseDsl(this))
+    return yamlPattern(this, userScalar, keys)
 }
 
-fun parseDsl(dsl: String): List<YamlPatternToken> {
+fun parseDsl(dsl: String): MutableList<YamlPatternToken> {
     val tokens = mutableListOf<YamlPatternToken>()
     // Split on '.' (assuming dots are not used within the special syntax)
     val segments = splitByDot(dsl)
