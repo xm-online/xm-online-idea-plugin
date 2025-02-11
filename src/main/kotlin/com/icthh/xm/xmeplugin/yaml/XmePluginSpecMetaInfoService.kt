@@ -1,5 +1,6 @@
 package com.icthh.xm.xmeplugin.yaml
 
+import com.icthh.xm.xmeplugin.extensions.LepMetadata
 import com.icthh.xm.xmeplugin.utils.*
 import com.icthh.xm.xmeplugin.yaml.YamlPath.YamlPathArray
 import com.icthh.xm.xmeplugin.yaml.YamlPath.YamlPathKey
@@ -8,6 +9,7 @@ import com.icthh.xm.xmeplugin.yaml.YamlUtils.deepMerge
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import getTenantName
@@ -64,16 +66,23 @@ class XmePluginSpecMetaInfoService(val project: Project) {
         }
     }
 
+    val LAST_SPEC_STATE = Key.create<YamlFileValue>("LEP_EXPRESSION")
     private fun YAMLScalar.getFilesState(specKey: String): SpecState? {
         val tenantName = containingFile?.getTenantName() ?: return null
         val files = this.project.xmePluginSpecService.getFiles(tenantName, specKey)
         val key = "xme-spec-file-state-${tenantName}-${files.map { it.name }.joinToString("-")}"
         return this.withMultipleFilesCache(key, files) {
             log.info("Computing info for tenant $tenantName")
-            files.map {
-                it.withCache("info-${tenantName}-${it.name}") {
-                    YamlFileValue(it.virtualFile.path, mapOf("value" to it.readSpecYaml()))
+            files.mapNotNull {
+                try {
+                    val fileState = it.withCache("info-${tenantName}-${it.name}") {
+                        YamlFileValue(it.virtualFile.path, mapOf("value" to it.readSpecYaml()))
+                    }
+                    it.putUserData(LAST_SPEC_STATE, fileState)
+                } catch (e: Exception) {
+                    log.warn("Error reading spec file ${it.name}", e)
                 }
+                it.getUserData(LAST_SPEC_STATE)
             }.joinSpecInfo()
         }
     }
