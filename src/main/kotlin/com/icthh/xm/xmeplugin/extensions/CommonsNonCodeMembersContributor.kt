@@ -1,6 +1,7 @@
 package com.icthh.xm.xmeplugin.extensions
 
 import com.icthh.xm.xmeplugin.utils.*
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.impl.light.LightFieldBuilder
@@ -12,6 +13,8 @@ import org.jetbrains.plugins.groovy.lang.psi.impl.synthetic.GrLightMethodBuilder
 import org.jetbrains.plugins.groovy.lang.resolve.NonCodeMembersContributor
 import org.jetbrains.plugins.groovy.lang.resolve.sorryCannotKnowElementKind
 
+val COMMONS_METHOD_WITH_SIGNATURE = Key.create<Boolean>("COMMONS_METHOD_WITH_SIGNATURE")
+val COMMONS_METHOD_FILE = Key.create<PsiFile>("COMMONS_METHOD_FILE")
 
 class CommonsNonCodeMembersContributor: NonCodeMembersContributor() {
 
@@ -74,8 +77,12 @@ class CommonsNonCodeMembersContributor: NonCodeMembersContributor() {
                 "signatureDeclaration" == it.name || commonsName == it.name
             }
             if (declarationMethod != null) {
+                declarationMethod.putUserData(COMMONS_METHOD_WITH_SIGNATURE, true)
+                declarationMethod.putUserData(COMMONS_METHOD_FILE, element)
                 declarationMethod.let {
                     val method = GrLightMethodBuilder(element.manager, name)
+                    method.putUserData(COMMONS_METHOD_WITH_SIGNATURE, true)
+                    method.putUserData(COMMONS_METHOD_FILE, element)
                     method.returnType = it.returnType
                     method.setNamedParameters(it.namedParameters)
                     it.parameters.forEach { param ->
