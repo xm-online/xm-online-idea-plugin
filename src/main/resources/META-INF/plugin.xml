@@ -32,7 +32,7 @@
         <multiHostInjector implementation="com.icthh.xm.xmeplugin.extensions.xmentityspec.InputFromSpecJsonLanguageInjector" />
         <!-- xmentityspec end -->
 
-        <toolWindow factoryClass="com.icthh.xm.xmeplugin.toolWindow.MyToolWindowFactory" id="XmeToolWindow" anchor="right">
+        <toolWindow factoryClass="com.icthh.xm.xmeplugin.toolWindow.XmePluginToolWindowFactory" id="XmeToolWindow" anchor="right">
         </toolWindow>
 
         <!-- On project tree use logo or favicon as folder icon of tenant folder -->
@@ -85,7 +85,9 @@
             <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode" />
             <separator/>
             <action id="refreshCurrentFile" class="com.icthh.xm.xmeplugin.actions.DeployCurrentFile" text="Update current file in memory"/>
+            <separator/>
             <action id="generate" class="com.icthh.xm.xmeplugin.actions.GenerateAction" text="Generate entity typeKey constants" />
+            <separator/>
         </group>
 
         <action id="deployToEnvSelectorOldUi" class="com.icthh.xm.xmeplugin.actions.DeployEnvSelector"
@@ -125,6 +127,11 @@
             <add-to-group group-id="MainToolbarLeft" anchor="after" relative-to-action="MainSettingActionNewUiToolbar"/>
         </action>
     </actions>
+
+    <extensions defaultExtensionNs="JavaScript">
+        <JsonSchema.ProviderFactory implementation="com.icthh.xm.xmeplugin.yaml.exts.YamlJsonSchemaContributor" />
+        <JsonSchema.ProviderFactory implementation="com.icthh.xm.xmeplugin.yaml.exts.YamlJsonSchemaInFieldContributor" />
+    </extensions>
 
 
     <extensions defaultExtensionNs="org.intellij.groovy">

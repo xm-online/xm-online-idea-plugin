@@ -1,6 +1,6 @@
 specifications:
 - key: xmentityspec
-  jsonSchemaUri: # path to the json schema file
+  jsonSchemaUrl: "classpath:specs/xmentityschema.json" # path to the json schema file
   fileAntPatterns: # notice: lookup only in current tenant folder
     - "**/entity/xmentityspec.yml"
     - "**/entity/xmentityspec/*.yml"
@@ -11,8 +11,28 @@ specifications:
       # this string will be evaluated as es string template
       errorMessageTemplate: "Duplication entity typeKey '${context.yamlNode.value}'"
       severity: ERROR # INFO, WARNING, ERROR
+#  autocompletes:
+#    - key: xmentityspec-link-type
+  injections:
+    - elementPath: types[].dataSpec
+      language: JSON
+      jsonSchemaUrl: "classpath:specs/json-schema.json"
+    - elementPath: types[].dataForm
+      language: JSON
+    - elementPath: definitions[].value
+      language: JSON
+    - elementPath: forms[].value
+      language: JSON
+    - elementPath: types[].functions[].inputSpec
+      language: JSON
+    - elementPath: types[].functions[].inputForm
+      language: JSON
+    - elementPath: types[].states[].next[].inputSpec
+      language: JSON
+    - elementPath: types[].states[].next[].inputForm
+      language: JSON
   references:
-    - key: xmentityspec-XmEntity-Save-lep
+    - key: XmEntity-Save-lep
       elementPath: types[].key
       reference:
         type: file # file | element
@@ -28,27 +48,25 @@ specifications:
       # language=javascript
       action: context.createTenantFile(`/entity/lep/Save$$${context.yamlNode.value}.groovy`, `return null`)
       actionMessageTemplate: "Create entity save lep 'Save$$${context.yamlNode.value}.groovy'"
-    - key: xmentityspec-nextState-to-State
+    - key: nextState-to-State
       elementPath: types[].states[].next[].stateKey
       reference:
         type: element # file | element
         required: true
-        useForCompletion: true # available only for element type references
         elementPathTemplates:
           - "types[key='${context.yamlNode.parent.parent.parent.parent.parent.value.key}'].states[].key('${context.yamlNode.value}')"
       severity: ERROR
       errorMessageTemplate: "State key '${context.yamlNode.value}' not found"
-    - key: xmentityspec-Link-to-XmEntity
+    - key: Link-to-XmEntity-TypeKey
       elementPath: types[].links[].typeKey
       reference:
         type: element # file | element
         required: true
-        useForCompletion: true # available only for element type references
         elementPathTemplates:
           - "types[].key('${context.yamlNode.value}')"
       severity: ERROR
       errorMessageTemplate: "Entity typeKey '${context.yamlNode.value}' not found"
-    - key: xmentityspec-XmEntity-Function-lep
+    - key: XmEntity-Function-lep
       elementPath: types[].functions[].key
       reference:
         type: file # file | element
@@ -73,8 +91,8 @@ jsFunctions:
         var yamlNode = context.yamlNode;
         const value = yamlNode.value;
         const nameIndex = value.lastIndexOf('/');
-        const isWithEntityId = yamlNode.parent.withEntityId;
-        const anonymous = yamlNode.parent.anonymous;
+        const isWithEntityId = yamlNode.parent.value.withEntityId;
+        const anonymous = yamlNode.parent.value.anonymous;
         let name = value.substring(nameIndex + 1);
         name = translateToLepConvention ? context.translateToLepConvention(name) : name;
         let prefix = 'Function';

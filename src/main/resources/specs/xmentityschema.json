@@ -135,6 +135,22 @@
                 "validateFunctionInput" : {
                   "type" : "boolean"
                 },
+                "txType" : {
+                  "type" : "string",
+                  "enum" : [ "NO_TX", "READ_ONLY", "TX" ]
+                },
+                "tags" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                },
+                "httpMethods" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                },
                 "dynamicPrivilegeKey" : {
                   "type" : "string"
                 },

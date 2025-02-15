@@ -1,4 +1,5 @@
 import com.icthh.xm.xmeplugin.utils.*
+import com.icthh.xm.xmeplugin.yaml.exts.YamlJsonSchemaContributor
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
@@ -9,11 +10,15 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.jetbrains.rd.util.ConcurrentHashMap
-import java.io.File
-import java.io.InputStream
+import java.io.*
+import java.net.MalformedURLException
+import java.net.URI
+import java.net.URISyntaxException
+import java.net.URL
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Paths
+
 
 val TENANT_NAME: Key<String> = Key.create("TENANT_NAME")
 
@@ -253,6 +258,36 @@ private fun Project.createCommonsSymlink(tenantsPath: String, sourceType: String
         File(lepPath).mkdirs()
         log.info("${fromTest} -> ${lepPath}/${sourceType}")
         Files.createSymbolicLink(File("${lepPath}/${sourceType}").toPath(), fromTest.toPath())
+    }
+}
+
+fun Project.convertPathToUrl(path: String?): URL? {
+    if (path == null) {
+        return null
+    }
+
+    if (path.startsWith("classpath:")) {
+        return YamlJsonSchemaContributor::class.java.classLoader.getResource(path.substringAfter("classpath:"))
+    }
+
+    try {
+        try {
+            return URI(path).toURL()
+        } catch (e: Exception) {
+            if (e !is URISyntaxException && e !is MalformedURLException) {
+                throw e
+            }
+
+            var file = File(path)
+            if (!file.isAbsolute) {
+                val projectBase = basePath
+                file = File(projectBase, path)
+            }
+            return file.toURI().toURL()
+        }
+    } catch (ex: IOException) {
+        log.warn("Error reading file $path", ex)
+        return null
     }
 }
 

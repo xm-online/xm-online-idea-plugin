@@ -1,19 +1,33 @@
 package com.icthh.xm.xmeplugin.yaml
 
+import com.icthh.xm.xmeplugin.utils.AntPathMatcher
+
 // Top-level configuration object
 class XmePluginSpec {
     var specifications: MutableList<Specification> = mutableListOf()
     var jsFunctions: MutableList<JsFunction> = mutableListOf()
 }
 
-// Represents the "files" section
+private val antMatcher = AntPathMatcher()
+
 class Specification (
     val key: String,
-    var jsonSchemaUri: String? = null,
-    var fileAntPatterns: List<String> = mutableListOf(),
+    var jsonSchemaUrl: String? = null,
+    private var fileAntPatterns: List<String> = mutableListOf(),
     var inspections: List<Inspection> = mutableListOf(),
-    var references: List<ReferenceEntry> = mutableListOf()
-)
+    var references: List<ReferenceEntry> = mutableListOf(),
+    var injections: List<LanguageInjection> = mutableListOf()
+) {
+    fun matchPath(path: String): Boolean {
+        return fileAntPatterns.any { antMatcher.match("/" + it.trimStart('/'), path) }
+    }
+}
+
+class LanguageInjection {
+    var language: String? = null
+    var elementPath: String? = null
+    var jsonSchemaUrl: String? = null
+}
 
 open class LocalInspection {
     var key: String? = null

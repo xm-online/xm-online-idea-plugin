@@ -1,17 +1,17 @@
 package com.icthh.xm.xmeplugin.toolWindow
 
 import com.icthh.xm.xmeplugin.utils.isSupportProject
-import com.icthh.xm.xmeplugin.webview.WebDialog
+import com.icthh.xm.xmeplugin.utils.showErrorNotification
+import com.icthh.xm.xmeplugin.yaml.xmePluginSpecService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.content.ContentFactory
-import com.sun.java.accessibility.util.AWTEventMonitor.addActionListener
 import javax.swing.JButton
 
 
-class MyToolWindowFactory : ToolWindowFactory {
+class XmePluginToolWindowFactory : ToolWindowFactory {
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val myToolWindow = MyToolWindow(toolWindow)
@@ -23,14 +23,15 @@ class MyToolWindowFactory : ToolWindowFactory {
 
     class MyToolWindow(val toolWindow: ToolWindow) {
         fun getContent() = JBPanel<JBPanel<*>>().apply {
-            add(JButton("Test button").apply {
+            add(JButton("Refresh plugin configuration").apply {
                 addActionListener {
-
-                }
-            })
-            add(JButton("Run action").apply {
-                addActionListener {
-
+                    try {
+                        toolWindow.project.xmePluginSpecService.updateCustomConfig()
+                    } catch (e: Exception) {
+                        toolWindow.project.showErrorNotification("Error on update plugin configuration") {
+                            e.toString()
+                        }
+                    }
                 }
             })
         }
