@@ -131,7 +131,7 @@ fun VirtualFile.getServiceName(project: Project): String? {
 fun PsiFile.getTenantName(): String {
     var tenantName = getUserData(TENANT_NAME)
     if (tenantName == null) {
-        tenantName = virtualFile.getTenantName(project)
+        tenantName = virtualFile().getTenantName(project)
         putUserData(TENANT_NAME, tenantName)
     }
     return tenantName
@@ -143,7 +143,7 @@ fun PsiFile.getTenantFolder(): String {
 }
 
 fun PsiFile.getServiceName(): String? {
-    return virtualFile.getServiceName(project)
+    return virtualFile().getServiceName(project)
 }
 
 fun VirtualFile.isConfigFile(project: Project): Boolean {

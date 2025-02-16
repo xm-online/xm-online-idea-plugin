@@ -54,7 +54,7 @@ public class YamlContext {
         this.project = project;
     }
 
-    // Methods converted from the Kotlin code
+    // Methods available in js on context variable
 
     public void createTenantFile(String relativePathToConfigRepository, String body) {
         helper.createTenantFile(relativePathToConfigRepository, body);

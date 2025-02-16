@@ -11,8 +11,14 @@ specifications:
       # this string will be evaluated as es string template
       errorMessageTemplate: "Duplication entity typeKey '${context.yamlNode.value}'"
       severity: ERROR # INFO, WARNING, ERROR
-#  autocompletes:
-#    - key: xmentityspec-link-type
+  autocompletes:
+    - elementPath: types[].links[].typeKey
+      variantsPath: types[].key
+    - elementPath: types[].states[].next[].stateKey
+      variantsPath: "types[key='${context.yamlNode.parent.parent.parent.parent.parent.value.key}'].states[].key"
+    - elementPath: types[].functions[].allowedStateKeys[]
+      variantsPath: "types[key='${context.yamlNode.parent.parent.parent.parent.value.key}'].states[].key"
+      variants: ["NEVER"]
   injections:
     - elementPath: types[].dataSpec
       language: JSON

@@ -16,11 +16,20 @@ class Specification (
     private var fileAntPatterns: List<String> = mutableListOf(),
     var inspections: List<Inspection> = mutableListOf(),
     var references: List<ReferenceEntry> = mutableListOf(),
-    var injections: List<LanguageInjection> = mutableListOf()
+    var injections: List<LanguageInjection> = mutableListOf(),
+    var autocompletes: List<AutoComplete> = mutableListOf()
 ) {
     fun matchPath(path: String): Boolean {
         return fileAntPatterns.any { antMatcher.match("/" + it.trimStart('/'), path) }
     }
+}
+
+class AutoComplete {
+    var elementPath: String? = null
+    var variants: List<String>? = null
+    var variantsPath: String? = null
+    var variantsExpression: String? = null
+    var includeFunctions: List<String>? = null
 }
 
 class LanguageInjection {
@@ -60,7 +69,6 @@ class ReferenceDetail {
     var filePathTemplates: List<String>? = null
     var elementPathTemplates: List<String>? = null
     var required: Boolean? = null
-    var useForCompletion: Boolean? = null
 }
 
 // Represents a JavaScript function definition under "jsFunction"

@@ -124,6 +124,9 @@ fun PsiFile.containerFile(): PsiFile {
     return file
 }
 
+fun PsiFile.virtualFile(): VirtualFile {
+    return this.virtualFile ?: this.originalFile.virtualFile
+}
 
 fun YAMLKeyValue?.keyTextMatches(key: String): Boolean {
     return this?.key?.textMatches(key) ?: false

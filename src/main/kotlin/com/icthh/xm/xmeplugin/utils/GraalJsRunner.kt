@@ -43,6 +43,14 @@ class GraalJsRunner: Disposable {
         return script.execute(context)
     }
 
+    fun runJsScriptWithResult(function: String, sourceCode: String, context: YamlContext): Any? {
+        val scriptTl = scripts.computeIfAbsent(sourceCode) { ThreadLocal() }
+        val script = scriptTl.getOrSet { createScript(function + "\n" + sourceCode) }
+        val ctx = executionContext.getOrSet { buildContext() }
+        val result = script.execute(context)
+        return copyToJavaLand(result, ctx)
+    }
+
     private fun createScript(sourceCode: String): Value {
         val ctx = executionContext.getOrSet { buildContext() }
         return ctx.eval("js", """(context) => { ${sourceCode} }""")

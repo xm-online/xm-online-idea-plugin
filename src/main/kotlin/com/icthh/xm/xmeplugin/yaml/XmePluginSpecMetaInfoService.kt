@@ -36,7 +36,7 @@ class XmePluginSpecMetaInfoService(val project: Project) {
                 is YAMLKeyValue ->
                     keys.add(YamlPathKey(current.keyText))
                 is YAMLSequenceItem ->
-                    keys.add(YamlPathArray(current.itemIndex, psi.containingFile.virtualFile.path))
+                    keys.add(YamlPathArray(current.itemIndex, psi.containingFile.virtualFile().path))
             }
             if (current is YAMLFile) break
             current = current.parent
@@ -76,7 +76,7 @@ class XmePluginSpecMetaInfoService(val project: Project) {
             files.mapNotNull {
                 try {
                     val fileState = it.withCache("info-${tenantName}-${it.name}") {
-                        YamlFileValue(it.virtualFile.path, mapOf("value" to it.readSpecYaml()))
+                        YamlFileValue(it.virtualFile().path, mapOf("value" to it.readSpecYaml()))
                     }
                     it.putUserData(LAST_SPEC_STATE, fileState)
                 } catch (e: Exception) {

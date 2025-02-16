@@ -50,6 +50,19 @@ fun findElement(psiFile: PsiFile?, pattern: ElementPattern<out PsiElement?>): Li
     return result
 }
 
+fun findAllElements(psiFile: PsiFile?, pattern: ElementPattern<out PsiElement?>): List<PsiElement> {
+    val result = mutableListOf<PsiElement>()
+    PsiTreeUtil.processElements(psiFile, object : PsiElementProcessor<PsiElement?> {
+        override fun execute(element: PsiElement): Boolean {
+            if (pattern.accepts(element)) {
+                result.add(element)
+            }
+            return true
+        }
+    })
+    return result
+}
+
 private fun buildPattern(
     debugString: String,
     iterator: Iterator<YamlPatternToken>,

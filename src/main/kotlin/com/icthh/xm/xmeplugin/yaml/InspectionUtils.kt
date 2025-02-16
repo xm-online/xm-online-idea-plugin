@@ -31,6 +31,19 @@ fun runAction(
     project.jsRunner.runJsScript(functions, action, context)
 }
 
+fun runJsScriptWithResult(
+    context: YamlContext,
+    action: String?,
+    includeFunctions: List<String>?,
+    project: Project
+): Any? {
+    if (action.isNullOrBlank()) {
+        return null
+    }
+    val functions = project.xmePluginSpecService.getFunctions(includeFunctions ?: emptyList())
+    return project.jsRunner.runJsScriptWithResult(functions, action, context)
+}
+
 fun runMessageTemplate(
     context: YamlContext,
     errorMessageTemplate: String?,
