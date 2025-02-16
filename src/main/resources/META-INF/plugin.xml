@@ -12,6 +12,7 @@
     <depends>org.intellij.intelliLang</depends>
     <depends>org.intellij.groovy</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
+    <depends>com.intellij.modules.json</depends>
 
     <resource-bundle>messages.MessagesBundle</resource-bundle>
 
@@ -22,14 +23,13 @@
 
         <!-- xmentityspec start -->
         <!-- Listen update xmentityspec and invalidate spec info in memory -->
-<!--        <projectActivity implementation="com.icthh.xm.xmeplugin.XmEntityFileChangeListener" />-->
 
         <!-- Add color icons to xmentityspec "color" fields, and allow to use color picker -->
         <colorProvider implementation="com.icthh.xm.xmeplugin.extensions.xmentityspec.XmEntitySpecElementColorProvider" />
         <!-- Add icon preview marker to xmentityspec icons fields -->
         <codeInsight.lineMarkerProvider language="yaml" implementationClass="com.icthh.xm.xmeplugin.extensions.xmentityspec.XmEntityIconLineMarkerProvider" />
         <!-- Inject json syntax highlight to dataSpec/dataFrom/inputSpec/inputForm etc -->
-        <multiHostInjector implementation="com.icthh.xm.xmeplugin.extensions.xmentityspec.InputFromSpecJsonLanguageInjector" />
+        <languageInjectionContributor implementationClass="com.icthh.xm.xmeplugin.yaml.exts.YamlLanguageInjectionContributor" language="yaml"/>
         <!-- xmentityspec end -->
 
         <toolWindow factoryClass="com.icthh.xm.xmeplugin.toolWindow.XmePluginToolWindowFactory" id="XmeToolWindow" anchor="right">

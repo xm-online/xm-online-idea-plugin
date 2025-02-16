@@ -16,21 +16,25 @@ specifications:
   injections:
     - elementPath: types[].dataSpec
       language: JSON
-      jsonSchemaUrl: "classpath:specs/json-schema.json"
+      jsonSchemaUrl: "http://json-schema.org/draft-07/schema"
     - elementPath: types[].dataForm
       language: JSON
     - elementPath: definitions[].value
       language: JSON
+      jsonSchemaUrl: "classpath:specs/json-schema.json"
     - elementPath: forms[].value
       language: JSON
     - elementPath: types[].functions[].inputSpec
       language: JSON
+      jsonSchemaUrl: "classpath:specs/json-schema.json"
     - elementPath: types[].functions[].inputForm
       language: JSON
     - elementPath: types[].states[].next[].inputSpec
       language: JSON
+      jsonSchemaUrl: "classpath:specs/json-schema.json"
     - elementPath: types[].states[].next[].inputForm
       language: JSON
+      jsonSchemaUrl: "classpath:specs/json-schema.json"
   references:
     - key: XmEntity-Save-lep
       elementPath: types[].key

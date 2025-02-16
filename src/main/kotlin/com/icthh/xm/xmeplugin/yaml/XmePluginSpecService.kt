@@ -6,6 +6,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.icthh.xm.xmeplugin.utils.*
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -14,6 +15,7 @@ import com.intellij.patterns.ElementPattern
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
+import com.intellij.util.FileContentUtil
 import com.jetbrains.jsonSchema.ide.JsonSchemaService
 import getTenantName
 import toVirtualFile
@@ -56,9 +58,17 @@ class XmePluginSpecService(val project: Project) {
         specsByFile.clear()
         joinSpecs(xmePluginSpec)
         loadAllFiles()
-        DaemonCodeAnalyzer.getInstance(project).restart();
+        filesBySpec.forEach { (tenant, value) ->
+            value.forEach { (spec, files) ->
+                files.forEach { file ->
+                    InjectedLanguageManager.getInstance(project).dropFileCaches(file)
+                    InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(file)
+                }
+            }
+        }
         PsiManager.getInstance(project).dropResolveCaches();
         JsonSchemaService.Impl.get(project).reset();
+        DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
     fun updateCustomConfig() {

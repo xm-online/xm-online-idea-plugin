@@ -58,8 +58,14 @@ class YamlReferenceContributor : PsiReferenceContributor() {
 
 
     private fun yamlReferenceProvider() = object : PsiReferenceProvider() {
-        override fun getReferencesByElement(element: PsiElement, context: ProcessingContext): Array<PsiReference> {
-            if (element !is YAMLScalar) return PsiReference.EMPTY_ARRAY
+        override fun getReferencesByElement(psiElement: PsiElement, context: ProcessingContext): Array<PsiReference> {
+            val element = if (psiElement is YAMLScalar) {
+                psiElement
+            } else if (psiElement is YAMLKeyValue && psiElement.value is YAMLScalar) {
+                psiElement.value as YAMLScalar
+            } else {
+                return PsiReference.EMPTY_ARRAY
+            }
 
             val project = element.project
             val references = mutableListOf<PsiReference>()
@@ -69,7 +75,7 @@ class YamlReferenceContributor : PsiReferenceContributor() {
                 }.forEach { ref ->
                     try {
                         val nodeContext = project.xmePluginSpecMetaInfoService.getYamlContext(element, spec.key)
-                        nodeContext?.let { computeReferences(spec, ref, references, element, element, nodeContext) }
+                        nodeContext?.let { computeReferences(spec, ref, references, psiElement, element, nodeContext) }
                     } catch (e: Exception) {
                         if (e is ControlFlowException) {
                             throw e
