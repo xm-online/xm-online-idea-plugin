@@ -68,7 +68,7 @@ class YamlCompletionContributor : CompletionContributor() {
                     autoComplete.variantsExpression?.let {
                         val variants = runJsScriptWithResult(
                             nodeContext,
-                            autoComplete.variantsPath,
+                            it,
                             autoComplete.includeFunctions,
                             project
                         ) ?: return@let

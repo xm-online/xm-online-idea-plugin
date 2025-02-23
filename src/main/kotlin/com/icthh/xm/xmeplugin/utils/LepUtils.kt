@@ -64,6 +64,6 @@ private fun createLepFile(
     project: Project,
     pathToLep: String = ""
 ) {
-    createProjectFile(lepDirectory + pathToLep, lepName, project, "return null")
+    createProjectFile(lepDirectory + pathToLep, lepName, project, "return null", true)
 }
 

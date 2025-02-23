@@ -56,8 +56,12 @@ public class YamlContext {
 
     // Methods available in js on context variable
 
+    public void createTenantFile(String relativePathToConfigRepository, String body, boolean navigate) {
+        helper.createTenantFile(relativePathToConfigRepository, body, navigate);
+    }
+
     public void createTenantFile(String relativePathToConfigRepository, String body) {
-        helper.createTenantFile(relativePathToConfigRepository, body);
+        createTenantFile(relativePathToConfigRepository, body, false);
     }
 
     public String getTenantName() {
@@ -73,7 +77,11 @@ public class YamlContext {
     }
 
     public void createFile(String relativePathToConfigRepository, String body) {
-        helper.createFile(relativePathToConfigRepository, body);
+        createFile(relativePathToConfigRepository, body, false);
+    }
+
+    public void createFile(String relativePathToConfigRepository, String body, boolean navigate) {
+        helper.createFile(relativePathToConfigRepository, body, navigate);
     }
 
     public boolean isFileExists(String relativePathToConfigRepository) {

@@ -22,9 +22,9 @@ data class YamlContextHelper(
     private var tenantName: String = psiElement.containingFile.getTenantName()
     private var serviceName: String = psiElement.containingFile.getServiceName() ?: ""
 
-    fun createTenantFile(relativePathToConfigRepository: String, body: String?) {
+    fun createTenantFile(relativePathToConfigRepository: String, body: String?, navigate: Boolean) {
         val path = relativePathToConfigRepository.trimStart('/')
-        createFile("/config/tenants/${getTenantName()}/$path", body ?: "")
+        createFile("/config/tenants/${getTenantName()}/$path", body ?: "", navigate)
     }
 
     fun getTenantName(): String {
@@ -44,14 +44,14 @@ data class YamlContextHelper(
         return key.replace("-".toRegex(), "_").replace(".", "$")
     }
 
-    fun createFile(relativePathToConfigRepository: String, body: String) {
+    fun createFile(relativePathToConfigRepository: String, body: String, navigate: Boolean) {
         if (!relativePathToConfigRepository.startsWith("/config")) {
             log.error("Path have to be relative to config repository and start with /config")
             throw IllegalArgumentException("Path have to be relative to config repository and start with /config")
         }
         val directory = project.getConfigRootDir() + relativePathToConfigRepository.substringAfter("/config")
         val file = File(directory)
-        createFile(file.getParent(), file.getName(), project, body)
+        createFile(file.getParent(), file.getName(), project, body, navigate)
     }
 
     fun navigate(relativePathToConfigRepository: String) {

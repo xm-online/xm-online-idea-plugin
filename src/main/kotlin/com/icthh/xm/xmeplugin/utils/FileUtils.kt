@@ -37,7 +37,8 @@ fun createProjectFile(
     directory: String,
     name: String,
     project: Project,
-    body: String
+    body: String,
+    navigate: Boolean
 ) {
     project.doAsync {
         File(directory).mkdirs()
@@ -47,6 +48,9 @@ fun createProjectFile(
         }
         file.writeText(body)
         project.addToGit(file)
+        if (navigate) {
+            navigate(project, file.absolutePath)
+        }
     }
 }
 
