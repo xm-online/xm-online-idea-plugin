@@ -24,7 +24,7 @@ class YamlJsonSchemaContributor: JsonSchemaProviderFactory {
                 val schemaUrl = project.convertPathToUrl(it.jsonSchemaUrl)
                 if (schemaUrl != null) {
                     val schemaPath = downloadFileContent(schemaUrl.toString())
-                    val schemaFile = VfsUtil.findFile(Paths.get(schemaPath), true)
+                    val schemaFile = VfsUtil.findFile(Paths.get(schemaPath), false)
                     object: JsonSchemaFileProvider {
                         override fun isAvailable(file: VirtualFile) = it.matchPath(file.path)
                         override fun getSchemaFile() = schemaFile
@@ -49,7 +49,7 @@ class YamlJsonSchemaInFieldContributor: JsonSchemaProviderFactory {
                     null
                 } else {
                     val schemaPath = downloadFileContent(schemaUrl.toString())
-                    val schemaFile = VfsUtil.findFile(Paths.get(schemaPath), true)
+                    val schemaFile = VfsUtil.findFile(Paths.get(schemaPath), false)
                     object : JsonSchemaFileProvider {
                         override fun isAvailable(file: VirtualFile): Boolean {
                             if (file is LightVirtualFile) {

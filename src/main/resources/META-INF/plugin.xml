@@ -53,11 +53,6 @@
                                 order="first"/>
         <gotoDeclarationHandler implementation="com.icthh.xm.xmeplugin.extensions.TenantConfigGotoDeclarationHandler" />
 
-        <!-- Reference from scheduler typeKey to file handler -->
-        <psi.referenceContributor implementation="com.icthh.xm.xmeplugin.extensions.HandlerReferenceContributor"
-                                  language="yaml"/>
-
-
         <!-- хз для чогось треба, але не пам'ятаю для чого -->
         <json.catalog.exclusion implementation="com.icthh.xm.xmeplugin.extensions.xmentityspec.XmEntitySpecSchemaExclusion" />
 
@@ -88,9 +83,13 @@
             <separator/>
             <action id="refreshCurrentFile" class="com.icthh.xm.xmeplugin.actions.DeployCurrentFile" text="Update current file in memory"/>
             <separator/>
-            <action id="generate" class="com.icthh.xm.xmeplugin.actions.GenerateAction" text="Generate entity typeKey constants" />
+            <separator/>
+            <separator/>
+            <group id="XmeYamlFileActionsGroup" class="com.icthh.xm.xmeplugin.yaml.actions.ActionGroup" />
             <separator/>
         </group>
+
+
 
         <action id="deployToEnvSelectorOldUi" class="com.icthh.xm.xmeplugin.actions.DeployEnvSelector"
                 text="Deploy Envs">

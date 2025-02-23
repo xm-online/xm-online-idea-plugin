@@ -17,7 +17,8 @@ class Specification (
     var inspections: List<Inspection> = mutableListOf(),
     var references: List<ReferenceEntry> = mutableListOf(),
     var injections: List<LanguageInjection> = mutableListOf(),
-    var autocompletes: List<AutoComplete> = mutableListOf()
+    var autocompletes: List<AutoComplete> = mutableListOf(),
+    var actions: List<Action> = mutableListOf()
 ) {
     fun matchPath(path: String): Boolean {
         return fileAntPatterns.any { antMatcher.match("/" + it.trimStart('/'), path) }
@@ -36,6 +37,24 @@ class LanguageInjection {
     var language: String? = null
     var elementPath: String? = null
     var jsonSchemaUrl: String? = null
+}
+
+open class Action {
+    var key: String? = null
+    var nameTemplate: String? = null
+
+    var elementPath: String? = null // optional
+    var condition: String? = null // optional
+
+    var action: String? = null
+    var includeFunctions: List<String>? = null
+
+    var successMessageTemplate: String? = null
+    var successActions: List<SuccessAction> = mutableListOf()
+    open class SuccessAction {
+        var action: String? = null
+        var actionNameTemplate: String? = null
+    }
 }
 
 open class LocalInspection {

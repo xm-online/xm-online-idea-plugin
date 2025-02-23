@@ -50,7 +50,7 @@ class XmePluginSpecService(val project: Project) {
             return
         }
         this.embeddedSpec = xmePluginSpec
-        reload(XmePluginSpec())
+        updateCustomConfig()
     }
 
     private fun reload(xmePluginSpec: XmePluginSpec) {
@@ -75,14 +75,14 @@ class XmePluginSpecService(val project: Project) {
         val basePath = project.basePath ?: return
         val pathToConfig = basePath.trimEnd('/') + "/xme-plugin"
         if (!File(pathToConfig).exists()) {
+            reload(XmePluginSpec())
             return
         }
         val registerKotlinModule = ObjectMapper(YAMLFactory()).registerKotlinModule()
-        val spec = File(pathToConfig).walk().filter { it.extension == "yml" }
+        val specs = File(pathToConfig).walk().toList().filter { it.extension == "yml" }
             .map { it.readText() }
             .map { registerKotlinModule.readValue<XmePluginSpec>(it) }
-            .reduce { acc, x -> joinSpec(acc, x) }
-
+        val spec = if (specs.isEmpty()) XmePluginSpec() else specs.reduce { acc, x -> joinSpec(acc, x) }
         reload(spec)
     }
 

@@ -47,7 +47,17 @@ fun createProjectFile(
         }
         file.writeText(body)
         project.addToGit(file)
-        val virtualFile = VfsUtil.findFileByIoFile(file, true) ?: return@doAsync
+    }
+}
+
+fun navigate(project: Project, path: String) {
+    project.doAsync {
+        val filePath = if (path.startsWith("/config")) {
+            project.toAbsolutePath(path)
+        } else {
+            path
+        }
+        val virtualFile = VfsUtil.findFileByIoFile(File(filePath), true) ?: return@doAsync
         invokeLater {
             OpenFileDescriptor(project, virtualFile).navigate(true)
         }
@@ -281,7 +291,7 @@ fun Project.convertPathToUrl(path: String?): URL? {
             var file = File(path)
             if (!file.isAbsolute) {
                 val projectBase = basePath
-                file = File(projectBase, path)
+                file = File("$projectBase/xme-plugin", path)
             }
             return file.toURI().toURL()
         }

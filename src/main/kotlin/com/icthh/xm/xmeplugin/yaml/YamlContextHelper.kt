@@ -6,7 +6,9 @@ import com.icthh.xm.xmeplugin.utils.log
 import com.intellij.openapi.project.Project
 import getServiceName
 import getTenantName
+import navigate
 import org.jetbrains.yaml.psi.YAMLValue
+import toAbsolutePath
 import java.io.File
 import createProjectFile as createFile
 
@@ -14,8 +16,11 @@ data class YamlContextHelper(
     var psiElement: YAMLValue,
     var fullSpec: Any?,
     var yamlNode: YamlNode,
-    var project: Project
+    var project: Project,
 ) {
+
+    private var tenantName: String = psiElement.containingFile.getTenantName()
+    private var serviceName: String = psiElement.containingFile.getServiceName() ?: ""
 
     fun createTenantFile(relativePathToConfigRepository: String, body: String?) {
         val path = relativePathToConfigRepository.trimStart('/')
@@ -23,11 +28,15 @@ data class YamlContextHelper(
     }
 
     fun getTenantName(): String {
-        return psiElement.containingFile.getTenantName()
+        return tenantName
     }
 
-    fun getServiceName(): String? {
-        return psiElement.containingFile.getServiceName()
+    fun getServiceName(): String {
+        return serviceName
+    }
+
+    fun toAbsolutePath(relativePathToConfigRepository: String): String {
+        return project.toAbsolutePath(relativePathToConfigRepository)
     }
 
     fun translateToLepConvention(key: String?): String {
@@ -43,6 +52,10 @@ data class YamlContextHelper(
         val directory = project.getConfigRootDir() + relativePathToConfigRepository.substringAfter("/config")
         val file = File(directory)
         createFile(file.getParent(), file.getName(), project, body)
+    }
+
+    fun navigate(relativePathToConfigRepository: String) {
+        navigate(project, relativePathToConfigRepository)
     }
 
     fun toMap(): Map<String, Any?> {

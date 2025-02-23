@@ -76,4 +76,11 @@ public class YamlContext {
         helper.createFile(relativePathToConfigRepository, body);
     }
 
+    public boolean isFileExists(String relativePathToConfigRepository) {
+        return new File(helper.toAbsolutePath(relativePathToConfigRepository)).exists();
+    }
+
+    public void navigate(String path) {
+        helper.navigate(path);
+    }
 }

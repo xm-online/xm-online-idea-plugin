@@ -1,5 +1,5 @@
 specifications:
-- key: xmentityspec
+- key: default-xmentityspec
   jsonSchemaUrl: "classpath:specs/xmentityschema.json" # path to the json schema file
   fileAntPatterns: # notice: lookup only in current tenant folder
     - "**/entity/xmentityspec.yml"
@@ -11,6 +11,17 @@ specifications:
       # this string will be evaluated as es string template
       errorMessageTemplate: "Duplication entity typeKey '${context.yamlNode.value}'"
       severity: ERROR # INFO, WARNING, ERROR
+  actions:
+    - key: generateEntityTypeKeys
+      nameTemplate: Generate entity typeKey constants
+      action: "generateEntityTypeKey(context);"
+      includeFunctions:
+        - generateEntityTypeKey
+        - translateKeyToFieldName
+      successMessageTemplate: "Entity type keys generated successfully"
+      successActions:
+        - actionNameTemplate: Open file
+          action: context.navigate(`/config/tenants/${context.getTenantName()}/entity/lep/commons/generated/EntityTypeKeys.groovy`)
   autocompletes:
     - elementPath: types[].links[].typeKey
       variantsPath: types[].key
@@ -110,4 +121,30 @@ jsFunctions:
         prefix = anonymous ? 'AnonymousFunction' : prefix;
         var pathToFunction = nameIndex > 0 ? value.substring(0, nameIndex) + "/" : "";
         return pathToFunction + prefix + "$$" + name;
+    }
+- key: generateEntityTypeKey
+  # language=javascript
+  body: |
+    function generateEntityTypeKey(context) {
+        const fields = context.fullSpec.types
+            .map(type => type.key)
+            .map(key => `    public static String ${translateKeyToFieldName(key)} = "${key}";\n`).join("")
+        const path = `/config/tenants/${context.getTenantName()}/entity/lep/commons/generated/EntityTypeKeys`;
+        let suffix = '$$tenant.groovy';
+        if (!context.isFileExists(path + suffix)) {
+            suffix = '.groovy';
+        }
+        context.createFile(path + suffix,
+    `package ${context.getTenantName()}.entity.lep.commons.generated;\n\n
+    class EntityTypeKeys {
+    ${fields}
+    }`);
+        context.navigate(path + suffix);
+    }
+- key: translateKeyToFieldName
+  # language=javascript
+  body: |
+    function translateKeyToFieldName(key) {
+        key = key || "";
+        return key.replaceAll("-", "_").replaceAll(".", "$");
     }
