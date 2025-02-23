@@ -284,14 +284,14 @@ fun Project.convertPathToUrl(path: String?): URL? {
         try {
             return URI(path).toURL()
         } catch (e: Exception) {
-            if (e !is URISyntaxException && e !is MalformedURLException) {
+            if (e !is URISyntaxException && e !is MalformedURLException && e !is IllegalArgumentException) {
                 throw e
             }
 
             var file = File(path)
             if (!file.isAbsolute) {
                 val projectBase = basePath
-                file = File("$projectBase/xme-plugin", path)
+                file = File(File("$projectBase/xme-plugin", path).canonicalPath)
             }
             return file.toURI().toURL()
         }

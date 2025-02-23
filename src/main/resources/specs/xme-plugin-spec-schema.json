@@ -1,0 +1,178 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "XmePluginSpec",
+  "type": "object",
+  "properties": {
+    "specifications": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Specification" }
+    },
+    "jsFunctions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/JsFunction" }
+    }
+  },
+  "required": ["specifications"],
+  "additionalProperties": false,
+  "definitions": {
+    "Specification": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "jsonSchemaUrl": { "type": "string" },
+        "fileAntPatterns": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "inspections": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Inspection" }
+        },
+        "references": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ReferenceEntry" }
+        },
+        "injections": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/LanguageInjection" }
+        },
+        "autocompletes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AutoComplete" }
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        }
+      },
+      "required": ["key"],
+      "additionalProperties": false
+    },
+    "AutoComplete": {
+      "type": "object",
+      "properties": {
+        "elementPath": { "type": "string" },
+        "variants": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "variantsPath": { "type": "string" },
+        "variantsExpression": { "type": "string" },
+        "includeFunctions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["elementPath"],
+      "additionalProperties": false
+    },
+    "LanguageInjection": {
+      "type": "object",
+      "properties": {
+        "language": { "type": "string" },
+        "elementPath": { "type": "string" },
+        "jsonSchemaUrl": { "type": "string" }
+      },
+      "required": ["language","elementPath"],
+      "additionalProperties": false
+    },
+    "Action": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "nameTemplate": { "type": "string" },
+        "elementPath": { "type": "string" },
+        "condition": { "type": "string" },
+        "action": { "type": "string" },
+        "includeFunctions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "successMessageTemplate": { "type": "string" },
+        "successActions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ActionSuccessAction" }
+        }
+      },
+      "required": ["key","nameTemplate"],
+      "additionalProperties": false
+    },
+    "ActionSuccessAction": {
+      "type": "object",
+      "properties": {
+        "action": { "type": "string" },
+        "actionNameTemplate": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "LocalInspection": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "elementPath": { "type": "string" },
+        "errorMessageTemplate": { "type": "string" },
+        "severity": { "$ref": "#/definitions/Severity" },
+        "includeFunctions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "action": { "type": "string" },
+        "actionMessageTemplate": { "type": "string" }
+      },
+      "required": ["key","elementPath"],
+      "additionalProperties": false
+    },
+    "Inspection": {
+      "allOf": [
+        { "$ref": "#/definitions/LocalInspection" },
+        {
+          "type": "object",
+          "properties": {
+            "condition": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Severity": {
+      "type": "string",
+      "enum": ["INFO", "WARN", "ERROR"]
+    },
+    "ReferenceEntry": {
+      "allOf": [
+        { "$ref": "#/definitions/LocalInspection" },
+        {
+          "type": "object",
+          "properties": {
+            "reference": { "$ref": "#/definitions/ReferenceDetail" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ReferenceDetail": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "filePathTemplates": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "elementPathTemplates": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "required": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "JsFunction": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "body": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

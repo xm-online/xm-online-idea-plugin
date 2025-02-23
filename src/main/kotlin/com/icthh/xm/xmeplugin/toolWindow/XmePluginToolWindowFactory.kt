@@ -29,9 +29,10 @@ class XmePluginToolWindowFactory : ToolWindowFactory {
                 addActionListener {
                     invokeLater {
                         try {
-                            toolWindow.project.xmePluginSpecService.updateCustomConfig()
-                            toolWindow.project.showInfoNotification("Plugin configuration updated") {
-                                "Plugin configuration updated successfully"
+                            toolWindow.project.xmePluginSpecService.updateCustomConfig() {
+                                toolWindow.project.showInfoNotification("Plugin configuration updated") {
+                                    "Plugin configuration updated successfully"
+                                }
                             }
                         } catch (e: Exception) {
                             toolWindow.project.showErrorNotification("Error on update plugin configuration") {

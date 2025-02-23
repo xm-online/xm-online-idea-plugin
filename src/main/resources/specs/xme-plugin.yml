@@ -1,4 +1,19 @@
 specifications:
+- key: default-xme-plugin-spec
+  jsonSchemaUrl: "classpath:specs/xme-plugin-spec-schema.json"
+  fileAntPatterns:
+    - "/xme-plugin/*.yml"
+  injections:
+    - elementPath: jsFunctions[].body
+      language: javascript
+    - elementPath: specifications[].inspections[].condition
+      language: javascript
+  inspections:
+    - key: unique-specifications
+      elementPath: specifications[].key # path to the target element
+      condition: context.fullSpec.specifications.filter(it => it.key == context.yamlNode.value).length > 1
+      errorMessageTemplate: "Duplication specifications key '${context.yamlNode.value}'"
+      severity: ERROR # INFO, WARNING, ERROR
 - key: default-xmentityspec
   jsonSchemaUrl: "classpath:specs/xmentityschema.json" # path to the json schema file
   fileAntPatterns: # notice: lookup only in current tenant folder

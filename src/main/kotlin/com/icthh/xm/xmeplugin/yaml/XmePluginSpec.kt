@@ -1,6 +1,8 @@
 package com.icthh.xm.xmeplugin.yaml
 
 import com.icthh.xm.xmeplugin.utils.AntPathMatcher
+import com.intellij.openapi.project.Project
+import toRelatedPath
 
 // Top-level configuration object
 class XmePluginSpec {
@@ -20,8 +22,9 @@ class Specification (
     var autocompletes: List<AutoComplete> = mutableListOf(),
     var actions: List<Action> = mutableListOf()
 ) {
-    fun matchPath(path: String): Boolean {
-        return fileAntPatterns.any { antMatcher.match("/" + it.trimStart('/'), path) }
+    fun matchPath(project: Project, path: String): Boolean {
+        val basePath = project.basePath ?: return false
+        return fileAntPatterns.any { antMatcher.match("/" + it.trimStart('/'), path.substringAfter(basePath)) }
     }
 }
 

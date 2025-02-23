@@ -7,9 +7,9 @@ import java.net.HttpURLConnection
 import java.net.URI
 import javax.net.ssl.*
 
-val cache = ConcurrentHashMap<String, String>()
+val filecache = ConcurrentHashMap<String, String>()
 fun downloadFileContent(urlString: String): String {
-    return cache.getOrPut(urlString) {
+    return filecache.getOrPut(urlString) {
         val fileContext = readUrlContentInternal(urlString)
         val fileName = urlString.encodeBase64() + ".json"
         val path = "/tmp/$fileName"

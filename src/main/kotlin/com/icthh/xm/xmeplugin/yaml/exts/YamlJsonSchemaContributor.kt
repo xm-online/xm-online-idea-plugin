@@ -26,7 +26,7 @@ class YamlJsonSchemaContributor: JsonSchemaProviderFactory {
                     val schemaPath = downloadFileContent(schemaUrl.toString())
                     val schemaFile = VfsUtil.findFile(Paths.get(schemaPath), false)
                     object: JsonSchemaFileProvider {
-                        override fun isAvailable(file: VirtualFile) = it.matchPath(file.path)
+                        override fun isAvailable(file: VirtualFile) = it.matchPath(project, file.path)
                         override fun getSchemaFile() = schemaFile
                         override fun getSchemaType() = SchemaType.userSchema
                         override fun getName(): String = "Error file validation by json schema"

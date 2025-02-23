@@ -53,25 +53,30 @@ class XmePluginSpecService(val project: Project) {
         updateCustomConfig()
     }
 
-    private fun reload(xmePluginSpec: XmePluginSpec) {
-        filesBySpec.clear()
-        specsByFile.clear()
-        joinSpecs(xmePluginSpec)
-        loadAllFiles()
-        filesBySpec.forEach { (tenant, value) ->
-            value.forEach { (spec, files) ->
-                files.forEach { file ->
-                    InjectedLanguageManager.getInstance(project).dropFileCaches(file)
-                    InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(file)
+    private fun reload(xmePluginSpec: XmePluginSpec, after: () -> Unit = {}) {
+        project.doAsync {
+            filesBySpec.clear()
+            specsByFile.clear()
+            joinSpecs(xmePluginSpec)
+            loadAllFiles()
+
+            filecache.clear()
+            filesBySpec.forEach { (tenant, value) ->
+                value.forEach { (spec, files) ->
+                    files.forEach { file ->
+                        InjectedLanguageManager.getInstance(project).dropFileCaches(file)
+                        InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(file)
+                    }
                 }
             }
+            PsiManager.getInstance(project).dropResolveCaches();
+            JsonSchemaService.Impl.get(project).reset();
+            DaemonCodeAnalyzer.getInstance(project).restart();
+            after()
         }
-        PsiManager.getInstance(project).dropResolveCaches();
-        JsonSchemaService.Impl.get(project).reset();
-        DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
-    fun updateCustomConfig() {
+    fun updateCustomConfig(after: () -> Unit = {}) {
         val basePath = project.basePath ?: return
         val pathToConfig = basePath.trimEnd('/') + "/xme-plugin"
         if (!File(pathToConfig).exists()) {
@@ -83,7 +88,7 @@ class XmePluginSpecService(val project: Project) {
             .map { it.readText() }
             .map { registerKotlinModule.readValue<XmePluginSpec>(it) }
         val spec = if (specs.isEmpty()) XmePluginSpec() else specs.reduce { acc, x -> joinSpec(acc, x) }
-        reload(spec)
+        reload(spec, after)
     }
 
     fun parsePattern(pattern: String): ElementPattern<out PsiElement> {
@@ -97,21 +102,28 @@ class XmePluginSpecService(val project: Project) {
             val file = path.toString().toVirtualFile() ?: return@forEach
             fileAdded(file)
         }
+        val pluginSpecs = findYmlFiles(project.basePath + "/xme-plugin")
+        pluginSpecs.forEach { path ->
+            val file = path.toString().toVirtualFile() ?: return@forEach
+            fileAdded(file)
+        }
     }
 
     fun fileAdded(file: VirtualFile) {
-        runReadAction {
-            xmePluginSpec.specifications.filter { spec ->
-                spec.matchPath(file.path)
-            }.forEach {
-                val tenant = file.getTenantName(project)
-                val tenantSpecs = filesBySpec.computeIfAbsent(tenant) { ConcurrentHashMap() }
-                val toPsiFile = file.toPsiFile(project) ?: return@forEach
-                tenantSpecs.computeIfAbsent(it.key) { mutableSetOf() }.add(toPsiFile)
+        project.doAsync {
+            runReadAction {
+                xmePluginSpec.specifications.filter { spec ->
+                    spec.matchPath(project, file.path)
+                }.forEach {
+                    val tenant = file.getTenantName(project)
+                    val tenantSpecs = filesBySpec.computeIfAbsent(tenant) { ConcurrentHashMap() }
+                    val toPsiFile = file.toPsiFile(project) ?: return@forEach
+                    tenantSpecs.computeIfAbsent(it.key) { mutableSetOf() }.add(toPsiFile)
 
-                specsByFile.computeIfAbsent(tenant) { ConcurrentHashMap() }
-                    .computeIfAbsent(file.path) { mutableSetOf() }
-                    .add(it)
+                    specsByFile.computeIfAbsent(tenant) { ConcurrentHashMap() }
+                        .computeIfAbsent(file.path) { mutableSetOf() }
+                        .add(it)
+                }
             }
         }
     }
