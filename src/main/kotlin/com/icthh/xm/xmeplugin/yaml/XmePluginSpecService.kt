@@ -157,6 +157,9 @@ class XmePluginSpecService(val project: Project) {
     }
 
     private fun findYmlFiles(startDir: String): List<Path> {
+        if (!File(startDir).exists()) {
+            return emptyList()
+        }
         walk(Paths.get(startDir)).use { stream ->
             return stream
                 .filter { file -> !isDirectory(file) }
