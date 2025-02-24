@@ -2,6 +2,7 @@ package com.icthh.xm.xmeplugin.utils
 
 import com.jetbrains.rd.util.ConcurrentHashMap
 import io.ktor.util.*
+import org.apache.commons.codec.digest.DigestUtils
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URI
@@ -11,7 +12,7 @@ val filecache = ConcurrentHashMap<String, String>()
 fun downloadFileContent(urlString: String): String {
     return filecache.getOrPut(urlString) {
         val fileContext = readUrlContentInternal(urlString)
-        val fileName = urlString.encodeBase64() + ".json"
+        val fileName = DigestUtils.sha256Hex(urlString.encodeBase64() + fileContext.hashCode()) + ".json"
         val path = "/tmp/$fileName"
         File(path).writeText(fileContext)
         path
