@@ -13,11 +13,18 @@ import org.apache.commons.lang3.time.StopWatch
 import java.util.concurrent.TimeUnit
 
 class ReadConfigFileStartupActivity : ProjectActivity {
+
+    val specFiles = listOf("xme-plugin.yml", "scheduler-spec.yml")
+
     override suspend fun execute(project: Project) {
-        val configYaml = this::class.java.classLoader.getResource("specs/xme-plugin.yml")?.readText() ?: return
-        val pluginConfig: XmePluginSpec = ObjectMapper(YAMLFactory()).registerKotlinModule().readValue(configYaml)
-        log.info("Plugin config: $pluginConfig")
-        project.xmePluginSpecService.initByEmbedConfig(pluginConfig)
+        var config = XmePluginSpec()
+        specFiles.forEach {
+            val configYaml = this::class.java.classLoader.getResource("specs/${it}")?.readText() ?: return
+            val pluginConfig: XmePluginSpec = ObjectMapper(YAMLFactory()).registerKotlinModule().readValue(configYaml)
+            config = joinSpec(config, pluginConfig)
+        }
+        log.info("Plugin config: $config")
+        project.xmePluginSpecService.initByEmbedConfig(config)
     }
 
 }

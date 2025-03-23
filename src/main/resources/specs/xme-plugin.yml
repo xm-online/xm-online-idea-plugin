@@ -8,12 +8,72 @@ specifications:
       language: javascript
     - elementPath: specifications[].inspections[].condition
       language: javascript
+    - elementPath: specifications[].references[].action
+      language: javascript
+    - elementPath: specifications[].autocompletes[].variantsExpression
+      language: javascript
   inspections:
     - key: unique-specifications
       elementPath: specifications[].key # path to the target element
       condition: context.fullSpec.specifications.filter(it => it.key == context.yamlNode.value).length > 1
       errorMessageTemplate: "Duplication specifications key '${context.yamlNode.value}'"
-      severity: ERROR # INFO, WARNING, ERROR
+      severity: ERROR
+    - key: inspections-specifications
+      elementPath: specifications[].inspections[].key # path to the target element
+      condition: "getKeyCount(context, 'inspections')"
+      errorMessageTemplate: "Duplication inspections key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - getKeyCount
+    - key: references-specifications
+      elementPath: specifications[].references[].key # path to the target element
+      condition: "getKeyCount(context, 'references')"
+      errorMessageTemplate: "Duplication references key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - getKeyCount
+  autocompletes:
+    - elementPath: specifications[].inspections[].includeFunctions[]
+      variantsPath: "jsFunctions[].key"
+    - elementPath: specifications[].references[].includeFunctions[]
+      variantsPath: "jsFunctions[].key"
+    - elementPath: specifications[].autocompletes[].includeFunctions[]
+      variantsPath: "jsFunctions[].key"
+    - elementPath: specifications[].inspections[].severity
+      variants: ["INFO", "WARNING", "ERROR"]
+    - elementPath: specifications[].references[].reference.type
+      variants: ["file", "element"]
+  references:
+    - key: references-js-functions
+      elementPath: specifications[].references[].includeFunctions[]
+      reference:
+        type: element
+        required: true
+        elementPathTemplates:
+          - "jsFunctions[].key('${context.yamlNode.value}')"
+      severity: ERROR
+      errorMessageTemplate: "Function ${context.yamlNode.value} not found"
+    - key: autocompletes-js-functions
+      elementPath: specifications[].autocompletes[].includeFunctions[]
+      reference:
+        type: element
+        required: true
+        elementPathTemplates:
+          - "jsFunctions[].key('${context.yamlNode.value}')"
+      severity: ERROR
+      errorMessageTemplate: "Function ${context.yamlNode.value} not found"
+    - key: inspections-js-functions
+      elementPath: specifications[].inspections[].includeFunctions[]
+      reference:
+        type: element
+        required: true
+        elementPathTemplates:
+          - "jsFunctions[].key('${context.yamlNode.value}')"
+      severity: ERROR
+      errorMessageTemplate: "Function ${context.yamlNode.value} not found"
+
+#####
+
 - key: default-xmentityspec
   jsonSchemaUrl: "classpath:specs/xmentityschema.json" # path to the json schema file
   fileAntPatterns: # notice: lookup only in current tenant folder
@@ -162,4 +222,11 @@ jsFunctions:
     function translateKeyToFieldName(key) {
         key = key || "";
         return key.replaceAll("-", "_").replaceAll(".", "$");
+    }
+- key: getKeyCount
+  # language=javascript
+  body: |
+    function getKeyCount(context, section) {
+        const spec = context.fullSpec.specifications.find(it => it.key === context.yamlNode.parent.parent.parent.value.key);
+        return spec[section]?.filter(it => it.key === context.yamlNode.value).length > 1
     }

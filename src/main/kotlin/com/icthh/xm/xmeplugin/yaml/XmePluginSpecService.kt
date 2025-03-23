@@ -144,18 +144,6 @@ class XmePluginSpecService(val project: Project) {
         this.xmePluginSpec = xmePluginSpec
     }
 
-    private fun joinSpec(
-        first: XmePluginSpec,
-        second: XmePluginSpec
-    ): XmePluginSpec {
-        val xmePluginSpec = XmePluginSpec()
-        xmePluginSpec.specifications.addAll(first.specifications)
-        xmePluginSpec.specifications.addAll(second.specifications)
-        xmePluginSpec.jsFunctions.addAll(first.jsFunctions)
-        xmePluginSpec.jsFunctions.addAll(second.jsFunctions)
-        return xmePluginSpec
-    }
-
     private fun findYmlFiles(startDir: String): List<Path> {
         if (!File(startDir).exists()) {
             return emptyList()
@@ -189,4 +177,16 @@ class XmePluginSpecService(val project: Project) {
             .joinToString("\n") { it.body ?: "" }
     }
 
+}
+
+fun joinSpec(
+    first: XmePluginSpec,
+    second: XmePluginSpec
+): XmePluginSpec {
+    val xmePluginSpec = XmePluginSpec()
+    xmePluginSpec.specifications.addAll(first.specifications)
+    xmePluginSpec.specifications.addAll(second.specifications)
+    xmePluginSpec.jsFunctions.addAll(first.jsFunctions)
+    xmePluginSpec.jsFunctions.addAll(second.jsFunctions)
+    return xmePluginSpec
 }

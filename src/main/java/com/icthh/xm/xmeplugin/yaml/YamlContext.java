@@ -88,6 +88,14 @@ public class YamlContext {
         return new File(helper.toAbsolutePath(relativePathToConfigRepository)).exists();
     }
 
+    public void showInfoNotification(String title, String message) {
+        helper.showInfoNotification(project, title, message);
+    }
+
+    public void showErrorNotification(String title, String message) {
+        helper.showErrorNotification(project, title, message);
+    }
+
     public void navigate(String path) {
         helper.navigate(path);
     }

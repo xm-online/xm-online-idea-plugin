@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TasksSpec",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "typeKey": {
+            "type": "string"
+          },
+          "stateKey": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scheduleType": {
+            "type": "string",
+            "enum": ["FIXED_RATE", "FIXED_DELAY", "CRON", "ONE_TIME"]
+          },
+          "delay": {
+            "type": "integer"
+          },
+          "cronExpression": {
+            "type": "string"
+          },
+          "cronTriggerTimeZoneId": {
+            "type": "string"
+          },
+          "channelType": {
+            "type": "string",
+            "enum": ["QUEUE", "TOPIC"]
+          },
+          "targetMs": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string"
+          },
+          "ttl": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "typeKey",
+          "key"
+        ]
+      }
+    }
+  }
+}

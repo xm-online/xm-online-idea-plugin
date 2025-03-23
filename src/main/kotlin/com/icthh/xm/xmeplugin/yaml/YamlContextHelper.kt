@@ -1,8 +1,6 @@
 package com.icthh.xm.xmeplugin.yaml
 
-import com.icthh.xm.xmeplugin.utils.YamlNode
-import com.icthh.xm.xmeplugin.utils.getConfigRootDir
-import com.icthh.xm.xmeplugin.utils.log
+import com.icthh.xm.xmeplugin.utils.*
 import com.intellij.openapi.project.Project
 import getServiceName
 import getTenantName
@@ -65,6 +63,14 @@ data class YamlContextHelper(
             "psiElement" to psiElement,
             "project" to project
         )
+    }
+
+    fun showErrorNotification(project: Project, title: String, message: String) {
+        project.showErrorNotification(title) { message }
+    }
+
+    fun showInfoNotification(project: Project, title: String, message: String) {
+        project.showInfoNotification(title) { message }
     }
 
 }

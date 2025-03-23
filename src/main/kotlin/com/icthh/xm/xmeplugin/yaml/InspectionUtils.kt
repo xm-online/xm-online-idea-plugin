@@ -4,6 +4,7 @@ import com.icthh.xm.xmeplugin.yaml.*
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemHighlightType.*
 import com.intellij.openapi.diagnostic.ControlFlowException
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -40,8 +41,13 @@ fun runJsScriptWithResult(
     if (action.isNullOrBlank()) {
         return null
     }
-    val functions = project.xmePluginSpecService.getFunctions(includeFunctions ?: emptyList())
-    return project.jsRunner.runJsScriptWithResult(functions, action, context)
+    try {
+        val functions = project.xmePluginSpecService.getFunctions(includeFunctions ?: emptyList())
+        return project.jsRunner.runJsScriptWithResult(functions, action, context)
+    } catch (e: Exception) {
+        project.thisLogger().error("Error run action ${action}", e)
+        throw e
+    }
 }
 
 fun runMessageTemplate(

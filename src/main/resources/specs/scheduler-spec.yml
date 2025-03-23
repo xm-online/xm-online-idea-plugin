@@ -1,0 +1,48 @@
+specifications:
+  - key: system-tasks-scheduler
+    fileAntPatterns:
+      - "**/scheduler/tasks.yml"
+      - "**/scheduler/tasks/*.yml"
+    jsonSchemaUrl: "classpath:specs/scheduler-tasks-schema.json"
+    injections:
+      - elementPath: tasks[].cronExpression
+        language: cronexp
+    inspections:
+      - key: uniq-tasks-key
+        elementPath: tasks[].key
+        condition: context.fullSpec.tasks.filter(it => it.key === context.yamlNode.value).length > 1
+        errorMessageTemplate: "Duplication tasks key '${context.yamlNode.value}'"
+        severity: ERROR
+    references:
+      - key: scheduler-handler-lep
+        elementPath: tasks[].typeKey
+        reference:
+          type: file
+          required: true
+          filePathTemplates:
+            - "/${context.yamlNode.parent.value.targetMs}/lep/scheduler/SchedulerEvent$$${context.translateToLepConvention(context.yamlNode.value)}$$around.groovy"
+            - "/${context.yamlNode.parent.value.targetMs}/lep/scheduler/SchedulerEvent$$${context.translateToLepConvention(context.yamlNode.value)}$$tenant.groovy"
+        severity: ERROR
+        actionMessageTemplate: "Create scheduler handler lep 'SchedulerEvent$$${context.translateToLepConvention(context.yamlNode.value)}$$around.groovy'"
+        action: context.createTenantFile(`/${context.yamlNode.parent.value.targetMs}/lep/scheduler/SchedulerEvent$$${context.translateToLepConvention(context.yamlNode.value)}$$around.groovy`, `return null`, true)
+    autocompletes:
+      - elementPath: tasks[].targetMs
+        variantsExpression: "return getTenantFolders(context)"
+        includeFunctions:
+          - getTenantFolders
+      - elementPath: tasks[].cronTriggerTimeZoneId
+        variantsExpression: "return Packages.java.time.ZoneId.getAvailableZoneIds()"
+jsFunctions:
+  - key: getTenantFolders
+    body: |
+      function getTenantFolders(context) {
+          const file = context.psiElement.getContainingFile().getOriginalFile().getVirtualFile()
+          if (!file) {
+              return [];
+          }
+          let tenantFolder = file.getParent().getParent();
+          if (tenantFolder.getName() !== context.getTenantName()) {
+              tenantFolder = tenantFolder.getParent();
+          }
+          return tenantFolder.getChildren().filter(it => it.isDirectory()).map(it => it.getName());
+      }
