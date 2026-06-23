@@ -79,9 +79,8 @@ dependencies {
 
     implementation("org.snakeyaml:snakeyaml-engine:2.7")
 
-    implementation("org.graalvm.js:js:22.3.2")
-    implementation("org.graalvm.truffle:truffle-api:22.3.2")
-    implementation("org.graalvm.js:js-scriptengine:22.3.2")
+    implementation("org.graalvm.polyglot:polyglot:25.0.3")
+    implementation("org.graalvm.js:js:25.0.3")
 }
 
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html

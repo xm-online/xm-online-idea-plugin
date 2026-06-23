@@ -14,7 +14,6 @@ import com.intellij.ui.jcef.JBCefAppRequiredArgumentsProvider
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
-import com.jetbrains.performancePlugin.commands.ReplaceBrowser.Companion.browser
 import org.cef.CefApp
 import org.cef.browser.CefBrowser
 import org.cef.browser.CefFrame
