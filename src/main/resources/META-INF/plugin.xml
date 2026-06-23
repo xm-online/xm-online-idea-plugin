@@ -4,15 +4,19 @@
     <!--suppress PluginXmlCapitalization become it`s brand name  -->
     <name>XME.digital</name>
     <vendor>sergeysenja1992</vendor>
-    <idea-version since-build="242"/>
+    <idea-version since-build="253"/>
 
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.vcs</depends>
-    <depends>org.intellij.intelliLang</depends>
     <depends>org.intellij.groovy</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
     <depends>com.intellij.modules.json</depends>
+
+    <!-- Since 2025.3 IntelliLang is a bundled module, not a bundled plugin (id org.intellij.intelliLang removed) -->
+    <dependencies>
+        <module name="intellij.platform.langInjection"/>
+    </dependencies>
 
     <resource-bundle>messages.MessagesBundle</resource-bundle>
 
