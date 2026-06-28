@@ -9,6 +9,10 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import getTenantName
+import org.jetbrains.yaml.psi.YAMLDocument
+import org.jetbrains.yaml.psi.YAMLKeyValue
+import org.jetbrains.yaml.psi.YAMLMapping
+import org.jetbrains.yaml.psi.YAMLSequence
 import java.io.File
 
 val IS_ENTITY_SPEC: Key<Boolean> = Key.create("IS_ENTITY_SPEC")
@@ -92,6 +96,32 @@ private fun Project.computeEntityFiles(tenantName: String): Map<String, PsiFile>
         files.put(path + "/" + it.name, it)
     }
     return files
+}
+
+/**
+ * All `definitions[].key` declaration PSI across every xmentityspec file of the file's tenant.
+ * Used to resolve `"$ref": "#/xmEntityDefinition/<key>"` navigation inside injected dataSpec JSON.
+ */
+fun PsiFile.getDefinitionKeysPsi(): List<YAMLKeyValue> = getEntitySectionKeysPsi("definitions")
+
+/**
+ * All `forms[].key` declaration PSI across every xmentityspec file of the file's tenant.
+ * Used to resolve `"$ref": "#/xmEntityForm/<key>"` navigation inside injected dataSpec JSON.
+ */
+fun PsiFile.getFormKeysPsi(): List<YAMLKeyValue> = getEntitySectionKeysPsi("forms")
+
+private fun PsiFile.getEntitySectionKeysPsi(section: String): List<YAMLKeyValue> {
+    val tenantName = this.getTenantName()
+    return this.project.computeEntityFiles(tenantName).values
+        .flatMap { it.getTopLevelSectionKeysPsi(section) }
+}
+
+private fun PsiFile.getTopLevelSectionKeysPsi(section: String): List<YAMLKeyValue> {
+    val mapping = this.getChildOfType<YAMLDocument>().getChildOfType<YAMLMapping>()
+    val sectionSequence = mapping.getChildrenOfType<YAMLKeyValue>()
+        .find { it.keyTextMatches(section) }
+        .getChildOfType<YAMLSequence>()
+    return sectionSequence.getKeys()
 }
 
 fun PsiElement.getEntityFunctionDirectory(): String {

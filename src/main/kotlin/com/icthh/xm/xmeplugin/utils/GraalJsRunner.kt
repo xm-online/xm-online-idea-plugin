@@ -20,6 +20,16 @@ val Project.jsRunner get() = this.service<GraalJsRunner>()
 @Service(Service.Level.PROJECT)
 class GraalJsRunner: Disposable {
 
+    init {
+        // GraalVM/Truffle is shipped as a Multi-Release JAR. Once everything is repackaged into the
+        // shadow (uber) jar — and because IntelliJ's plugin classloader does not reliably serve
+        // META-INF/versions/** entries — Truffle's own multi-release self-check fails with
+        // InternalError before the engine can start. The plugin runs Truffle interpreter-only
+        // anyway (see engine.WarnInterpreterOnly below; the JBR has no Graal compiler), so disabling
+        // the check is lossless. This is the escape hatch documented in the Truffle error itself.
+        System.setProperty("polyglotimpl.DisableMultiReleaseCheck", "true")
+    }
+
     private val engine: Engine = Engine.newBuilder()
         .option("engine.WarnInterpreterOnly", "false")
         .allowExperimentalOptions(true)

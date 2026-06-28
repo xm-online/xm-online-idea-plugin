@@ -74,6 +74,9 @@
         <!-- listen files added/deleted/moved to keep actual file list for each spec-s -->
         <vfs.asyncListener implementation="com.icthh.xm.xmeplugin.yaml.YamlAsyncFileListener"/>
         <psi.referenceContributor implementation="com.icthh.xm.xmeplugin.yaml.exts.YamlReferenceContributor" language="yaml"/>
+        <!-- Navigate from JSON "$ref": "#/xmEntityDefinition/<key>" (or "#/xmEntityForm/<key>") in injected
+             dataSpec/value JSON to the definitions[].key / forms[].key declaration in the tenant's xmentityspec -->
+        <psi.referenceContributor implementation="com.icthh.xm.xmeplugin.extensions.xmentityspec.XmEntitySpecRefReferenceContributor" language="JSON"/>
 
         <refactoring.elementListenerProvider implementation="com.icthh.xm.xmeplugin.extensions.CommonsRefactoringElementListenerProvider"/>
 

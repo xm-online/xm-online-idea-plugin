@@ -231,11 +231,22 @@ tasks.shadowJar {
         attributes(
             "Main-Class" to "com.example.MainKt",  // Update to your main class if needed
             "Implementation-Title" to "XME.digital plugin",
-            "Implementation-Version" to project.version
+            "Implementation-Version" to project.version,
+            // GraalVM/Truffle jars are Multi-Release JARs. Merging them into the uber jar drops
+            // this attribute, so the JVM ignores META-INF/versions/** and Truffle's own
+            // multi-release self-check fails with InternalError. Restore it here.
+            "Multi-Release" to "true"
         )
     }
 
-    // Optionally avoid including duplicates
+    // Concatenate duplicate META-INF/services/** SPI files instead of dropping them.
+    // js-language and regex both register com.oracle.truffle.api.provider.TruffleLanguageProvider;
+    // with EXCLUDE only one would survive and Truffle would fail to discover the JS language / its
+    // regex engine. mergeServiceFiles() intercepts these paths before duplicatesStrategy applies.
+    mergeServiceFiles()
+
+    // Optionally avoid including duplicates (applies to everything except the merged service files
+    // above — e.g. duplicate module-info.class / LICENSE entries across the GraalVM jars).
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
