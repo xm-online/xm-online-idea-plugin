@@ -174,6 +174,16 @@ specifications:
       severity: ERROR
       includeFunctions:
         - isDuplicateKey
+    # allowedStateKeys must reference a real state of the owning type, OR be the sentinel NEVER / NONE.
+    # The reference (allowedStateKeys-to-State) is required:false so it never errors on sentinels; this
+    # inspection adds the missing validation, skipping the sentinels explicitly.
+    - key: invalid-allowed-state-key
+      elementPath: types[].functions[].allowedStateKeys[]
+      condition: "isInvalidAllowedStateKey(context)"
+      errorMessageTemplate: "State key '${context.yamlNode.value}' not found"
+      severity: ERROR
+      includeFunctions:
+        - isInvalidAllowedStateKey
   actions:
     - key: generateEntityTypeKeys
       nameTemplate: Generate entity typeKey constants
@@ -188,11 +198,14 @@ specifications:
   autocompletes:
     - elementPath: types[].links[].typeKey
       variantsPath: types[].key
+    - elementPath: types[].calendars[].events[].dataTypeKey
+      variantsPath: types[].key
     - elementPath: types[].states[].next[].stateKey
       variantsPath: "types[key='${context.yamlNode.parent.parent.parent.parent.parent.value.key}'].states[].key"
     - elementPath: types[].functions[].allowedStateKeys[]
       variantsPath: "types[key='${context.yamlNode.parent.parent.parent.parent.value.key}'].states[].key"
-      variants: ["NEVER"]
+      # NEVER and NONE are valid special sentinels (not real state keys): suggested here, never flagged.
+      variants: ["NEVER", "NONE"]
   injections:
     - elementPath: types[].dataSpec
       language: JSON
@@ -250,6 +263,28 @@ specifications:
           - "types[].key('${context.yamlNode.value}')"
       severity: ERROR
       errorMessageTemplate: "Entity typeKey '${context.yamlNode.value}' not found"
+    # Calendar event dataTypeKey -> any entity typeKey in the tenant (same as link typeKey).
+    - key: EventDataType-to-XmEntity-TypeKey
+      elementPath: types[].calendars[].events[].dataTypeKey
+      reference:
+        type: element # file | element
+        required: true
+        elementPathTemplates:
+          - "types[].key('${context.yamlNode.value}')"
+      severity: ERROR
+      errorMessageTemplate: "Entity typeKey '${context.yamlNode.value}' not found"
+    # Function allowedStateKeys[] -> a state key of the same entity type. required:false because the
+    # special sentinels "NEVER" / "NONE" (see autocomplete variants) are valid and are not real state
+    # keys: with required:false they simply resolve to nothing instead of being flagged as errors.
+    - key: allowedStateKeys-to-State
+      elementPath: types[].functions[].allowedStateKeys[]
+      reference:
+        type: element # file | element
+        required: false
+        elementPathTemplates:
+          - "types[key='${context.yamlNode.parent.parent.parent.parent.value.key}'].states[].key('${context.yamlNode.value}')"
+      severity: ERROR
+      errorMessageTemplate: "State key '${context.yamlNode.value}' not found"
     - key: XmEntity-Function-lep
       elementPath: types[].functions[].key
       reference:
@@ -281,6 +316,28 @@ jsFunctions:
         }
         const key = context.yamlNode.value;
         return items.filter(it => it != null && it.key === key).length > 1;
+    }
+- key: isInvalidAllowedStateKey
+  # language=javascript
+  body: |
+    function isInvalidAllowedStateKey(context) {
+        const value = context.yamlNode.value;
+        // NEVER / NONE are valid special sentinels, not real state keys.
+        if (value === 'NEVER' || value === 'NONE') {
+            return false;
+        }
+        // owning entity type: allowedStateKeys[] item -> list -> function -> functions list -> type.
+        const typeKey = context.yamlNode?.parent?.parent?.parent?.parent?.value?.key;
+        if (!typeKey) {
+            return false;
+        }
+        // Valid if any type declaration with this key (tenant-merged, possibly split across files)
+        // declares a state with this key.
+        const types = context.fullSpec.types || [];
+        const owningTypeWithState = types.find(t =>
+            t.key === typeKey && (t.states || []).find(s => s != null && s.key === value)
+        );
+        return !owningTypeWithState;
     }
 - key: computeFunctionPath
   #language=javascript
