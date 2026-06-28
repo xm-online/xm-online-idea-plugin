@@ -80,12 +80,100 @@ specifications:
     - "**/entity/xmentityspec.yml"
     - "**/entity/xmentityspec/*.yml"
   inspections:
+    # Duplicate-key inspections. fullSpec / yamlNode are tenant-merged (all xmentityspec files of the
+    # tenant are deep-merged and their lists concatenated), so these flag duplicates within a file AND
+    # across files. isDuplicateKey counts siblings in the key's own list (context.yamlNode.parent.parent),
+    # which scopes nested keys (functions, links, ...) to their owning element automatically.
     - key: xmentityspec
       elementPath: types[].key # path to the target element
       condition: context.fullSpec.types.filter(it => it.key == context.yamlNode.value).length > 1
       # this string will be evaluated as es string template
       errorMessageTemplate: "Duplication entity typeKey '${context.yamlNode.value}'"
-      severity: ERROR # INFO, WARNING, ERROR
+      severity: ERROR # INFO, WARN, ERROR
+    - key: duplicate-definition-key
+      elementPath: definitions[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate definition key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-form-key
+      elementPath: forms[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate form key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-function-key
+      elementPath: types[].functions[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate function key '${context.yamlNode.value}'"
+      severity: WARN # functions are warning per requirement; all other duplicate keys are errors
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-link-key
+      elementPath: types[].links[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate link key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-state-key
+      elementPath: types[].states[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate state key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-attachment-key
+      elementPath: types[].attachments[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate attachment key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-calendar-key
+      elementPath: types[].calendars[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate calendar key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-event-key
+      elementPath: types[].calendars[].events[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate event key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-location-key
+      elementPath: types[].locations[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate location key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-tag-key
+      elementPath: types[].tags[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate tag key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-comment-key
+      elementPath: types[].comments[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate comment key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
+    - key: duplicate-rating-key
+      elementPath: types[].ratings[].key
+      condition: "isDuplicateKey(context)"
+      errorMessageTemplate: "Duplicate rating key '${context.yamlNode.value}'"
+      severity: ERROR
+      includeFunctions:
+        - isDuplicateKey
   actions:
     - key: generateEntityTypeKeys
       nameTemplate: Generate entity typeKey constants
@@ -180,6 +268,20 @@ specifications:
         - computeFunctionPath
 
 jsFunctions:
+- key: isDuplicateKey
+  # language=javascript
+  body: |
+    function isDuplicateKey(context) {
+        // The key's own list: yamlNode(key) -> parent(item object) -> parent(the list). Counting
+        // siblings here scopes nested keys (functions/links/events/...) to their owning element, and
+        // is tenant-wide for top-level lists because the spec state is deep-merged across tenant files.
+        const items = context.yamlNode?.parent?.parent?.value;
+        if (!items) {
+            return false;
+        }
+        const key = context.yamlNode.value;
+        return items.filter(it => it != null && it.key === key).length > 1;
+    }
 - key: computeFunctionPath
   #language=javascript
   body: |
