@@ -6,8 +6,8 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.jetbrains.rd.util.ConcurrentHashMap
-import com.oracle.truffle.js.runtime.JSContextOptions
 import org.graalvm.polyglot.*
+import org.graalvm.polyglot.io.IOAccess
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.VarHandle
 import java.lang.reflect.Field
@@ -59,7 +59,7 @@ class GraalJsRunner: Disposable {
     private fun buildContext(): Context {
         var builder: Context.Builder = Context.newBuilder()
             .engine(engine)
-            .allowIO(true)
+            .allowIO(IOAccess.ALL)
             .allowExperimentalOptions(true)
             .allowHostAccess(
                 HostAccess.newBuilder()
@@ -83,9 +83,9 @@ class GraalJsRunner: Disposable {
             ).allowHostClassLookup { true }
 
         builder = builder
-            .option(JSContextOptions.UNHANDLED_REJECTIONS_NAME, "throw")
-            .option(JSContextOptions.FOREIGN_OBJECT_PROTOTYPE_NAME, "true")
-            .option(JSContextOptions.FOREIGN_HASH_PROPERTIES_NAME, "true")
+            .option("js.unhandled-rejections", "throw")
+            .option("js.foreign-object-prototype", "true")
+            .option("js.foreign-hash-properties", "true")
         return builder.build()
     }
 

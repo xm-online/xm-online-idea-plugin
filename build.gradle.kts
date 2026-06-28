@@ -25,7 +25,8 @@ version = providers.gradleProperty("pluginVersion").get()
 
 // Set the JVM language level used to build the project.
 kotlin {
-    jvmToolchain(17)
+    // IntelliJ Platform 2025.3+ (build 253) is compiled for Java 21
+    jvmToolchain(21)
 }
 
 // Configure project's dependencies
@@ -44,10 +45,15 @@ dependencies {
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
+        // Since 2025.3 IntelliJ IDEA Community/Ultimate are unified; the old ideaIC (type IC) artifact is gone.
+        // Use the dedicated intellijIdea() helper for the unified distribution.
+        intellijIdea(providers.gradleProperty("platformVersion"))
 
         bundledPlugins(
             providers.gradleProperty("platformBundledPlugins")
+                .map { it.split(',').map(String::trim).filter(String::isNotEmpty) })
+        bundledModules(
+            providers.gradleProperty("platformBundledModules")
                 .map { it.split(',').map(String::trim).filter(String::isNotEmpty) })
         plugins(
             providers.gradleProperty("platformPlugins")
@@ -79,9 +85,8 @@ dependencies {
 
     implementation("org.snakeyaml:snakeyaml-engine:2.7")
 
-    implementation("org.graalvm.js:js:22.3.2")
-    implementation("org.graalvm.truffle:truffle-api:22.3.2")
-    implementation("org.graalvm.js:js-scriptengine:22.3.2")
+    implementation("org.graalvm.polyglot:polyglot:25.0.3")
+    implementation("org.graalvm.js:js:25.0.3")
 }
 
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
