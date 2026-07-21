@@ -1,18 +1,19 @@
 package com.icthh.xm.xmeplugin.utils
 
-import com.jetbrains.rd.util.ConcurrentHashMap
-import io.ktor.util.*
 import org.apache.commons.codec.digest.DigestUtils
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URI
+import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import javax.net.ssl.*
 
 val filecache = ConcurrentHashMap<String, String>()
 fun downloadFileContent(urlString: String): String {
     return filecache.getOrPut(urlString) {
         val fileContext = readUrlContentInternal(urlString)
-        val fileName = DigestUtils.sha256Hex(urlString.encodeBase64() + fileContext.hashCode()) + ".json"
+        val encodedUrl = Base64.getEncoder().encodeToString(urlString.toByteArray())
+        val fileName = DigestUtils.sha256Hex(encodedUrl + fileContext.hashCode()) + ".json"
         val path = "/tmp/$fileName"
         File(path).writeText(fileContext)
         path

@@ -74,6 +74,11 @@ dependencies {
     implementation("org.apache.commons:commons-lang3:3.11")
     implementation("org.apache.commons:commons-text:1.10")
 
+    // Apache HttpClient used to be provided by the IntelliJ platform, but it was dropped from the
+    // distribution in 2026.x. Declare it explicitly so shadowJar bundles it into the plugin jar.
+    implementation("org.apache.httpcomponents:httpclient:4.5.14")
+    implementation("org.apache.httpcomponents:httpmime:4.5.14")
+
     implementation("org.jsonschema2pojo:jsonschema2pojo-core:1.2.2")
     implementation("com.sun.codemodel:codemodel:2.6")
 
@@ -142,7 +147,10 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            recommended()
+            // -PverifyAgainstLocalIde=<ide home> verifies against an already installed IDE instead of
+            // downloading the recommended ones (macOS: .../IntelliJ IDEA.app/Contents).
+            val localIde = providers.gradleProperty("verifyAgainstLocalIde").orNull
+            if (localIde != null) local(file(localIde)) else recommended()
         }
     }
 }

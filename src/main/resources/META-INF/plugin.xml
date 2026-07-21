@@ -9,6 +9,8 @@
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.vcs</depends>
+    <!-- AnnotationUtil / JavaFileType etc. are used directly, so far only reachable transitively via Groovy -->
+    <depends>com.intellij.modules.java</depends>
     <depends>org.intellij.groovy</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
     <depends>com.intellij.modules.json</depends>
@@ -16,6 +18,14 @@
     <!-- Since 2025.3 IntelliLang is a bundled module, not a bundled plugin (id org.intellij.intelliLang removed) -->
     <dependencies>
         <module name="intellij.platform.langInjection"/>
+        <!--
+        JCEF is no longer part of the platform core: com.intellij.ui.jcef.* lives in the content module
+        intellij.platform.ui.jcef of the bundled `com.intellij.modules.jcef` plugin. Since 2026.1 the
+        platform stopped exposing it implicitly, so without these two entries the plugin classloader
+        cannot see JBCefBrowser (NoClassDefFoundError). Same pair the platform's own JCEF consumers use.
+        -->
+        <plugin id="com.intellij.modules.jcef"/>
+        <module name="intellij.platform.ui.jcef"/>
     </dependencies>
 
     <resource-bundle>messages.MessagesBundle</resource-bundle>

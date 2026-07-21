@@ -9,7 +9,7 @@ import com.intellij.openapi.vfs.VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.jetbrains.rd.util.ConcurrentHashMap
+import java.util.concurrent.ConcurrentHashMap
 import java.io.*
 import java.net.MalformedURLException
 import java.net.URI

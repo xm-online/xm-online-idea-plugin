@@ -5,7 +5,7 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.jetbrains.rd.util.ConcurrentHashMap
+import java.util.concurrent.ConcurrentHashMap
 import org.graalvm.polyglot.*
 import org.graalvm.polyglot.io.IOAccess
 import java.lang.invoke.MethodHandle

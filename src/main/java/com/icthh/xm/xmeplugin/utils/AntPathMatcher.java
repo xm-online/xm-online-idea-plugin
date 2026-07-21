@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
-import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.Contract;
 
 public class AntPathMatcher {
@@ -478,7 +477,7 @@ public class AntPathMatcher {
 	}
 
 	public static String[] toStringArray(@Nullable Collection<String> collection) {
-		return (!CollectionUtils.isEmpty(collection) ? collection.toArray(EMPTY_STRING_ARRAY) : EMPTY_STRING_ARRAY);
+		return (collection != null && !collection.isEmpty() ? collection.toArray(EMPTY_STRING_ARRAY) : EMPTY_STRING_ARRAY);
 	}
 
 

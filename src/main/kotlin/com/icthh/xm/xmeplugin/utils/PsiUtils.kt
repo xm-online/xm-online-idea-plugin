@@ -15,7 +15,7 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiTreeUtil.getChildrenOfTypeAsList
 import com.intellij.util.ProcessingContext
-import com.jetbrains.rd.util.ConcurrentHashMap
+import java.util.concurrent.ConcurrentHashMap
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
 import org.jetbrains.yaml.psi.YAMLSequence

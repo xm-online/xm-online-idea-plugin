@@ -118,10 +118,10 @@ class XmePluginSpecService(val project: Project) {
                     val tenant = file.getTenantName(project)
                     val tenantSpecs = filesBySpec.computeIfAbsent(tenant) { ConcurrentHashMap() }
                     val toPsiFile = file.toPsiFile(project) ?: return@forEach
-                    tenantSpecs.computeIfAbsent(it.key) { mutableSetOf() }.add(toPsiFile)
+                    tenantSpecs.computeIfAbsent(it.key) { ConcurrentHashMap.newKeySet() }.add(toPsiFile)
 
                     specsByFile.computeIfAbsent(tenant) { ConcurrentHashMap() }
-                        .computeIfAbsent(file.path) { mutableSetOf() }
+                        .computeIfAbsent(file.path) { ConcurrentHashMap.newKeySet() }
                         .add(it)
                 }
             }
@@ -168,7 +168,9 @@ class XmePluginSpecService(val project: Project) {
     }
 
     fun getFiles(tenant: String, spec: String): List<PsiFile> {
-        return filesBySpec[tenant]?.get(spec)?.toList() ?: emptyList()
+        // filterNotNull is defense-in-depth: the set is now thread-safe, but a
+        // transient null (e.g. from prior corruption / Java interop) must never NPE downstream.
+        return filesBySpec[tenant]?.get(spec)?.filterNotNull() ?: emptyList()
     }
 
     fun getFunctions(includeFunctions: List<String>): String {
