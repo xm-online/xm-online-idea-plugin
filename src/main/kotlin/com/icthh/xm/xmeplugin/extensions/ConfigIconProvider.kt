@@ -134,26 +134,31 @@ class ConfigIconProvider: IconProvider() {
         }
     }
 
-    fun loadSvgAsIcon(svgContent: String): ImageIcon {
-        val loader = SVGLoader()
-        val svgDocument: SVGDocument? = loader.load(svgContent.byteInputStream(UTF_8), null, LoaderContext.builder()
-            .parserProvider(DefaultParserProvider())
-            .build())
+    fun loadSvgAsIcon(svgContent: String): ImageIcon? {
+        try {
+            val loader = SVGLoader()
+            val svgDocument: SVGDocument = loader.load(svgContent.byteInputStream(UTF_8), null, LoaderContext.builder()
+                .parserProvider(DefaultParserProvider())
+                .build()) ?: return null
 
-        val size = svgDocument!!.size()
-        val image = ImageUtil.createImage(size.width.toInt(), size.height.toInt(), BufferedImage.TYPE_INT_ARGB)
-        val g = image.createGraphics()
-        g.setRenderingHint(
-            RenderingHints.KEY_INTERPOLATION,
-            RenderingHints.VALUE_INTERPOLATION_BILINEAR
-        )
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-        g.setRenderingHint(SVGRenderingHints.KEY_SOFT_CLIPPING, SVGRenderingHints.VALUE_SOFT_CLIPPING_ON);
+            val size = svgDocument.size()
+            val image = ImageUtil.createImage(size.width.toInt(), size.height.toInt(), BufferedImage.TYPE_INT_ARGB)
+            val g = image.createGraphics()
+            g.setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR
+            )
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            g.setRenderingHint(SVGRenderingHints.KEY_SOFT_CLIPPING, SVGRenderingHints.VALUE_SOFT_CLIPPING_ON);
 
-        svgDocument.render(null, g)
-        g.dispose()
-        return ImageIcon(image.scaleToIcon())
+            svgDocument.render(null, g)
+            g.dispose()
+            return ImageIcon(image.scaleToIcon())
+        } catch (e: Throwable) {
+            log.trace(e)
+            return null
+        }
     }
 
     private fun uploadImage(
@@ -167,7 +172,7 @@ class ConfigIconProvider: IconProvider() {
             imageContent ?: return
             if (data.endsWith(".svg")) {
                 val target = String(imageContent, UTF_8)
-                val icon = loadSvgAsIcon(target)
+                val icon = loadSvgAsIcon(target) ?: return
                 iconCache[tenant] = TenantIcon(lastModified, icon)
             } else {
                 val image = ImageIO.read(ByteArrayInputStream(imageContent))

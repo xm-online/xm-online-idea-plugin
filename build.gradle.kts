@@ -12,7 +12,8 @@ plugins {
     alias(libs.plugins.qodana) // Gradle Qodana Plugin
     alias(libs.plugins.kover) // Gradle Kover Plugin
     id("com.github.node-gradle.node") version "7.1.0"
-    id("com.github.johnrengelman.shadow") version "7.1.2"
+    // johnrengelman's shadow 7.x is not compatible with Gradle 9; the plugin moved to com.gradleup.shadow
+    id("com.gradleup.shadow") version "9.3.0"
 }
 
 node {
@@ -25,8 +26,8 @@ version = providers.gradleProperty("pluginVersion").get()
 
 // Set the JVM language level used to build the project.
 kotlin {
-    // IntelliJ Platform 2025.3+ (build 253) is compiled for Java 21
-    jvmToolchain(21)
+    // IntelliJ Platform 2026.2+ (build 262) runs on JBR 25 and is compiled for Java 25
+    jvmToolchain(25)
 }
 
 // Configure project's dependencies
@@ -59,7 +60,6 @@ dependencies {
             providers.gradleProperty("platformPlugins")
                 .map { it.split(',').map(String::trim).filter(String::isNotEmpty) })
 
-        instrumentationTools()
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)

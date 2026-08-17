@@ -36,18 +36,22 @@ import java.util.concurrent.Future
 
 val Project.configRestService get() = this.service<XmeMsConfigRestService>()
 
+/** Gate path prefixes to probe, in order. Empty prefix means the gate is exposed on the root of xmUrl. */
+private val GATE_PREFIXES = listOf("/xm-api", "")
+
 @Service(Service.Level.PROJECT)
 class XmeMsConfigRestService {
 
     private val tokens: MutableMap<String, TokenResponse> = ConcurrentHashMap()
+    private val gatePrefixes: MutableMap<String, String> = ConcurrentHashMap()
 
     private val objectMapper = ObjectMapper()
         .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
         .registerModule(KotlinModule.Builder().build())
 
     fun getConfigFileIfExists(project: Project, env: EnvironmentSettings, path: String, version: String? = env.version): String? {
-        val baseUrl = env.xmUrl
         val accessToken = getToken(env)
+        val baseUrl = gateUrl(env)
         val url = baseUrl + "/config/api${path}?${version.templateOrEmpty{"version=${it}"}}"
         url.httpGetResponse(mapOf(AUTHORIZATION to "Bearer $accessToken")).use {response ->
 
@@ -75,31 +79,75 @@ class XmeMsConfigRestService {
         return tokenResponse.access_token
     }
 
+    /**
+     * Some environments expose the gateway under the /xm-api prefix, some don't. The prefix is detected once per
+     * environment by trying to get a token with it, and reused for all other gate calls of that environment.
+     */
+    fun gateUrl(env: EnvironmentSettings): String {
+        val prefix = gatePrefixes[env.id] ?: run {
+            getToken(env)
+            gatePrefixes[env.id] ?: ""
+        }
+        return env.xmUrl + prefix
+    }
+
     fun fetchToken(env: EnvironmentSettings): TokenResponse {
+        val knownPrefix = gatePrefixes[env.id]
+        val prefixes = if (knownPrefix != null) listOf(knownPrefix) else GATE_PREFIXES
+
+        val errors = LinkedHashMap<String, String>()
+        prefixes.forEach { prefix ->
+            val tokenResponse = tryFetchToken(env, prefix, errors)
+            if (tokenResponse != null) {
+                gatePrefixes[env.id] = prefix
+                return tokenResponse
+            }
+        }
+        gatePrefixes.remove(env.id)
+        throw ErrorGetToken("Error get token. ${errors.entries.joinToString("; ") { "${it.key} -> ${it.value}" }}")
+    }
+
+    private fun tryFetchToken(env: EnvironmentSettings, prefix: String, errors: MutableMap<String, String>): TokenResponse? {
         val clientToken = "${env.clientId}:${env.clientPassword}".toByteArray()
         val formBody: RequestBody = FormBody.Builder()
             .addEncoded("grant_type", "password")
             .addEncoded("username", env.xmSuperAdminLogin)
             .addEncoded("password", env.xmSuperAdminPassword)
             .build()
-        OkHttpClient().newCall(
-            Request.Builder()
-                .url(env.xmUrl + "/uaa/oauth/token")
-                .post(formBody)
-                .addHeader(AUTHORIZATION, "Basic ${Base64.getEncoder().encodeToString(clientToken)}")
-                .addHeader(CONTENT_TYPE, APPLICATION_FORM_URLENCODED.toString())
-                .build()
-        ).execute().use {
-            return objectMapper.readValue<TokenResponse>(it.body?.byteString()?.utf8() ?: "")
+        val url = env.xmUrl + prefix + "/uaa/oauth/token"
+        try {
+            OkHttpClient().newCall(
+                Request.Builder()
+                    .url(url)
+                    .post(formBody)
+                    .addHeader(AUTHORIZATION, "Basic ${Base64.getEncoder().encodeToString(clientToken)}")
+                    .addHeader(CONTENT_TYPE, APPLICATION_FORM_URLENCODED.toString())
+                    .build()
+            ).execute().use {
+                if (!it.isSuccessful) {
+                    errors[url] = "${it.code} ${it.message}"
+                    return null
+                }
+                val token = objectMapper.readValue<TokenResponse>(it.body?.byteString()?.utf8() ?: "")
+                if (token.access_token.isBlank()) {
+                    errors[url] = "response without access_token"
+                    return null
+                }
+                return token
+            }
+        } catch (e: Exception) {
+            errors[url] = "${e.javaClass.simpleName}: ${e.message}"
+            return null
         }
     }
 
     fun refresh(env: EnvironmentSettings) {
+        val accessToken = getToken(env)
         OkHttpClient().newCall(
             Request.Builder()
-                .url(env.xmUrl + "/config/api/profile/refresh")
+                .url(gateUrl(env) + "/config/api/profile/refresh")
                 .post(EMPTY_REQUEST)
-                .addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
+                .addHeader(AUTHORIZATION, "bearer $accessToken")
                 .addHeader(CONTENT_TYPE, APPLICATION_JSON.toString())
                 .build()
         ).execute().use {
@@ -109,10 +157,11 @@ class XmeMsConfigRestService {
 
     fun getCurrentVersion(env: EnvironmentSettings): String {
         val accessToken = getToken(env)
-        return (env.xmUrl + "/config/api/version").httpGetString(mapOf(AUTHORIZATION to "bearer $accessToken")) ?: "-"
+        return (gateUrl(env) + "/config/api/version").httpGetString(mapOf(AUTHORIZATION to "bearer $accessToken")) ?: "-"
     }
 
     fun updateInMemory(project: Project, env: EnvironmentSettings, files: Map<String, InputStream?>) {
+        val accessToken = getToken(env)
         HttpClients.createDefault().use { httpclient ->
 
             var builder = MultipartEntityBuilder.create()
@@ -123,8 +172,8 @@ class XmeMsConfigRestService {
             val data = builder.build()
 
             val request = RequestBuilder
-                .post("${project.getSettings().selected()?.xmUrl}/config/api/inmemory/config")
-                .setHeader(AUTHORIZATION, "bearer ${getToken(env)}")
+                .post("${gateUrl(env)}/config/api/inmemory/config")
+                .setHeader(AUTHORIZATION, "bearer $accessToken")
                 .setEntity(data)
                 .build()
 
@@ -140,10 +189,11 @@ class XmeMsConfigRestService {
     }
 
     fun deleteConfig(project: Project, env: EnvironmentSettings, paths: Set<String>) {
+        val accessToken = getToken(env)
         HttpClients.createDefault().use { httpclient ->
             val request = RequestBuilder
-                .delete("${project.getSettings().selected()?.xmUrl}/config/api/inmemory/config/tenants/XM")
-                .setHeader(AUTHORIZATION, "bearer ${getToken(env)}")
+                .delete("${gateUrl(env)}/config/api/inmemory/config/tenants/XM")
+                .setHeader(AUTHORIZATION, "bearer $accessToken")
                 .setHeader(CONTENT_TYPE, APPLICATION_JSON.mimeType)
                 .setEntity(StringEntity(objectMapper.writeValueAsString(paths)))
                 .build()
@@ -160,7 +210,8 @@ class XmeMsConfigRestService {
     }
 
     fun updateFileInMemory(project: Project, env: EnvironmentSettings, path: String, content: String) {
-        val baseUrl = env.xmUrl
+        val accessToken = getToken(env)
+        val baseUrl = gateUrl(env)
 
         val body: RequestBody = content.toRequestBody(
             TEXT_PLAIN.toString().toMediaTypeOrNull()
@@ -168,7 +219,7 @@ class XmeMsConfigRestService {
 
         val request: Request = Request.Builder()
             .url(baseUrl + "/config/api/inmemory${path}")
-            .addHeader(AUTHORIZATION, "bearer ${getToken(env)}")
+            .addHeader(AUTHORIZATION, "bearer $accessToken")
             .post(body)
             .build()
         OkHttpClient().newCall(request).execute().use {  response ->
@@ -232,3 +283,5 @@ data class TokenResponse(val access_token: String, val expires_in: Int) {
 class NotFoundException: RuntimeException()
 
 class ErrorUpdateConfiguration(message: String): RuntimeException(message)
+
+class ErrorGetToken(message: String): RuntimeException(message)

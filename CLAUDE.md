@@ -37,7 +37,7 @@ There is no `src/test` directory — the project currently ships no JVM tests, s
 
 ### Language stack
 
-Mixed Kotlin + Java on JVM 17 (`kotlin { jvmToolchain(17) }`). New code is Kotlin by default; the small `src/main/java` tree exists because a few classes (`YamlContext`, `YamlNode`, `AntPathMatcher`) are exposed as the public surface JS expressions execute against — see "YAML DSL engine" below.
+Mixed Kotlin + Java on JVM 25 (`kotlin { jvmToolchain(25) }`). New code is Kotlin by default; the small `src/main/java` tree exists because a few classes (`YamlContext`, `YamlNode`, `AntPathMatcher`) are exposed as the public surface JS expressions execute against — see "YAML DSL engine" below.
 
 ### IntelliJ extension surface
 
@@ -76,7 +76,7 @@ JavaScript expressions in user specs (`condition`, `action`, `variantsExpression
 
 ### Platform target
 
-`gradle.properties`: `platformType=IC` (IntelliJ Community), `platformVersion=2024.2.5`, `pluginSinceBuild=242`. Bundled-plugin deps: `org.intellij.intelliLang`, `org.intellij.groovy`, `org.jetbrains.plugins.yaml`, `com.intellij.java` — anything you touch in the extension classes can rely on these being present.
+`gradle.properties`: `platformType=IC`, `platformVersion=2026.2.0.1`, `pluginSinceBuild=262` (2026.2 is the first release running on Java 25 / JBR 25). Bundled-plugin deps are listed in `platformBundledPlugins` / `platformBundledModules` (`org.intellij.groovy`, `org.jetbrains.plugins.yaml`, `com.intellij.java`, JSON/JCEF modules, `intellij.platform.langInjection`) — anything you touch in the extension classes can rely on these being present. Gradle 9.6+ — the build runs fine on the default JDK 25.
 
 Gradle build flags worth knowing: `org.gradle.configuration-cache = false` and `org.gradle.caching = false` — do not flip these without checking; the IntelliJ Platform Gradle Plugin + the Angular task graph have historically not played well with config cache here.
 
