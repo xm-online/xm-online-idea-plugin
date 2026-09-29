@@ -87,6 +87,7 @@ dependencies {
     implementation("org.eclipse.jetty:jetty-webapp:9.4.57.v20241219")
     implementation("org.eclipse.jetty:jetty-continuation:9.4.57.v20241219")
     implementation("org.eclipse.jgit:org.eclipse.jgit:7.1.0.202411261347-r")
+    implementation("org.eclipse.jgit:org.eclipse.jgit.ssh.apache:7.1.0.202411261347-r")
 
     implementation("org.snakeyaml:snakeyaml-engine:2.7")
 
