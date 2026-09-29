@@ -172,6 +172,9 @@ fun Project.getTenants(root: String? = null): List<String> {
             val tenantsList = tenantFolders.filter { File("${tenantsPath}/${it}").isDirectory }
             tenants.addAll(tenantsList)
         }
+        if (!isConfigProject()) {
+            tenants.addAll(readExternalTenants(path).keys.filter { !tenants.contains(it) })
+        }
     }
     return tenants
 }

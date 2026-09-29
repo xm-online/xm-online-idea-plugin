@@ -17,6 +17,7 @@ import java.net.URISyntaxException
 import java.net.URL
 import java.nio.charset.Charset
 import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.nio.file.Paths
 
 
@@ -228,6 +229,7 @@ fun Project.doUpdateSymlinkToLep() {
         createSymlink(tenantsPath, it, "lep", "main")
         createSymlink(tenantsPath, it, "test", "test")
     }
+    createExternalTenantsSymlinks(selected.basePath!!, selected.selectedTenants)
 
     VfsUtil.findFile(File("${basePath}").toPath(), false)?.refresh(true, true)
 
@@ -245,13 +247,34 @@ fun Project.doUpdateSymlinkToLep() {
     VfsUtil.findFile(File("${basePath}").toPath(), false)?.refresh(true, true)
 }
 
+/**
+ * Tenants of external-tenants.yml: LEPs come from the clone of the tenant repository.
+ * A tenant folder that is also in the main repository keeps the main one, as ee-config does.
+ */
+private fun Project.createExternalTenantsSymlinks(configBasePath: String, selectedTenants: Set<String>) {
+    readExternalTenants(configBasePath).filterKeys { selectedTenants.contains(it) }.forEach { (tenant, repository) ->
+        val externalTenantsPath = syncExternalTenantRepository(configBasePath, tenant, repository)
+        if (externalTenantsPath == null) {
+            showErrorNotification("External tenant $tenant") { "Repository ${repository.uri} is not available, see idea.log" }
+            return@forEach
+        }
+        createSymlink(externalTenantsPath, tenant, "lep", "main")
+        createSymlink(externalTenantsPath, tenant, "test", "test")
+    }
+}
+
 private fun Project.createSymlink(tenantsPath: String, tenant: String, sourceType: String, targetType: String) {
     val fromTest = File("${tenantsPath}/${tenant}/${getApplicationName()}/${sourceType}")
     if (fromTest.exists()) {
         val lepPath = "${this.basePath}/src/${targetType}/lep/${tenant}/${getApplicationName()}"
+        val link = File("${lepPath}/${sourceType}").toPath()
+        if (Files.exists(link, LinkOption.NOFOLLOW_LINKS)) {
+            log.info("${link} already exists, skip ${fromTest}")
+            return
+        }
         File(lepPath).mkdirs()
         log.info("${fromTest} -> ${lepPath}/${sourceType}")
-        Files.createSymbolicLink(File("${lepPath}/${sourceType}").toPath(), fromTest.toPath())
+        Files.createSymbolicLink(link, fromTest.toPath())
     }
 }
 
